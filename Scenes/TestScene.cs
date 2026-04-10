@@ -29,7 +29,7 @@ public class TestScene : Scene
     {
         if (Services.Input.IsKeyPressed(Keys.B))
         {
-            Services.SceneManager.TransitionTo(new FarmScene(Services));
+            Services.SceneManager.Pop();
         }
     }
 

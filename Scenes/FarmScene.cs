@@ -99,10 +99,10 @@ public class FarmScene : Scene
             Services.Time.ForceSleep();
         }
 
-        // Test scene transition with T key
+        // Test scene transition with T key (push so FarmScene stays alive on stack)
         if (input.IsKeyPressed(Keys.T))
         {
-            Services.SceneManager.TransitionTo(new TestScene(Services));
+            Services.SceneManager.Push(new TestScene(Services));
             return;
         }
 
