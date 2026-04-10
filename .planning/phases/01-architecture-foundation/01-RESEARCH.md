@@ -440,22 +440,22 @@ public class GameState
 | A4 | MonoGame.Extended ScreenManager is unnecessary for this scope | Standard Stack | LOW - locked decision already excludes it |
 | A5 | Blocking during fade (no Update on scenes) is acceptable | Architecture Patterns | LOW - scenes are paused during 0.4s transitions |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **items.json location**
    - What we know: D-08 says JSON loaded via ItemRegistry. Config files currently live in `Content/` or `Data/`.
    - What's unclear: Exact path. `Data/items.json`? `Content/Data/items.json`?
-   - Recommendation: Use `Data/items.json` alongside the code, with CopyToOutputDirectory in .csproj. Consistent with content organization.
+   - RESOLVED: Use `Data/items.json` alongside the code, with CopyToOutputDirectory in .csproj. Consistent with content organization. (Implemented in Plan 01-01 Task 2)
 
 2. **CropData relationship to ItemDefinition**
    - What we know: CropRegistry migrates to ItemRegistry (D-08). CropData has growth-specific fields (DaysPerStage, StageCount, GrowthSheet, etc.) that don't belong in generic ItemDefinition.
    - What's unclear: Does CropData become a separate class that references an ItemDefinition? Or does it embed within ItemDefinition.Stats?
-   - Recommendation: Keep CropData as a separate runtime class for growth logic. ItemDefinition for the "Cabbage" crop item. ItemRegistry provides ItemDefinition; CropManager still uses CropData for growth mechanics. Link them by matching Id/Name.
+   - RESOLVED: Keep CropData as a separate runtime class for growth logic. ItemDefinition for the "Cabbage" crop item. ItemRegistry provides ItemDefinition; CropManager still uses CropData for growth mechanics. Link them by matching Id/Name. CropRegistry coexists temporarily for GPU texture loading until Phase 2. (Implemented in Plan 01-01 Task 2)
 
 3. **TestScene content**
    - What we know: Success criteria requires "two placeholder scenes with transition."
    - What's unclear: What does TestScene look like?
-   - Recommendation: Simple colored background with text label ("Test Scene - Press B to go back"), just enough to prove transitions work.
+   - RESOLVED: Dark blue background with text label ("Test Scene - Press B to go back"), just enough to prove transitions work. (Implemented in Plan 01-03 Task 2)
 
 ## Environment Availability
 
