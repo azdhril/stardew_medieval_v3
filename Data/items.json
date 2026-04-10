@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "items": [
+    { "Id": "Cabbage_Seed", "Name": "Cabbage Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_cabbage", "Stats": {} },
+    { "Id": "Cabbage", "Name": "Cabbage", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_cabbage", "Stats": {} },
+
+    { "Id": "Carrot_Seed", "Name": "Carrot Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_carrot", "Stats": {} },
+    { "Id": "Carrot", "Name": "Carrot", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_carrot", "Stats": {} },
+
+    { "Id": "Cauliflower_Seed", "Name": "Cauliflower Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_cauliflower", "Stats": {} },
+    { "Id": "Cauliflower", "Name": "Cauliflower", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_cauliflower", "Stats": {} },
+
+    { "Id": "Cotton_Seed", "Name": "Cotton Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_cotton", "Stats": {} },
+    { "Id": "Cotton", "Name": "Cotton", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_cotton", "Stats": {} },
+
+    { "Id": "Onion_Seed", "Name": "Onion Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_onion", "Stats": {} },
+    { "Id": "Onion", "Name": "Onion", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_onion", "Stats": {} },
+
+    { "Id": "Pepper_Seed", "Name": "Pepper Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_pepper", "Stats": {} },
+    { "Id": "Pepper", "Name": "Pepper", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_pepper", "Stats": {} },
+
+    { "Id": "Radish_Seed", "Name": "Radish Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_radish", "Stats": {} },
+    { "Id": "Radish", "Name": "Radish", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_radish", "Stats": {} },
+
+    { "Id": "Strawberry_Seed", "Name": "Strawberry Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_strawberry", "Stats": {} },
+    { "Id": "Strawberry", "Name": "Strawberry", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_strawberry", "Stats": {} },
+
+    { "Id": "Wheat_Seed", "Name": "Wheat Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_wheat", "Stats": {} },
+    { "Id": "Wheat", "Name": "Wheat", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_wheat", "Stats": {} },
+
+    { "Id": "Turnip_Seed", "Name": "Turnip Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_turnip", "Stats": {} },
+    { "Id": "Turnip", "Name": "Turnip", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_turnip", "Stats": {} },
+
+    { "Id": "Cosmic_Carrot_Seed", "Name": "Cosmic Carrot Seed", "Type": "Seed", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "seed_cosmic_carrot", "Stats": {} },
+    { "Id": "Cosmic_Carrot", "Name": "Cosmic Carrot", "Type": "Crop", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "crop_cosmic_carrot", "Stats": {} },
+
+    { "Id": "Coffee_Seed", "Name": "Coffee Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_coffee", "Stats": {} },
+    { "Id": "Coffee", "Name": "Coffee", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_coffee", "Stats": {} },
+
+    { "Id": "Corn_Seed", "Name": "Corn Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_corn", "Stats": {} },
+    { "Id": "Corn", "Name": "Corn", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_corn", "Stats": {} },
+
+    { "Id": "Pineapple_Seed", "Name": "Pineapple Seed", "Type": "Seed", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "seed_pineapple", "Stats": {} },
+    { "Id": "Pineapple", "Name": "Pineapple", "Type": "Crop", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "crop_pineapple", "Stats": {} },
+
+    { "Id": "Pumpkin_Seed", "Name": "Pumpkin Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_pumpkin", "Stats": {} },
+    { "Id": "Pumpkin", "Name": "Pumpkin", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_pumpkin", "Stats": {} },
+
+    { "Id": "Tomato_Seed", "Name": "Tomato Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_tomato", "Stats": {} },
+    { "Id": "Tomato", "Name": "Tomato", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_tomato", "Stats": {} },
+
+    { "Id": "Watermelon_Seed", "Name": "Watermelon Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_watermelon", "Stats": {} },
+    { "Id": "Watermelon", "Name": "Watermelon", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_watermelon", "Stats": {} },
+
+    { "Id": "Zucchini_Seed", "Name": "Zucchini Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_zucchini", "Stats": {} },
+    { "Id": "Zucchini", "Name": "Zucchini", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_zucchini", "Stats": {} },
+
+    { "Id": "Grape_Purple_Seed", "Name": "Grape Purple Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_grape_purple", "Stats": {} },
+    { "Id": "Grape_Purple", "Name": "Grape Purple", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_grape_purple", "Stats": {} },
+
+    { "Id": "Grape_Pink_Seed", "Name": "Grape Pink Seed", "Type": "Seed", "Rarity": "Common", "StackLimit": 99, "SpriteId": "seed_grape_pink", "Stats": {} },
+    { "Id": "Grape_Pink", "Name": "Grape Pink", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "SpriteId": "crop_grape_pink", "Stats": {} },
+
+    { "Id": "Prickly_Pear_Seed", "Name": "Prickly Pear Seed", "Type": "Seed", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "seed_prickly_pear", "Stats": {} },
+    { "Id": "Prickly_Pear", "Name": "Prickly Pear", "Type": "Crop", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "crop_prickly_pear", "Stats": {} },
+
+    { "Id": "Hoe", "Name": "Hoe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_hoe", "Stats": {} },
+    { "Id": "Watering_Can", "Name": "Watering Can", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_watering_can", "Stats": {} },
+    { "Id": "Scythe", "Name": "Scythe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_scythe", "Stats": {} }
+  ]
+}
