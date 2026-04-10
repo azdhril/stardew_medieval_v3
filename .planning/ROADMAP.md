@@ -30,12 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Player can transition between at least two placeholder scenes (Farm and a test scene) with fade in/out
   3. A test entity (e.g. dummy NPC) can be spawned using the Entity base class with position, sprite, and collision
   4. GameState serializes and deserializes the new structure (inventory placeholder, scene, gold) without breaking existing saves
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md — Entity base class + ItemDefinition/ItemRegistry (Wave 1)
+- [ ] 01-02-PLAN.md — Scene abstract class, ServiceContainer, SceneManager with fade transitions (Wave 1)
+- [ ] 01-03-PLAN.md — GameState expansion, save migration, FarmScene extraction, Game1 refactor (Wave 2)
 
 ### Phase 2: Items & Inventory
 **Goal**: Players can collect, manage, and equip items through a complete inventory system, and farming produces items that flow into inventory
@@ -132,7 +132,7 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Architecture Foundation | 0/3 | Not started | - |
+| 1. Architecture Foundation | 0/3 | Planning complete | - |
 | 2. Items & Inventory | 0/3 | Not started | - |
 | 3. Combat | 0/3 | Not started | - |
 | 4. World & NPCs | 0/3 | Not started | - |
