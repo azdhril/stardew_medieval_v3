@@ -18,6 +18,12 @@ public class PlayerEntity : Entity
 
     private bool _isMoving;
 
+    /// <summary>
+    /// I-frame timer set by CombatManager after taking damage.
+    /// Per D-15: player blinks and is immune for 1s after being hit.
+    /// </summary>
+    public float IFrameTimer { get; set; }
+
     public void LoadContent(Texture2D spriteSheet)
     {
         SpriteSheet = spriteSheet;
@@ -28,6 +34,13 @@ public class PlayerEntity : Entity
 
     public void Update(float deltaTime, Vector2 input, TileMap map)
     {
+        // Update combat timers (knockback, flash)
+        UpdateKnockback(deltaTime);
+        UpdateFlash(deltaTime);
+
+        if (IFrameTimer > 0)
+            IFrameTimer -= deltaTime;
+
         _isMoving = input != Vector2.Zero;
 
         if (_isMoving)
@@ -85,6 +98,13 @@ public class PlayerEntity : Entity
     {
         if (SpriteSheet == null) return;
 
+        // I-frame blink effect: toggle visibility every 0.1s (per D-15)
+        if (IFrameTimer > 0)
+        {
+            bool visible = ((int)(IFrameTimer * 10) % 2 == 0);
+            if (!visible) return;
+        }
+
         int row = FacingDirection switch
         {
             Direction.Down => 0,
@@ -108,7 +128,9 @@ public class PlayerEntity : Entity
             FrameHeight
         );
 
-        spriteBatch.Draw(SpriteSheet, destRect, srcRect, Color.White);
+        // Flash white on hit
+        Color tint = IsFlashing ? Color.Red : Color.White;
+        spriteBatch.Draw(SpriteSheet, destRect, srcRect, tint);
     }
 
     /// <summary>
