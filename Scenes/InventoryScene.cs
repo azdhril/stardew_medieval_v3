@@ -10,31 +10,30 @@ using stardew_medieval_v3.UI;
 namespace stardew_medieval_v3.Scenes;
 
 /// <summary>
-/// Inventory overlay scene with unified view: equipment silhouette on the left,
-/// 20-slot item grid on the right. Supports drag-and-drop between grid and
-/// equipment slots. Opened via I key, closed via I or Escape.
+/// Inventory overlay scene: equipment silhouette on the left, 20-slot item grid on the right.
+/// Dragging items to the hotbar at the bottom of the screen sets hotbar references.
+/// The hotbar itself is rendered by FarmScene underneath this overlay.
 /// </summary>
 public class InventoryScene : Scene
 {
-    // Panel: equipment (left) + grid (right) side by side
     private const int PanelWidth = 380;
     private const int PanelHeight = 220;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
+    private readonly HotbarRenderer _hotbar;
 
     private InventoryGridRenderer _gridRenderer = null!;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
-
-    // Mouse tracking for drag
     private bool _wasMouseDown;
 
-    public InventoryScene(ServiceContainer services, InventoryManager inventory, SpriteAtlas atlas)
+    public InventoryScene(ServiceContainer services, InventoryManager inventory, SpriteAtlas atlas, HotbarRenderer hotbar)
         : base(services)
     {
         _inventory = inventory;
         _atlas = atlas;
+        _hotbar = hotbar;
     }
 
     public override void LoadContent()
@@ -48,8 +47,10 @@ public class InventoryScene : Scene
         _gridRenderer = new InventoryGridRenderer(_inventory, _atlas);
         _gridRenderer.LoadContent(device, _font);
 
-        _wasMouseDown = false;
+        var viewport = device.Viewport;
+        _gridRenderer.SetHotbar(_hotbar, viewport.Width, viewport.Height);
 
+        _wasMouseDown = false;
         Console.WriteLine("[InventoryScene] Loaded");
     }
 
@@ -57,7 +58,6 @@ public class InventoryScene : Scene
     {
         var input = Services.Input;
 
-        // Close inventory on I or Escape
         if (input.IsKeyPressed(Keys.I) || input.IsKeyPressed(Keys.Escape))
         {
             _gridRenderer.CancelDrag();
@@ -65,38 +65,22 @@ public class InventoryScene : Scene
             return;
         }
 
-        // Calculate layout positions
-        var viewport = Services.GraphicsDevice.Viewport;
-        int panelX = (viewport.Width - PanelWidth) / 2;
-        int panelY = (viewport.Height - PanelHeight) / 2;
+        int panelX, panelY;
+        GetPanelPosition(out panelX, out panelY);
+        int equipX = panelX + 30;
+        int equipY = panelY + 35;
+        int gridX = panelX + 125;
+        int gridY = panelY + 30;
 
-        // Equipment on the left side of the panel
-        int equipOffsetX = panelX + 20;
-        int equipOffsetY = panelY + 30;
-
-        // Grid on the right side of the panel
-        int gridOffsetX = panelX + 130;
-        int gridOffsetY = panelY + 30;
-
-        // Drag and drop handling
         bool mouseDown = Mouse.GetState().LeftButton == ButtonState.Pressed;
         Point mousePos = input.MousePosition;
 
         if (mouseDown && !_wasMouseDown)
-        {
-            // Mouse just pressed — start drag
-            _gridRenderer.HandleMouseDown(mousePos, gridOffsetX, gridOffsetY, equipOffsetX, equipOffsetY);
-        }
+            _gridRenderer.HandleMouseDown(mousePos, gridX, gridY, equipX, equipY);
         else if (mouseDown && _wasMouseDown)
-        {
-            // Mouse held — update drag position
             _gridRenderer.UpdateDrag(mousePos);
-        }
         else if (!mouseDown && _wasMouseDown)
-        {
-            // Mouse released — drop
-            _gridRenderer.HandleMouseUp(mousePos, gridOffsetX, gridOffsetY, equipOffsetX, equipOffsetY);
-        }
+            _gridRenderer.HandleMouseUp(mousePos, gridX, gridY, equipX, equipY);
 
         _wasMouseDown = mouseDown;
     }
@@ -107,16 +91,15 @@ public class InventoryScene : Scene
         int screenWidth = viewport.Width;
         int screenHeight = viewport.Height;
 
-        // Semi-transparent dark background
+        // Dim background
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
         spriteBatch.Draw(_pixel,
             new Rectangle(0, 0, screenWidth, screenHeight),
             Color.Black * 0.6f);
         spriteBatch.End();
 
-        // Panel
-        int panelX = (screenWidth - PanelWidth) / 2;
-        int panelY = (screenHeight - PanelHeight) / 2;
+        int panelX, panelY;
+        GetPanelPosition(out panelX, out panelY);
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
@@ -132,25 +115,20 @@ public class InventoryScene : Scene
             new Vector2(panelX + (PanelWidth - titleSize.X) / 2, panelY + 6),
             Color.White);
 
-        // Divider line between equipment and grid
-        int dividerX = panelX + 120;
+        // Divider
         spriteBatch.Draw(_pixel,
-            new Rectangle(dividerX, panelY + 25, 1, PanelHeight - 35),
+            new Rectangle(panelX + 115, panelY + 25, 1, PanelHeight - 35),
             Color.Gray * 0.5f);
 
-        // Equipment offset (left side)
-        int equipOffsetX = panelX + 20;
-        int equipOffsetY = panelY + 30;
+        int equipX = panelX + 30;
+        int equipY = panelY + 35;
+        int gridX = panelX + 125;
+        int gridY = panelY + 30;
 
-        // Grid offset (right side)
-        int gridOffsetX = panelX + 130;
-        int gridOffsetY = panelY + 30;
+        _gridRenderer.Draw(spriteBatch, gridX, gridY, equipX, equipY);
 
-        // Draw everything through the unified renderer
-        _gridRenderer.Draw(spriteBatch, gridOffsetX, gridOffsetY, equipOffsetX, equipOffsetY);
-
-        // Tooltip: show hovered item name at bottom
-        DrawTooltip(spriteBatch, panelX, panelY);
+        // Tooltip
+        DrawTooltip(spriteBatch, panelX, panelY, gridX, gridY);
 
         spriteBatch.End();
     }
@@ -161,28 +139,26 @@ public class InventoryScene : Scene
         Console.WriteLine("[InventoryScene] Unloaded");
     }
 
-    /// <summary>
-    /// Draw item name tooltip at bottom of panel when hovering a slot.
-    /// </summary>
-    private void DrawTooltip(SpriteBatch sb, int panelX, int panelY)
+    private void GetPanelPosition(out int panelX, out int panelY)
+    {
+        var viewport = Services.GraphicsDevice.Viewport;
+        panelX = (viewport.Width - PanelWidth) / 2;
+        // Center vertically but shift up a bit so hotbar below is visible
+        panelY = (viewport.Height - PanelHeight) / 2 - 30;
+    }
+
+    private void DrawTooltip(SpriteBatch sb, int panelX, int panelY, int gridX, int gridY)
     {
         var mousePos = Services.Input.MousePosition;
-        var viewport = Services.GraphicsDevice.Viewport;
-
-        int gridOffsetX = panelX + 130;
-        int gridOffsetY = panelY + 30;
-
-        // Check if hovering a grid slot
         string? tooltipText = null;
+
         for (int i = 0; i < InventoryManager.SlotCount; i++)
         {
             int col = i % 5;
             int row = i / 5;
-            int x = gridOffsetX + col * 42; // SlotSize(40) + Padding(2)
-            int y = gridOffsetY + row * 42;
-            var slotRect = new Rectangle(x, y, 40, 40);
-
-            if (slotRect.Contains(mousePos))
+            int x = gridX + col * 42;
+            int y = gridY + row * 42;
+            if (new Rectangle(x, y, 40, 40).Contains(mousePos))
             {
                 var stack = _inventory.GetSlot(i);
                 if (stack != null)

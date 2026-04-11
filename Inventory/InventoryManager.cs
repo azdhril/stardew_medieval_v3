@@ -6,49 +6,45 @@ using stardew_medieval_v3.Data;
 namespace stardew_medieval_v3.Inventory;
 
 /// <summary>
-/// Pure data class managing 20 inventory slots, hotbar selection, and equipment.
-/// The first 8 slots double as the hotbar.
+/// Manages 20 inventory slots, reference-based hotbar (8 slots), consumable refs (2 slots),
+/// and 7 defensive equipment slots. Hotbar/consumable slots store item ID references that
+/// point to items in the inventory grid. References break when the item leaves inventory
+/// (dropped, stored in chest) but persist when items are rearranged within inventory.
 /// </summary>
 public class InventoryManager
 {
     /// <summary>Total number of inventory slots.</summary>
     public const int SlotCount = 20;
 
-    /// <summary>Number of hotbar slots (first N inventory slots).</summary>
+    /// <summary>Number of hotbar reference slots.</summary>
     public const int HotbarSize = 8;
 
-    private readonly ItemStack?[] _slots = new ItemStack?[SlotCount];
+    /// <summary>Number of consumable quick-slots (Q/E).</summary>
+    public const int ConsumableSlotCount = 2;
 
-    /// <summary>Currently active hotbar slot index (0-7).</summary>
+    private readonly ItemStack?[] _slots = new ItemStack?[SlotCount];
+    private readonly string?[] _hotbarRefs = new string?[HotbarSize];
+    private readonly string?[] _consumableRefs = new string?[ConsumableSlotCount];
+
+    /// <summary>Currently selected hotbar slot index (0-7).</summary>
     public int ActiveHotbarIndex { get; private set; } = 0;
 
-    /// <summary>Currently equipped weapon ItemId, or null if none.</summary>
-    public string? WeaponId { get; private set; }
+    /// <summary>Equipment slots: maps EquipSlot to equipped ItemId.</summary>
+    private readonly Dictionary<EquipSlot, string> _equipment = new();
 
-    /// <summary>Currently equipped armor ItemId, or null if none.</summary>
-    public string? ArmorId { get; private set; }
-
-    /// <summary>Fired whenever inventory contents change (add, remove, move, equip).</summary>
+    /// <summary>Fired whenever inventory contents change.</summary>
     public event Action? OnInventoryChanged;
 
-    /// <summary>
-    /// Get the item stack at a specific slot index.
-    /// </summary>
-    /// <param name="index">Slot index (0-19).</param>
-    /// <returns>The ItemStack at that slot, or null if empty.</returns>
+    // === Inventory grid ===
+
+    /// <summary>Get the item stack at a specific inventory slot index (0-19).</summary>
     public ItemStack? GetSlot(int index)
     {
-        if (index < 0 || index >= SlotCount)
-            return null;
+        if (index < 0 || index >= SlotCount) return null;
         return _slots[index];
     }
 
-    /// <summary>
-    /// Try to add items to inventory. First fills existing stacks, then empty slots.
-    /// </summary>
-    /// <param name="itemId">The item definition Id to add.</param>
-    /// <param name="quantity">Number of items to add.</param>
-    /// <returns>Remaining quantity that could not be added (0 = all added).</returns>
+    /// <summary>Try to add items to inventory. Returns remaining that couldn't fit.</summary>
     public int TryAdd(string itemId, int quantity = 1)
     {
         var def = ItemRegistry.Get(itemId);
@@ -61,7 +57,6 @@ public class InventoryManager
         int remaining = quantity;
         int stackLimit = def.StackLimit;
 
-        // Pass 1: fill existing stacks of the same item
         for (int i = 0; i < SlotCount && remaining > 0; i++)
         {
             if (_slots[i] != null && _slots[i]!.ItemId == itemId)
@@ -76,7 +71,6 @@ public class InventoryManager
             }
         }
 
-        // Pass 2: place remainder in first empty slot(s)
         for (int i = 0; i < SlotCount && remaining > 0; i++)
         {
             if (_slots[i] == null)
@@ -89,45 +83,30 @@ public class InventoryManager
 
         if (remaining < quantity)
             OnInventoryChanged?.Invoke();
-
         return remaining;
     }
 
-    /// <summary>
-    /// Remove and return the stack at a given slot index.
-    /// </summary>
-    /// <param name="index">Slot index to remove from.</param>
-    /// <returns>The removed ItemStack, or null if slot was empty.</returns>
+    /// <summary>Remove and return the stack at a given slot.</summary>
     public ItemStack? RemoveAt(int index)
     {
-        if (index < 0 || index >= SlotCount)
-            return null;
-
+        if (index < 0 || index >= SlotCount) return null;
         var stack = _slots[index];
-        if (stack == null)
-            return null;
+        if (stack == null) return null;
 
         _slots[index] = null;
         OnInventoryChanged?.Invoke();
         return stack;
     }
 
-    /// <summary>
-    /// Move (swap) contents between two slots. If same itemId and stackable, merge up to StackLimit.
-    /// </summary>
-    /// <param name="fromSlot">Source slot index.</param>
-    /// <param name="toSlot">Destination slot index.</param>
+    /// <summary>Move/swap contents between two inventory slots.</summary>
     public void MoveItem(int fromSlot, int toSlot)
     {
-        if (fromSlot < 0 || fromSlot >= SlotCount || toSlot < 0 || toSlot >= SlotCount)
-            return;
-        if (fromSlot == toSlot)
-            return;
+        if (fromSlot < 0 || fromSlot >= SlotCount || toSlot < 0 || toSlot >= SlotCount) return;
+        if (fromSlot == toSlot) return;
 
         var from = _slots[fromSlot];
         var to = _slots[toSlot];
 
-        // If both have the same item, try to merge
         if (from != null && to != null && from.ItemId == to.ItemId)
         {
             var def = ItemRegistry.Get(from.ItemId);
@@ -139,12 +118,10 @@ public class InventoryManager
                     int toMove = Math.Min(from.Quantity, space);
                     to.Quantity += toMove;
                     from.Quantity -= toMove;
-                    if (from.Quantity <= 0)
-                        _slots[fromSlot] = null;
+                    if (from.Quantity <= 0) _slots[fromSlot] = null;
                 }
                 else
                 {
-                    // Full stack, swap instead
                     _slots[fromSlot] = to;
                     _slots[toSlot] = from;
                 }
@@ -152,7 +129,6 @@ public class InventoryManager
         }
         else
         {
-            // Different items or one is empty: swap
             _slots[fromSlot] = to;
             _slots[toSlot] = from;
         }
@@ -160,134 +136,238 @@ public class InventoryManager
         OnInventoryChanged?.Invoke();
     }
 
+    /// <summary>Check if inventory contains at least one stack of the given item.</summary>
+    public bool HasItem(string itemId)
+    {
+        for (int i = 0; i < SlotCount; i++)
+            if (_slots[i] != null && _slots[i]!.ItemId == itemId)
+                return true;
+        return false;
+    }
+
+    /// <summary>Find the first inventory slot containing the given item ID. Returns -1 if not found.</summary>
+    public int FindSlot(string itemId)
+    {
+        for (int i = 0; i < SlotCount; i++)
+            if (_slots[i] != null && _slots[i]!.ItemId == itemId)
+                return i;
+        return -1;
+    }
+
+    // === Hotbar references ===
+
+    /// <summary>Get the hotbar reference (item ID) at a given hotbar slot.</summary>
+    public string? GetHotbarRef(int index)
+    {
+        if (index < 0 || index >= HotbarSize) return null;
+        return _hotbarRefs[index];
+    }
+
+    /// <summary>Set a hotbar reference to an item ID (or null to clear).</summary>
+    public void SetHotbarRef(int index, string? itemId)
+    {
+        if (index < 0 || index >= HotbarSize) return;
+        _hotbarRefs[index] = itemId;
+        OnInventoryChanged?.Invoke();
+    }
+
+    /// <summary>Swap two hotbar references.</summary>
+    public void SwapHotbarRefs(int a, int b)
+    {
+        if (a < 0 || a >= HotbarSize || b < 0 || b >= HotbarSize || a == b) return;
+        (_hotbarRefs[a], _hotbarRefs[b]) = (_hotbarRefs[b], _hotbarRefs[a]);
+        OnInventoryChanged?.Invoke();
+    }
+
     /// <summary>
-    /// Set the active hotbar slot index (clamped 0-7).
+    /// Get the actual ItemStack from inventory for a hotbar slot.
+    /// Returns null if the ref is empty or item no longer in inventory.
     /// </summary>
-    /// <param name="index">Hotbar index to activate.</param>
+    public ItemStack? GetHotbarStack(int index)
+    {
+        var itemId = GetHotbarRef(index);
+        if (itemId == null) return null;
+        int slot = FindSlot(itemId);
+        return slot >= 0 ? _slots[slot] : null;
+    }
+
+    /// <summary>Set the active hotbar slot index (clamped 0-7).</summary>
     public void SetActiveHotbar(int index)
     {
         ActiveHotbarIndex = Math.Clamp(index, 0, HotbarSize - 1);
     }
 
-    /// <summary>
-    /// Get the item stack in the currently active hotbar slot.
-    /// </summary>
-    /// <returns>The active hotbar ItemStack, or null if empty.</returns>
-    public ItemStack? GetActiveHotbarItem()
+    /// <summary>Get the item stack for the currently active hotbar slot.</summary>
+    public ItemStack? GetActiveHotbarItem() => GetHotbarStack(ActiveHotbarIndex);
+
+    // === Consumable references ===
+
+    /// <summary>Get the consumable reference (item ID) at a given consumable slot.</summary>
+    public string? GetConsumableRef(int index)
     {
-        return GetSlot(ActiveHotbarIndex);
+        if (index < 0 || index >= ConsumableSlotCount) return null;
+        return _consumableRefs[index];
+    }
+
+    /// <summary>Set a consumable reference. Only accepts Consumable type items.</summary>
+    public bool SetConsumableRef(int index, string? itemId)
+    {
+        if (index < 0 || index >= ConsumableSlotCount) return false;
+        if (itemId != null)
+        {
+            var def = ItemRegistry.Get(itemId);
+            if (def == null || def.Type != ItemType.Consumable) return false;
+        }
+        _consumableRefs[index] = itemId;
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Swap two consumable references.</summary>
+    public void SwapConsumableRefs(int a, int b)
+    {
+        if (a < 0 || a >= ConsumableSlotCount || b < 0 || b >= ConsumableSlotCount || a == b) return;
+        (_consumableRefs[a], _consumableRefs[b]) = (_consumableRefs[b], _consumableRefs[a]);
+        OnInventoryChanged?.Invoke();
     }
 
     /// <summary>
-    /// Equip the item at a given slot index. If the slot contains a Weapon or Armor,
-    /// equip it and put the previously equipped item (if any) back into that slot.
+    /// Get the actual ItemStack from inventory for a consumable slot.
+    /// Returns null if empty or item no longer in inventory.
     /// </summary>
-    /// <param name="slotIndex">Slot index containing the item to equip.</param>
-    /// <returns>True if an item was equipped, false otherwise.</returns>
+    public ItemStack? GetConsumableStack(int index)
+    {
+        var itemId = GetConsumableRef(index);
+        if (itemId == null) return null;
+        int slot = FindSlot(itemId);
+        return slot >= 0 ? _slots[slot] : null;
+    }
+
+    /// <summary>
+    /// Use a consumable from a quick-slot. Decrements quantity in inventory.
+    /// Returns the heal/effect value, or 0 if nothing to use.
+    /// </summary>
+    public float UseConsumable(int index)
+    {
+        var itemId = GetConsumableRef(index);
+        if (itemId == null) return 0;
+
+        int slot = FindSlot(itemId);
+        if (slot < 0) return 0;
+
+        var def = ItemRegistry.Get(itemId);
+        if (def == null) return 0;
+
+        float value = 0;
+        if (def.Stats.TryGetValue("heal", out float heal))
+            value = heal;
+
+        _slots[slot]!.Quantity--;
+        if (_slots[slot]!.Quantity <= 0)
+            _slots[slot] = null;
+
+        // Auto-clear ref if no more of this item in inventory
+        if (!HasItem(itemId))
+            _consumableRefs[index] = null;
+
+        OnInventoryChanged?.Invoke();
+        return value;
+    }
+
+    // === Equipment ===
+
+    /// <summary>Get the equipped item Id for a given slot, or null.</summary>
+    public string? GetEquipped(EquipSlot slot)
+        => _equipment.TryGetValue(slot, out var id) ? id : null;
+
+    /// <summary>Get all equipped items as a readonly snapshot.</summary>
+    public IReadOnlyDictionary<EquipSlot, string> GetAllEquipment() => _equipment;
+
+    /// <summary>Equip item from inventory slot into its designated EquipSlot.</summary>
     public bool TryEquip(int slotIndex)
     {
-        if (slotIndex < 0 || slotIndex >= SlotCount)
-            return false;
-
+        if (slotIndex < 0 || slotIndex >= SlotCount) return false;
         var stack = _slots[slotIndex];
-        if (stack == null)
-            return false;
+        if (stack == null) return false;
 
         var def = ItemRegistry.Get(stack.ItemId);
-        if (def == null)
-            return false;
+        if (def?.EquipSlot == null) return false;
 
-        if (def.Type == ItemType.Weapon)
-        {
-            string? oldWeapon = WeaponId;
-            WeaponId = stack.ItemId;
-            _slots[slotIndex] = null;
+        var equipSlot = def.EquipSlot.Value;
+        string? oldItemId = GetEquipped(equipSlot);
 
-            // Put old weapon back in the slot
-            if (oldWeapon != null)
-                _slots[slotIndex] = new ItemStack { ItemId = oldWeapon, Quantity = 1 };
-
-            OnInventoryChanged?.Invoke();
-            return true;
-        }
-        else if (def.Type == ItemType.Armor)
-        {
-            string? oldArmor = ArmorId;
-            ArmorId = stack.ItemId;
-            _slots[slotIndex] = null;
-
-            // Put old armor back in the slot
-            if (oldArmor != null)
-                _slots[slotIndex] = new ItemStack { ItemId = oldArmor, Quantity = 1 };
-
-            OnInventoryChanged?.Invoke();
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Unequip a weapon or armor and place it in the target slot.
-    /// </summary>
-    /// <param name="equipType">"weapon" or "armor".</param>
-    /// <param name="targetSlot">Slot index to place the unequipped item.</param>
-    /// <returns>True if the item was unequipped successfully.</returns>
-    public bool TryUnequip(string equipType, int targetSlot)
-    {
-        if (targetSlot < 0 || targetSlot >= SlotCount)
-            return false;
-
-        string? itemId = equipType == "weapon" ? WeaponId : equipType == "armor" ? ArmorId : null;
-        if (itemId == null)
-            return false;
-
-        // Check if target slot is empty
-        if (_slots[targetSlot] != null)
-        {
-            // Try stacking if same item
-            if (_slots[targetSlot]!.ItemId == itemId)
-            {
-                var def = ItemRegistry.Get(itemId);
-                if (def != null && _slots[targetSlot]!.Quantity < def.StackLimit)
-                {
-                    _slots[targetSlot]!.Quantity += 1;
-                }
-                else
-                {
-                    return false; // Can't stack, slot full
-                }
-            }
-            else
-            {
-                return false; // Slot occupied with different item
-            }
-        }
-        else
-        {
-            _slots[targetSlot] = new ItemStack { ItemId = itemId, Quantity = 1 };
-        }
-
-        if (equipType == "weapon")
-            WeaponId = null;
-        else
-            ArmorId = null;
+        _equipment[equipSlot] = stack.ItemId;
+        _slots[slotIndex] = null;
+        if (oldItemId != null)
+            _slots[slotIndex] = new ItemStack { ItemId = oldItemId, Quantity = 1 };
 
         OnInventoryChanged?.Invoke();
         return true;
     }
 
-    /// <summary>
-    /// Populate inventory from a saved GameState.
-    /// </summary>
-    /// <param name="state">The GameState to load from.</param>
+    /// <summary>Equip item from inventory into a specific equipment slot (validates match).</summary>
+    public bool TryEquipToSlot(int slotIndex, EquipSlot targetSlot)
+    {
+        if (slotIndex < 0 || slotIndex >= SlotCount) return false;
+        var stack = _slots[slotIndex];
+        if (stack == null) return false;
+
+        var def = ItemRegistry.Get(stack.ItemId);
+        if (def?.EquipSlot == null || def.EquipSlot.Value != targetSlot) return false;
+
+        string? oldItemId = GetEquipped(targetSlot);
+        _equipment[targetSlot] = stack.ItemId;
+        _slots[slotIndex] = null;
+        if (oldItemId != null)
+            _slots[slotIndex] = new ItemStack { ItemId = oldItemId, Quantity = 1 };
+
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Unequip item from equipment slot to a target inventory slot.</summary>
+    public bool TryUnequip(EquipSlot equipSlot, int targetSlot)
+    {
+        if (targetSlot < 0 || targetSlot >= SlotCount) return false;
+        if (!_equipment.TryGetValue(equipSlot, out var itemId)) return false;
+
+        if (_slots[targetSlot] != null)
+        {
+            var targetStack = _slots[targetSlot]!;
+            var targetDef = ItemRegistry.Get(targetStack.ItemId);
+            if (targetDef?.EquipSlot == equipSlot)
+            {
+                _slots[targetSlot] = new ItemStack { ItemId = itemId, Quantity = 1 };
+                _equipment[equipSlot] = targetStack.ItemId;
+                OnInventoryChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+
+        _slots[targetSlot] = new ItemStack { ItemId = itemId, Quantity = 1 };
+        _equipment.Remove(equipSlot);
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Unequip item to the first empty inventory slot.</summary>
+    public bool TryUnequipToEmpty(EquipSlot equipSlot)
+    {
+        if (!_equipment.ContainsKey(equipSlot)) return false;
+        for (int i = 0; i < SlotCount; i++)
+            if (_slots[i] == null)
+                return TryUnequip(equipSlot, i);
+        return false;
+    }
+
+    // === Save/Load ===
+
+    /// <summary>Populate inventory from a saved GameState.</summary>
     public void LoadFromState(GameState state)
     {
-        // Clear all slots
-        for (int i = 0; i < SlotCount; i++)
-            _slots[i] = null;
+        for (int i = 0; i < SlotCount; i++) _slots[i] = null;
 
-        // Restore saved inventory
         for (int i = 0; i < state.Inventory.Count && i < SlotCount; i++)
         {
             var saved = state.Inventory[i];
@@ -295,48 +375,59 @@ public class InventoryManager
                 _slots[i] = new ItemStack { ItemId = saved.ItemId, Quantity = saved.Quantity };
         }
 
-        WeaponId = state.WeaponId;
-        ArmorId = state.ArmorId;
-
-        // Set active hotbar from first non-null in HotbarSlots, or 0
-        ActiveHotbarIndex = 0;
-        if (state.HotbarSlots != null)
+        _equipment.Clear();
+        if (state.Equipment != null)
         {
-            for (int i = 0; i < state.HotbarSlots.Count && i < HotbarSize; i++)
-            {
-                if (state.HotbarSlots[i] != null)
-                {
-                    ActiveHotbarIndex = i;
-                    break;
-                }
-            }
+            foreach (var kvp in state.Equipment)
+                if (Enum.TryParse<EquipSlot>(kvp.Key, out var slot))
+                    _equipment[slot] = kvp.Value;
         }
 
-        Console.WriteLine($"[InventoryManager] Loaded {state.Inventory.Count} items from save");
+        // Legacy migration
+        if (state.ArmorId != null && !_equipment.ContainsKey(EquipSlot.Armor))
+        {
+            _equipment[EquipSlot.Armor] = state.ArmorId;
+            state.ArmorId = null;
+        }
+
+        // Load hotbar refs
+        for (int i = 0; i < HotbarSize; i++) _hotbarRefs[i] = null;
+        if (state.HotbarSlots != null)
+            for (int i = 0; i < state.HotbarSlots.Count && i < HotbarSize; i++)
+                _hotbarRefs[i] = state.HotbarSlots[i];
+
+        // Load consumable refs
+        for (int i = 0; i < ConsumableSlotCount; i++) _consumableRefs[i] = null;
+        if (state.ConsumableRefs != null)
+            for (int i = 0; i < state.ConsumableRefs.Count && i < ConsumableSlotCount; i++)
+                _consumableRefs[i] = state.ConsumableRefs[i];
+
+        ActiveHotbarIndex = 0;
+        Console.WriteLine($"[InventoryManager] Loaded {state.Inventory.Count} items, {_equipment.Count} equipment");
         OnInventoryChanged?.Invoke();
     }
 
-    /// <summary>
-    /// Save current inventory state to a GameState object.
-    /// </summary>
-    /// <param name="state">The GameState to write to.</param>
+    /// <summary>Save current inventory state to a GameState.</summary>
     public void SaveToState(GameState state)
     {
         state.Inventory.Clear();
         for (int i = 0; i < SlotCount; i++)
-        {
             if (_slots[i] != null)
                 state.Inventory.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity });
-        }
 
-        state.WeaponId = WeaponId;
-        state.ArmorId = ArmorId;
+        state.Equipment = new Dictionary<string, string>();
+        foreach (var kvp in _equipment)
+            state.Equipment[kvp.Key.ToString()] = kvp.Value;
 
-        // Populate HotbarSlots from first 8 slot ItemIds
         state.HotbarSlots = new List<string?>(new string?[HotbarSize]);
         for (int i = 0; i < HotbarSize; i++)
-        {
-            state.HotbarSlots[i] = _slots[i]?.ItemId;
-        }
+            state.HotbarSlots[i] = _hotbarRefs[i];
+
+        state.ConsumableRefs = new List<string?>(new string?[ConsumableSlotCount]);
+        for (int i = 0; i < ConsumableSlotCount; i++)
+            state.ConsumableRefs[i] = _consumableRefs[i];
+
+        state.WeaponId = null;
+        state.ArmorId = null;
     }
 }

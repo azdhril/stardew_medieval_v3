@@ -25,8 +25,10 @@ public class GameState
     public int Level { get; set; } = 1;
     public string CurrentScene { get; set; } = "Farm";
     public int QuestState { get; set; } = 0; // 0=None, serialized as int for JSON compat
-    public string? WeaponId { get; set; }
-    public string? ArmorId { get; set; }
+    public string? WeaponId { get; set; } // Legacy, migrated to Equipment
+    public string? ArmorId { get; set; } // Legacy, migrated to Equipment
+    public Dictionary<string, string> Equipment { get; set; } = new();
+    public List<string?> ConsumableRefs { get; set; } = new();
     public List<string?> HotbarSlots { get; set; } = new(new string?[8]);
 }
 

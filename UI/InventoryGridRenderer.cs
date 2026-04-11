@@ -10,7 +10,9 @@ namespace stardew_medieval_v3.UI;
 /// <summary>
 /// Renders a 20-slot inventory grid (5 columns x 4 rows) with item icons,
 /// rarity color tinting, quantity labels, and drag-and-drop support.
-/// Also renders equipment slots alongside the grid for unified interaction.
+/// Also renders 7 defensive equipment slots around a character silhouette.
+/// Drops onto the screen-bottom hotbar/consumable slots are handled via
+/// HotbarRenderer hit-testing.
 /// </summary>
 public class InventoryGridRenderer
 {
@@ -19,12 +21,23 @@ public class InventoryGridRenderer
     private const int SlotSize = 40;
     private const int Padding = 2;
     private const int IconPadding = 4;
+    private const int EquipSlotSize = 36;
 
-    // Equipment slot sizes
-    private const int EquipSlotSize = 44;
+    private static readonly EquipSlot[] EquipSlots = {
+        EquipSlot.Helmet, EquipSlot.Necklace,
+        EquipSlot.Armor, EquipSlot.Shield,
+        EquipSlot.Ring, EquipSlot.Legs,
+        EquipSlot.Boots
+    };
+
+    private static readonly string[] EquipLabels = {
+        "Hlm", "Nck", "Arm", "Shd", "Rng", "Leg", "Bts"
+    };
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
+    private HotbarRenderer? _hotbar;
+    private int _screenWidth, _screenHeight;
 
     private Texture2D _slotNormal = null!;
     private Texture2D _slotSelected = null!;
@@ -34,22 +47,25 @@ public class InventoryGridRenderer
     // Drag state
     private bool _isDragging;
     private int _dragSourceSlot = -1;
-    private string? _dragSourceEquip; // "weapon" or "armor" if dragging from equipment
+    private EquipSlot? _dragSourceEquip;
     private Point _dragPosition;
 
-    /// <summary>Currently dragging an item.</summary>
     public bool IsDragging => _isDragging;
 
-    /// <summary>
-    /// Create a new InventoryGridRenderer.
-    /// </summary>
     public InventoryGridRenderer(InventoryManager inventory, SpriteAtlas atlas)
     {
         _inventory = inventory;
         _atlas = atlas;
     }
 
-    /// <summary>Cancel any active drag operation.</summary>
+    /// <summary>Set the hotbar renderer for drop hit-testing.</summary>
+    public void SetHotbar(HotbarRenderer hotbar, int screenWidth, int screenHeight)
+    {
+        _hotbar = hotbar;
+        _screenWidth = screenWidth;
+        _screenHeight = screenHeight;
+    }
+
     public void CancelDrag()
     {
         _isDragging = false;
@@ -60,7 +76,6 @@ public class InventoryGridRenderer
     public void LoadContent(GraphicsDevice device, SpriteFont font)
     {
         _font = font;
-
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
@@ -91,122 +106,97 @@ public class InventoryGridRenderer
         Console.WriteLine("[InventoryGridRenderer] Content loaded");
     }
 
-    /// <summary>
-    /// Handle mouse press (start drag from grid or equipment slot).
-    /// </summary>
-    public void HandleMouseDown(Point mousePos, int gridOffsetX, int gridOffsetY, int equipOffsetX, int equipOffsetY)
+    /// <summary>Handle mouse press — start drag from grid or equipment.</summary>
+    public void HandleMouseDown(Point mousePos, int gridX, int gridY, int equipX, int equipY)
     {
-        // Check grid slots
-        int hitSlot = HitTestGrid(mousePos, gridOffsetX, gridOffsetY);
+        int hitSlot = HitTestGrid(mousePos, gridX, gridY);
         if (hitSlot >= 0 && _inventory.GetSlot(hitSlot) != null)
         {
             _isDragging = true;
             _dragSourceSlot = hitSlot;
-            _dragSourceEquip = null;
             _dragPosition = mousePos;
             return;
         }
 
-        // Check equipment slots
-        var weaponRect = GetWeaponRect(equipOffsetX, equipOffsetY);
-        var armorRect = GetArmorRect(equipOffsetX, equipOffsetY);
-
-        if (weaponRect.Contains(mousePos) && _inventory.WeaponId != null)
+        for (int i = 0; i < EquipSlots.Length; i++)
         {
-            _isDragging = true;
-            _dragSourceSlot = -1;
-            _dragSourceEquip = "weapon";
-            _dragPosition = mousePos;
-            return;
-        }
-
-        if (armorRect.Contains(mousePos) && _inventory.ArmorId != null)
-        {
-            _isDragging = true;
-            _dragSourceSlot = -1;
-            _dragSourceEquip = "armor";
-            _dragPosition = mousePos;
-            return;
+            var rect = GetEquipRect(i, equipX, equipY);
+            if (rect.Contains(mousePos) && _inventory.GetEquipped(EquipSlots[i]) != null)
+            {
+                _isDragging = true;
+                _dragSourceEquip = EquipSlots[i];
+                _dragPosition = mousePos;
+                return;
+            }
         }
     }
 
-    /// <summary>
-    /// Update drag position while mouse is held.
-    /// </summary>
     public void UpdateDrag(Point mousePos)
     {
-        if (_isDragging)
-            _dragPosition = mousePos;
+        if (_isDragging) _dragPosition = mousePos;
     }
 
-    /// <summary>
-    /// Handle mouse release (drop item onto grid or equipment slot).
-    /// </summary>
-    public void HandleMouseUp(Point mousePos, int gridOffsetX, int gridOffsetY, int equipOffsetX, int equipOffsetY)
+    /// <summary>Handle mouse release — drop onto grid, equipment, hotbar, or consumable.</summary>
+    public void HandleMouseUp(Point mousePos, int gridX, int gridY, int equipX, int equipY)
     {
-        if (!_isDragging)
-            return;
+        if (!_isDragging) return;
 
-        int targetSlot = HitTestGrid(mousePos, gridOffsetX, gridOffsetY);
-        var weaponRect = GetWeaponRect(equipOffsetX, equipOffsetY);
-        var armorRect = GetArmorRect(equipOffsetX, equipOffsetY);
+        int targetGrid = HitTestGrid(mousePos, gridX, gridY);
+        EquipSlot? targetEquip = HitTestEquip(mousePos, equipX, equipY);
 
-        if (_dragSourceEquip != null)
+        // Check hotbar/consumable drop targets
+        int targetHotbar = -1;
+        int targetConsumable = -1;
+        if (_hotbar != null)
         {
-            // Dragging FROM equipment TO grid
-            if (targetSlot >= 0)
-            {
-                _inventory.TryUnequip(_dragSourceEquip, targetSlot);
-            }
+            targetHotbar = _hotbar.HitTestMain(mousePos, _screenWidth, _screenHeight);
+            targetConsumable = _hotbar.HitTestConsumable(mousePos, _screenWidth, _screenHeight);
+        }
+
+        if (_dragSourceEquip.HasValue)
+        {
+            // FROM equipment → grid only
+            if (targetGrid >= 0)
+                _inventory.TryUnequip(_dragSourceEquip.Value, targetGrid);
         }
         else if (_dragSourceSlot >= 0)
         {
-            // Dragging FROM grid
-            if (targetSlot >= 0 && targetSlot != _dragSourceSlot)
+            var stack = _inventory.GetSlot(_dragSourceSlot);
+            string? dragItemId = stack?.ItemId;
+
+            if (targetGrid >= 0 && targetGrid != _dragSourceSlot)
             {
-                // Drop onto another grid slot — move/swap
-                _inventory.MoveItem(_dragSourceSlot, targetSlot);
+                // Grid → Grid: move/swap
+                _inventory.MoveItem(_dragSourceSlot, targetGrid);
             }
-            else if (weaponRect.Contains(mousePos))
+            else if (targetEquip.HasValue)
             {
-                // Drop onto weapon slot — try equip
-                var stack = _inventory.GetSlot(_dragSourceSlot);
-                if (stack != null)
-                {
-                    var def = ItemRegistry.Get(stack.ItemId);
-                    if (def != null && def.Type == ItemType.Weapon)
-                        _inventory.TryEquip(_dragSourceSlot);
-                }
+                // Grid → Equipment
+                _inventory.TryEquipToSlot(_dragSourceSlot, targetEquip.Value);
             }
-            else if (armorRect.Contains(mousePos))
+            else if (targetHotbar >= 0 && dragItemId != null)
             {
-                // Drop onto armor slot — try equip
-                var stack = _inventory.GetSlot(_dragSourceSlot);
-                if (stack != null)
-                {
-                    var def = ItemRegistry.Get(stack.ItemId);
-                    if (def != null && def.Type == ItemType.Armor)
-                        _inventory.TryEquip(_dragSourceSlot);
-                }
+                // Grid → Hotbar: set reference
+                _inventory.SetHotbarRef(targetHotbar, dragItemId);
+            }
+            else if (targetConsumable >= 0 && dragItemId != null)
+            {
+                // Grid → Consumable: set reference (validates type)
+                _inventory.SetConsumableRef(targetConsumable, dragItemId);
             }
         }
 
         CancelDrag();
     }
 
-    /// <summary>
-    /// Draw the full inventory panel: grid + equipment + dragged item.
-    /// </summary>
-    public void Draw(SpriteBatch sb, int gridOffsetX, int gridOffsetY, int equipOffsetX, int equipOffsetY)
+    /// <summary>Draw grid + equipment + dragged item.</summary>
+    public void Draw(SpriteBatch sb, int gridX, int gridY, int equipX, int equipY)
     {
-        DrawGrid(sb, gridOffsetX, gridOffsetY);
-        DrawEquipment(sb, equipOffsetX, equipOffsetY);
+        DrawGrid(sb, gridX, gridY);
+        DrawEquipment(sb, equipX, equipY);
         DrawDraggedItem(sb);
     }
 
-    /// <summary>
-    /// Draw the 20-slot inventory grid.
-    /// </summary>
     private void DrawGrid(SpriteBatch sb, int offsetX, int offsetY)
     {
         for (int i = 0; i < InventoryManager.SlotCount; i++)
@@ -216,144 +206,107 @@ public class InventoryGridRenderer
             int x = offsetX + col * (SlotSize + Padding);
             int y = offsetY + row * (SlotSize + Padding);
 
-            // Slot background
             var slotRect = new Rectangle(x, y, SlotSize, SlotSize);
             sb.Draw(_slotNormal, slotRect, Color.White);
 
-            // Skip drawing the item if it's being dragged from this slot
             if (_isDragging && _dragSourceSlot == i && _dragSourceEquip == null)
                 continue;
 
-            var stack = _inventory.GetSlot(i);
-            if (stack != null)
-            {
-                var def = ItemRegistry.Get(stack.ItemId);
-                if (def != null)
-                {
-                    // Item icon
-                    var srcRect = _atlas.GetRect(def.SpriteId);
-                    var destRect = new Rectangle(
-                        x + IconPadding, y + IconPadding,
-                        SlotSize - IconPadding * 2, SlotSize - IconPadding * 2);
-                    sb.Draw(_atlas.Texture, destRect, srcRect, Color.White);
-
-                    // Rarity tint
-                    Color? rarityColor = def.Rarity switch
-                    {
-                        Rarity.Uncommon => new Color(50, 205, 50) * 0.3f,
-                        Rarity.Rare => new Color(255, 215, 0) * 0.3f,
-                        _ => null
-                    };
-                    if (rarityColor.HasValue)
-                        sb.Draw(_pixel, slotRect, rarityColor.Value);
-                }
-
-                // Quantity label
-                if (stack.Quantity > 1)
-                {
-                    string qtyText = stack.Quantity.ToString();
-                    var qtySize = _font.MeasureString(qtyText);
-                    sb.DrawString(_font, qtyText,
-                        new Vector2(x + SlotSize - qtySize.X - 2, y + SlotSize - qtySize.Y),
-                        Color.White);
-                }
-            }
+            DrawSlotContents(sb, _inventory.GetSlot(i), slotRect);
         }
     }
 
-    /// <summary>
-    /// Draw the equipment slots (weapon + armor) with silhouette and stats.
-    /// </summary>
     private void DrawEquipment(SpriteBatch sb, int offsetX, int offsetY)
     {
-        var weaponRect = GetWeaponRect(offsetX, offsetY);
-        var armorRect = GetArmorRect(offsetX, offsetY);
+        // Silhouette
+        sb.Draw(_pixel, new Rectangle(offsetX + 20, offsetY + 25, 40, 70), Color.Gray * 0.3f);
+        sb.Draw(_pixel, new Rectangle(offsetX + 28, offsetY + 8, 24, 22), Color.Gray * 0.3f);
 
-        // Character silhouette
-        var silhouetteRect = new Rectangle(offsetX + 15, offsetY + 10, 50, 80);
-        sb.Draw(_pixel, silhouetteRect, Color.Gray * 0.3f);
-        // Head
-        var headRect = new Rectangle(offsetX + 25, offsetY - 5, 30, 25);
-        sb.Draw(_pixel, headRect, Color.Gray * 0.3f);
-
-        // Weapon slot (left of body)
-        sb.DrawString(_font, "Wpn", new Vector2(weaponRect.X, weaponRect.Y - 14), Color.LightGray);
-        sb.Draw(_slotNormal, weaponRect, Color.White);
-
-        // Armor slot (right of body)
-        sb.DrawString(_font, "Arm", new Vector2(armorRect.X, armorRect.Y - 14), Color.LightGray);
-        sb.Draw(_slotNormal, armorRect, Color.White);
-
-        // Draw equipped weapon icon (skip if being dragged)
-        if (_inventory.WeaponId != null && !(_isDragging && _dragSourceEquip == "weapon"))
+        for (int i = 0; i < EquipSlots.Length; i++)
         {
-            var weaponDef = ItemRegistry.Get(_inventory.WeaponId);
-            if (weaponDef != null)
+            var rect = GetEquipRect(i, offsetX, offsetY);
+            sb.DrawString(_font, EquipLabels[i], new Vector2(rect.X, rect.Y - 12), Color.LightGray);
+            sb.Draw(_slotNormal, rect, Color.White);
+
+            if (_isDragging && _dragSourceEquip == EquipSlots[i]) continue;
+
+            var itemId = _inventory.GetEquipped(EquipSlots[i]);
+            if (itemId != null)
             {
-                var srcRect = _atlas.GetRect(weaponDef.SpriteId);
-                sb.Draw(_atlas.Texture,
-                    new Rectangle(weaponRect.X + 4, weaponRect.Y + 4, EquipSlotSize - 8, EquipSlotSize - 8),
-                    srcRect, Color.White);
+                var def = ItemRegistry.Get(itemId);
+                if (def != null)
+                {
+                    var srcRect = _atlas.GetRect(def.SpriteId);
+                    sb.Draw(_atlas.Texture,
+                        new Rectangle(rect.X + 3, rect.Y + 3, EquipSlotSize - 6, EquipSlotSize - 6),
+                        srcRect, Color.White);
+                }
             }
         }
 
-        // Draw equipped armor icon (skip if being dragged)
-        if (_inventory.ArmorId != null && !(_isDragging && _dragSourceEquip == "armor"))
-        {
-            var armorDef = ItemRegistry.Get(_inventory.ArmorId);
-            if (armorDef != null)
-            {
-                var srcRect = _atlas.GetRect(armorDef.SpriteId);
-                sb.Draw(_atlas.Texture,
-                    new Rectangle(armorRect.X + 4, armorRect.Y + 4, EquipSlotSize - 8, EquipSlotSize - 8),
-                    srcRect, Color.White);
-            }
-        }
-
-        // Stats below silhouette
-        var (attack, defense) = EquipmentData.GetEquipmentStats(_inventory.WeaponId, _inventory.ArmorId);
-        int statsY = silhouetteRect.Bottom + 8;
+        var (attack, defense) = EquipmentData.GetEquipmentStats(_inventory.GetAllEquipment());
+        int statsY = offsetY + 100;
         sb.DrawString(_font, $"ATK:{attack:F0}", new Vector2(offsetX, statsY), Color.OrangeRed);
         sb.DrawString(_font, $"DEF:{defense:F0}", new Vector2(offsetX, statsY + 16), Color.CornflowerBlue);
     }
 
-    /// <summary>
-    /// Draw the item being dragged at the mouse cursor.
-    /// </summary>
+    private void DrawSlotContents(SpriteBatch sb, ItemStack? stack, Rectangle slotRect)
+    {
+        if (stack == null) return;
+        var def = ItemRegistry.Get(stack.ItemId);
+        if (def == null) return;
+
+        var srcRect = _atlas.GetRect(def.SpriteId);
+        var destRect = new Rectangle(
+            slotRect.X + IconPadding, slotRect.Y + IconPadding,
+            slotRect.Width - IconPadding * 2, slotRect.Height - IconPadding * 2);
+        sb.Draw(_atlas.Texture, destRect, srcRect, Color.White);
+
+        Color? rarityColor = def.Rarity switch
+        {
+            Rarity.Uncommon => new Color(50, 205, 50) * 0.3f,
+            Rarity.Rare => new Color(255, 215, 0) * 0.3f,
+            _ => null
+        };
+        if (rarityColor.HasValue)
+            sb.Draw(_pixel, slotRect, rarityColor.Value);
+
+        if (stack.Quantity > 1)
+        {
+            string qtyText = stack.Quantity.ToString();
+            var qtySize = _font.MeasureString(qtyText);
+            sb.DrawString(_font, qtyText,
+                new Vector2(slotRect.Right - qtySize.X - 2, slotRect.Bottom - qtySize.Y),
+                Color.White);
+        }
+    }
+
     private void DrawDraggedItem(SpriteBatch sb)
     {
-        if (!_isDragging)
-            return;
+        if (!_isDragging) return;
 
         string? itemId = null;
         int quantity = 1;
 
-        if (_dragSourceEquip != null)
+        if (_dragSourceEquip.HasValue)
         {
-            itemId = _dragSourceEquip == "weapon" ? _inventory.WeaponId : _inventory.ArmorId;
+            itemId = _inventory.GetEquipped(_dragSourceEquip.Value);
         }
         else if (_dragSourceSlot >= 0)
         {
             var stack = _inventory.GetSlot(_dragSourceSlot);
-            if (stack != null)
-            {
-                itemId = stack.ItemId;
-                quantity = stack.Quantity;
-            }
+            if (stack != null) { itemId = stack.ItemId; quantity = stack.Quantity; }
         }
 
         if (itemId == null) return;
-
         var def = ItemRegistry.Get(itemId);
         if (def == null) return;
 
         int drawSize = SlotSize - 4;
         var srcRect = _atlas.GetRect(def.SpriteId);
         var destRect = new Rectangle(
-            _dragPosition.X - drawSize / 2,
-            _dragPosition.Y - drawSize / 2,
+            _dragPosition.X - drawSize / 2, _dragPosition.Y - drawSize / 2,
             drawSize, drawSize);
-
         sb.Draw(_atlas.Texture, destRect, srcRect, Color.White * 0.85f);
 
         if (quantity > 1)
@@ -361,27 +314,22 @@ public class InventoryGridRenderer
             string qtyText = quantity.ToString();
             var qtySize = _font.MeasureString(qtyText);
             sb.DrawString(_font, qtyText,
-                new Vector2(destRect.Right - qtySize.X, destRect.Bottom - qtySize.Y),
-                Color.White);
+                new Vector2(destRect.Right - qtySize.X, destRect.Bottom - qtySize.Y), Color.White);
         }
     }
 
-    /// <summary>
-    /// Hit-test grid slots. Returns slot index 0-19 or -1 if miss.
-    /// </summary>
+    // === Hit testing ===
+
     private int HitTestGrid(Point mousePos, int offsetX, int offsetY)
     {
         int relX = mousePos.X - offsetX;
         int relY = mousePos.Y - offsetY;
-
         if (relX < 0 || relY < 0) return -1;
 
         int col = relX / (SlotSize + Padding);
         int row = relY / (SlotSize + Padding);
-
         if (col >= Columns || row >= Rows) return -1;
 
-        // Check within slot bounds (not in padding)
         int slotLocalX = relX - col * (SlotSize + Padding);
         int slotLocalY = relY - row * (SlotSize + Padding);
         if (slotLocalX > SlotSize || slotLocalY > SlotSize) return -1;
@@ -390,16 +338,30 @@ public class InventoryGridRenderer
         return hitSlot < InventoryManager.SlotCount ? hitSlot : -1;
     }
 
-    // Equipment slot positions (relative to equipment offset)
-    private Rectangle GetWeaponRect(int offsetX, int offsetY)
-        => new Rectangle(offsetX - 10, offsetY + 30, EquipSlotSize, EquipSlotSize);
+    private EquipSlot? HitTestEquip(Point mousePos, int offsetX, int offsetY)
+    {
+        for (int i = 0; i < EquipSlots.Length; i++)
+            if (GetEquipRect(i, offsetX, offsetY).Contains(mousePos))
+                return EquipSlots[i];
+        return null;
+    }
 
-    private Rectangle GetArmorRect(int offsetX, int offsetY)
-        => new Rectangle(offsetX + 45, offsetY + 30, EquipSlotSize, EquipSlotSize);
+    private Rectangle GetEquipRect(int index, int offsetX, int offsetY)
+    {
+        int s = EquipSlotSize;
+        return index switch
+        {
+            0 => new Rectangle(offsetX + 22, offsetY - 5, s, s),   // Helmet
+            1 => new Rectangle(offsetX - 15, offsetY + 15, s, s),  // Necklace
+            2 => new Rectangle(offsetX + 22, offsetY + 35, s, s),  // Armor
+            3 => new Rectangle(offsetX + 62, offsetY + 20, s, s),  // Shield
+            4 => new Rectangle(offsetX - 15, offsetY + 55, s, s),  // Ring
+            5 => new Rectangle(offsetX + 22, offsetY + 70, s, s),  // Legs
+            6 => new Rectangle(offsetX + 22, offsetY + 105, s, s), // Boots
+            _ => Rectangle.Empty
+        };
+    }
 
-    /// <summary>Total width of the grid in pixels.</summary>
     public int GridWidth => Columns * SlotSize + (Columns - 1) * Padding;
-
-    /// <summary>Total height of the grid in pixels.</summary>
     public int GridHeight => Rows * SlotSize + (Rows - 1) * Padding;
 }

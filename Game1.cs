@@ -65,11 +65,6 @@ public class Game1 : Game
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         _input.Update();
-
-        // Only exit on Escape if no overlay scenes are active
-        if (_input.IsKeyPressed(Keys.Escape) && _sceneManager.SceneCount <= 1)
-            Exit();
-
         _sceneManager.Update(dt);
 
         base.Update(gameTime);

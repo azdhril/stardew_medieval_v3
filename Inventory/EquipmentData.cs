@@ -1,35 +1,30 @@
+using System.Collections.Generic;
 using stardew_medieval_v3.Data;
 
 namespace stardew_medieval_v3.Inventory;
 
 /// <summary>
-/// Utility class for calculating combined equipment stats from weapon and armor.
+/// Utility class for calculating combined equipment stats from all equipped items.
 /// </summary>
 public static class EquipmentData
 {
     /// <summary>
-    /// Get the combined attack and defense stats from equipped weapon and armor.
+    /// Get the combined attack and defense stats from all equipped items.
     /// </summary>
-    /// <param name="weaponId">Equipped weapon ItemId, or null.</param>
-    /// <param name="armorId">Equipped armor ItemId, or null.</param>
-    /// <returns>Tuple of (attack, defense) values, defaulting to 0f for missing.</returns>
-    public static (float attack, float defense) GetEquipmentStats(string? weaponId, string? armorId)
+    public static (float attack, float defense) GetEquipmentStats(IReadOnlyDictionary<EquipSlot, string> equipment)
     {
         float attack = 0f;
         float defense = 0f;
 
-        if (weaponId != null)
+        foreach (var kvp in equipment)
         {
-            var weaponDef = ItemRegistry.Get(weaponId);
-            if (weaponDef?.Stats != null && weaponDef.Stats.TryGetValue("damage", out float dmg))
-                attack = dmg;
-        }
+            var def = ItemRegistry.Get(kvp.Value);
+            if (def?.Stats == null) continue;
 
-        if (armorId != null)
-        {
-            var armorDef = ItemRegistry.Get(armorId);
-            if (armorDef?.Stats != null && armorDef.Stats.TryGetValue("defense", out float def))
-                defense = def;
+            if (def.Stats.TryGetValue("damage", out float dmg))
+                attack += dmg;
+            if (def.Stats.TryGetValue("defense", out float def2))
+                defense += def2;
         }
 
         return (attack, defense);

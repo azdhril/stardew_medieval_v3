@@ -28,4 +28,7 @@ public class ItemDefinition
 
     /// <summary>Flexible stat bag (e.g. "damage": 10, "heal": 5).</summary>
     public Dictionary<string, float> Stats { get; set; } = new();
+
+    /// <summary>Which equipment slot this item goes in, or null if not equippable.</summary>
+    public EquipSlot? EquipSlot { get; set; }
 }
