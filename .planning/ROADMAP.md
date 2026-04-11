@@ -36,7 +36,7 @@ Plans:
 - [x] 01-01-PLAN.md — Entity base class + ItemDefinition/ItemRegistry (Wave 1)
 - [x] 01-02-PLAN.md — Scene abstract class, ServiceContainer, SceneManager with fade transitions (Wave 1)
 - [x] 01-03-PLAN.md — GameState expansion, save migration, FarmScene extraction, Game1 refactor (Wave 2)
-- [ ] 01-04-PLAN.md — Gap closure: DummyNpc entity to prove Entity extensibility (Wave 1)
+- [x] 01-04-PLAN.md — Gap closure: DummyNpc entity to prove Entity extensibility (Wave 1)
 
 ### Phase 2: Items & Inventory
 **Goal**: Players can collect, manage, and equip items through a complete inventory system, and farming produces items that flow into inventory
