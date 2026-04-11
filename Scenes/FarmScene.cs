@@ -36,6 +36,9 @@ public class FarmScene : Scene
     private SpriteAtlas _spriteAtlas = null!;
     private HotbarRenderer _hotbar = null!;
     private readonly List<ItemDropEntity> _itemDrops = new();
+    private readonly List<EnemyEntity> _enemies = new();
+    private EnemySpawner _spawner = null!;
+    private readonly Random _lootRng = new();
 
     public FarmScene(ServiceContainer services) : base(services) { }
 
@@ -78,6 +81,10 @@ public class FarmScene : Scene
         _combat = new CombatManager(_inventory);
         _projectiles = new ProjectileManager();
         _projectiles.OnPlayerHit = (damage) => _combat.TryPlayerTakeDamage(_player, damage);
+
+        // Enemies
+        _spawner = new EnemySpawner();
+        _enemies.AddRange(_spawner.SpawnAll());
 
         // HUD (requires player and combat for HP bar and cooldown)
         var font = content.Load<SpriteFont>("DefaultFont");
@@ -205,8 +212,71 @@ public class FarmScene : Scene
             _slash.Trigger(_player.Position, _player.FacingDirection);
         _slash.Update(deltaTime);
 
-        // Update projectiles (no enemies yet, pass empty list)
-        _projectiles.Update(deltaTime, System.Array.Empty<Core.Entity>(), _player);
+        // Update projectiles with enemy list for collision detection
+        var enemiesAsEntities = new List<Core.Entity>(_enemies);
+        _projectiles.Update(deltaTime, enemiesAsEntities, _player);
+
+        // Melee hitbox checks against enemies
+        if (_combat.Melee.IsSwinging)
+        {
+            var hitbox = _combat.Melee.GetHitbox(_player.Position, _player.FacingDirection);
+            foreach (var enemy in _enemies)
+            {
+                if (!enemy.IsAlive) continue;
+                if (hitbox.Intersects(enemy.CollisionBox) && !_combat.Melee.HasHit(enemy))
+                {
+                    float damage = _combat.CalculateMeleeDamage();
+                    enemy.TakeDamage(damage);
+                    _combat.Melee.RecordHit(enemy);
+
+                    // Knockback away from player with resistance
+                    var knockDir = enemy.Position - _player.Position;
+                    if (knockDir != Vector2.Zero) knockDir.Normalize();
+                    enemy.ApplyKnockbackWithResistance(knockDir, 32f);
+
+                    Console.WriteLine($"[FarmScene] Melee hit {enemy.Data.Name} for {damage:F0} damage");
+                }
+            }
+        }
+
+        // Update enemies: AI, movement, attacks
+        for (int i = _enemies.Count - 1; i >= 0; i--)
+        {
+            var enemy = _enemies[i];
+            enemy.Update(deltaTime, _player.Position, _projectiles);
+
+            // Enemy melee attack vs player
+            if (enemy.IsMeleeAttackReady && enemy.CollisionBox.Intersects(_player.CollisionBox))
+            {
+                _combat.TryPlayerTakeDamage(_player, enemy.Data.AttackDamage);
+                enemy.ConsumeMeleeAttack();
+            }
+            else if (enemy.IsMeleeAttackReady && !enemy.CollisionBox.Intersects(_player.CollisionBox))
+            {
+                // Player moved out of range, consume the attack (miss)
+                enemy.ConsumeMeleeAttack();
+            }
+
+            // Handle enemy death: roll loot and remove
+            if (!enemy.IsAlive)
+            {
+                var drops = enemy.Data.Loot.Roll(_lootRng);
+                foreach (var (itemId, quantity) in drops)
+                {
+                    SpawnItemDrop(itemId, quantity, enemy.Position);
+                    Console.WriteLine($"[FarmScene] {enemy.Data.Name} dropped {quantity}x {itemId}");
+                }
+                _enemies.RemoveAt(i);
+            }
+        }
+
+        // Handle player death: respawn at farm center with full HP
+        if (!_player.IsAlive)
+        {
+            _player.HP = _player.MaxHP;
+            _player.Position = TileMap.TileCenterWorld(10, 10);
+            Console.WriteLine("[FarmScene] Player died! Respawning at farm center.");
+        }
 
         // Tools & movement
         _toolController.Update(input);
@@ -247,6 +317,11 @@ public class FarmScene : Scene
         _gridManager.DrawCrops(spriteBatch, viewArea);
         foreach (var drop in _itemDrops)
             drop.Draw(spriteBatch);
+        foreach (var enemy in _enemies)
+        {
+            enemy.Draw(spriteBatch, _pixel);
+            EnemyHealthBar.Draw(spriteBatch, _pixel, enemy.Position, enemy.Data.Height, enemy.HP, enemy.MaxHP);
+        }
         _player.Draw(spriteBatch);
         _slash.Draw(spriteBatch, _pixel);
         _projectiles.Draw(spriteBatch, _pixel);
@@ -310,6 +385,7 @@ public class FarmScene : Scene
         _cropManager.OnDayAdvanced();
         _gridManager.OnDayAdvanced();
         _player.Stats.RestoreStamina();
+        _spawner.Respawn(_enemies);
 
         var state = new GameState
         {
