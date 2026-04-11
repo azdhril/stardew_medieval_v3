@@ -87,6 +87,14 @@ public class SceneManager
         Console.WriteLine("[SceneManager] Scene pushed (immediate)");
     }
 
+    /// <summary>Pop top scene without fade (used for instant overlay close).</summary>
+    public void PopImmediate()
+    {
+        if (_scenes.Count == 0) return;
+        _scenes.Pop().UnloadContent();
+        Console.WriteLine("[SceneManager] Scene popped (immediate)");
+    }
+
     /// <summary>
     /// Update the transition state machine and active scene.
     /// During transitions, no scene receives Update.
