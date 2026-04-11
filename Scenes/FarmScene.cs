@@ -88,14 +88,6 @@ public class FarmScene : Scene
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, font);
 
-        // Test items for development (multiple rarities for visual testing)
-        _inventory.TryAdd("Cabbage", 5);
-        _inventory.TryAdd("Iron_Sword");
-        _inventory.TryAdd("Cosmic_Carrot", 3);
-        _inventory.TryAdd("Flame_Blade");
-        _inventory.TryAdd("Leather_Armor");
-        _inventory.TryAdd("Health_Potion", 10);
-
         // Load save data if available
         var save = SaveManager.Load();
         if (save != null)
@@ -106,6 +98,17 @@ public class FarmScene : Scene
             _player.Stats.SetStamina(save.StaminaCurrent);
             _gridManager.LoadFromSaveData(save.FarmCells, CropRegistry.All);
             _inventory.LoadFromState(save);
+        }
+
+        // Test items for development (only when no save or empty inventory)
+        if (save == null || save.Inventory.Count == 0)
+        {
+            _inventory.TryAdd("Cabbage", 5);
+            _inventory.TryAdd("Iron_Sword");
+            _inventory.TryAdd("Cosmic_Carrot", 3);
+            _inventory.TryAdd("Flame_Blade");
+            _inventory.TryAdd("Leather_Armor");
+            _inventory.TryAdd("Health_Potion", 10);
         }
 
         Console.WriteLine("[FarmScene] Loaded");

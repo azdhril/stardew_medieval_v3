@@ -15,9 +15,9 @@ public class InventoryGridRenderer
 {
     private const int Columns = 5;
     private const int Rows = 4;
-    private const int SlotSize = 36;
-    private const int Padding = 4;
-    private const int IconPadding = 2;
+    private const int SlotSize = 40;
+    private const int Padding = 2;
+    private const int IconPadding = 4;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;

@@ -66,7 +66,8 @@ public class Game1 : Game
 
         _input.Update();
 
-        if (_input.IsKeyPressed(Keys.Escape))
+        // Only exit on Escape if no overlay scenes are active
+        if (_input.IsKeyPressed(Keys.Escape) && _sceneManager.SceneCount <= 1)
             Exit();
 
         _sceneManager.Update(dt);

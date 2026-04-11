@@ -16,8 +16,8 @@ namespace stardew_medieval_v3.Scenes;
 /// </summary>
 public class InventoryScene : Scene
 {
-    private const int PanelWidth = 250;
-    private const int PanelHeight = 240;
+    private const int PanelWidth = 280;
+    private const int PanelHeight = 260;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
