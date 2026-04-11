@@ -48,13 +48,13 @@ Plans:
   3. Player can equip a weapon and armor into dedicated slots and see stat changes reflected
   4. Harvesting a crop removes it from the field and adds it to inventory (no more overlay-only feedback)
   5. Items on the ground are pulled toward the player magnetically when within pickup range
-**Plans**: TBD
+**Plans:** 3 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — InventoryManager data layer, SpriteAtlas, HotbarRenderer, mouse input (Wave 1)
+- [ ] 02-02-PLAN.md — Inventory UI overlay with grid tab, equipment tab, and item interaction (Wave 2)
+- [ ] 02-03-PLAN.md — ItemDropEntity with magnetism, farming fixes, harvest-to-inventory integration (Wave 3)
 
 ### Phase 3: Combat
 **Goal**: Players can fight enemies with melee and magic in real-time combat with visible feedback
@@ -133,8 +133,8 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Architecture Foundation | 3/4 | Gap closure planned | - |
-| 2. Items & Inventory | 0/3 | Not started | - |
+| 1. Architecture Foundation | 4/4 | Complete | - |
+| 2. Items & Inventory | 0/3 | Planned | - |
 | 3. Combat | 0/3 | Not started | - |
 | 4. World & NPCs | 0/3 | Not started | - |
 | 5. Dungeon | 0/3 | Not started | - |
