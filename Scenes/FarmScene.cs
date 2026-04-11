@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
+using stardew_medieval_v3.Entities;
 using stardew_medieval_v3.Farming;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Inventory;
@@ -30,6 +31,7 @@ public class FarmScene : Scene
     private InventoryManager _inventory = null!;
     private SpriteAtlas _spriteAtlas = null!;
     private HotbarRenderer _hotbar = null!;
+    private readonly List<ItemDropEntity> _itemDrops = new();
 
     public FarmScene(ServiceContainer services) : base(services) { }
 
@@ -55,7 +57,7 @@ public class FarmScene : Scene
         _gridManager = new GridManager(_map);
         _gridManager.LoadContent(device);
         _cropManager = new CropManager(_gridManager, CropRegistry.GetAllCrops());
-        _toolController = new ToolController(_gridManager, _cropManager, _player);
+        _toolController = new ToolController(_gridManager, _cropManager, _player, SpawnItemDrop);
 
         // Camera
         Services.Camera.Zoom = 3f;
@@ -193,6 +195,17 @@ public class FarmScene : Scene
         _toolController.Update(input);
         _player.Update(deltaTime, input.Movement, _map);
         Services.Camera.Follow(_player.Position, deltaTime);
+
+        // Item drops: update magnetism/pickup, remove collected
+        for (int i = _itemDrops.Count - 1; i >= 0; i--)
+        {
+            _itemDrops[i].UpdateWithPlayer(deltaTime, _player.Position, _inventory);
+            if (_itemDrops[i].IsCollected)
+            {
+                Console.WriteLine($"[FarmScene] Picked up: {_itemDrops[i].ItemId}");
+                _itemDrops.RemoveAt(i);
+            }
+        }
     }
 
     public override void Draw(SpriteBatch spriteBatch)
@@ -215,6 +228,8 @@ public class FarmScene : Scene
         _map.Draw(spriteBatch, viewArea);
         _gridManager.DrawOverlays(spriteBatch, viewArea);
         _gridManager.DrawCrops(spriteBatch, viewArea);
+        foreach (var drop in _itemDrops)
+            drop.Draw(spriteBatch);
         _player.Draw(spriteBatch);
         DrawFarmZoneHint(spriteBatch, viewArea);
         spriteBatch.End();
@@ -257,6 +272,17 @@ public class FarmScene : Scene
                     new Rectangle(x * TileMap.TileSize, y * TileMap.TileSize, TileMap.TileSize, TileMap.TileSize),
                     Color.Green * 0.08f);
         }
+    }
+
+    /// <summary>
+    /// Spawn an item drop entity at the given world position.
+    /// Called by ToolController on harvest.
+    /// </summary>
+    public void SpawnItemDrop(string itemId, int quantity, Vector2 worldPosition)
+    {
+        var drop = new ItemDropEntity(itemId, quantity, worldPosition, _spriteAtlas);
+        _itemDrops.Add(drop);
+        Console.WriteLine($"[FarmScene] Item drop spawned: {quantity}x {itemId}");
     }
 
     private void OnDayAdvanced()
