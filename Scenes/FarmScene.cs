@@ -190,7 +190,7 @@ public class FarmScene : Scene
         // Item drops: update magnetism/pickup, remove collected
         for (int i = _itemDrops.Count - 1; i >= 0; i--)
         {
-            _itemDrops[i].UpdateWithPlayer(deltaTime, _player.Position, _inventory);
+            _itemDrops[i].UpdateWithPlayer(deltaTime, _player.GetFootPosition(), _inventory);
             if (_itemDrops[i].IsCollected)
             {
                 Console.WriteLine($"[FarmScene] Picked up: {_itemDrops[i].ItemId}");

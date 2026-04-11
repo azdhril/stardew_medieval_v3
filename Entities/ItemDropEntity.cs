@@ -31,6 +31,7 @@ public class ItemDropEntity : Entity
     private const float MaxMagnetSpeed = 200f;
     private const float BounceDuration = 0.4f;
     private const float BounceHeight = 12f;
+    private const float PickupDelay = 0.5f; // seconds after spawn before pickup/magnet activates
 
     /// <summary>The item identifier for this drop.</summary>
     public string ItemId => _itemId;
@@ -98,6 +99,10 @@ public class ItemDropEntity : Entity
 
             return; // No magnetism during bounce
         }
+
+        // Pickup immunity: wait after spawn so player sees the item land
+        if (_totalTime < PickupDelay)
+            return;
 
         float dist = Vector2.Distance(Position, playerPos);
 
