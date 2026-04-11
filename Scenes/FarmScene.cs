@@ -4,6 +4,7 @@ using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using stardew_medieval_v3.Combat;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Entities;
@@ -29,6 +30,9 @@ public class FarmScene : Scene
     private HUD _hud = null!;
     private Texture2D _pixel = null!;
     private InventoryManager _inventory = null!;
+    private CombatManager _combat = null!;
+    private ProjectileManager _projectiles = null!;
+    private SlashEffect _slash = new();
     private SpriteAtlas _spriteAtlas = null!;
     private HotbarRenderer _hotbar = null!;
     private readonly List<ItemDropEntity> _itemDrops = new();
@@ -63,17 +67,22 @@ public class FarmScene : Scene
         Services.Camera.Zoom = 3f;
         Services.Camera.Bounds = _map.GetWorldBounds();
 
-        // HUD
-        var font = content.Load<SpriteFont>("DefaultFont");
-        _hud = new HUD(Services.Time, _player.Stats, _toolController);
-        _hud.LoadContent(device, font);
-
         Services.Time.OnDayAdvanced += OnDayAdvanced;
 
-        // Items
+        // Items (must be before HUD and Combat so they can reference inventory)
         ItemRegistry.Initialize();
         _inventory = new InventoryManager();
         Services.Inventory = _inventory;
+
+        // Combat
+        _combat = new CombatManager(_inventory);
+        _projectiles = new ProjectileManager();
+        _projectiles.OnPlayerHit = (damage) => _combat.TryPlayerTakeDamage(_player, damage);
+
+        // HUD (requires player and combat for HP bar and cooldown)
+        var font = content.Load<SpriteFont>("DefaultFont");
+        _hud = new HUD(Services.Time, _player.Stats, _toolController, _player, _combat);
+        _hud.LoadContent(device, font);
 
         var itemSheet = LoadTexture(device, "Content/Sprites/Items/7_Pickup_Items_16x16.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
@@ -181,6 +190,24 @@ public class FarmScene : Scene
         // Time
         Services.Time.Update(deltaTime);
 
+        // Combat input and update
+        _combat.HandleInput(input, _player);
+        _combat.Update(deltaTime);
+
+        // Spawn fireball if requested
+        if (_combat.ConsumeFireballRequest())
+        {
+            _projectiles.SpawnFireball(_player.Position, _player.FacingDirection);
+        }
+
+        // Trigger slash visual on melee swing start
+        if (_combat.Melee.IsSwinging && _combat.Melee.SwingProgress < 0.1f)
+            _slash.Trigger(_player.Position, _player.FacingDirection);
+        _slash.Update(deltaTime);
+
+        // Update projectiles (no enemies yet, pass empty list)
+        _projectiles.Update(deltaTime, System.Array.Empty<Core.Entity>(), _player);
+
         // Tools & movement
         _toolController.Update(input);
         _player.Update(deltaTime, input.Movement, _map);
@@ -221,6 +248,8 @@ public class FarmScene : Scene
         foreach (var drop in _itemDrops)
             drop.Draw(spriteBatch);
         _player.Draw(spriteBatch);
+        _slash.Draw(spriteBatch, _pixel);
+        _projectiles.Draw(spriteBatch, _pixel);
         DrawFarmZoneHint(spriteBatch, viewArea);
         spriteBatch.End();
 
