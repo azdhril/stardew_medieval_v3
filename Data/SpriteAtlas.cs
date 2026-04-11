@@ -109,21 +109,25 @@ public class SpriteAtlas
         atlas.Register("seed_cosmic_carrot", 8, 3);
         atlas.Register("seed_prickly_pear", 9, 3);
 
-        // Row 4: Tools and equipment
-        atlas.Register("tool_hoe", 0, 4);
-        atlas.Register("tool_watering_can", 1, 4);
-        atlas.Register("tool_scythe", 2, 4);
+        // Row 4: Misc items (nuts, mushrooms, etc.)
+        // Mapping tools/weapons/armor to existing visible sprites as placeholders
+        // until dedicated weapon/armor spritesheets are added
+        atlas.Register("tool_hoe", 0, 2);       // seed packet placeholder
+        atlas.Register("tool_watering_can", 1, 2);
+        atlas.Register("tool_scythe", 2, 2);
 
-        // Weapons (use row 4 with offset)
-        atlas.Register("weapon_iron_sword", 3, 4);
-        atlas.Register("weapon_steel_sword", 4, 4);
-        atlas.Register("weapon_flame_blade", 5, 4);
+        // Weapons — use distinct row 4 sprites as placeholders
+        atlas.Register("weapon_iron_sword", 0, 4);
+        atlas.Register("weapon_steel_sword", 1, 4);
+        atlas.Register("weapon_flame_blade", 2, 4);
 
-        // Row 5: Armor and consumables
-        atlas.Register("armor_leather", 0, 5);
-        atlas.Register("armor_iron", 1, 5);
-        atlas.Register("armor_dragon", 2, 5);
-        atlas.Register("consumable_health_potion", 3, 5);
+        // Armor — use row 4 sprites as placeholders
+        atlas.Register("armor_leather", 3, 4);
+        atlas.Register("armor_iron", 4, 4);
+        atlas.Register("armor_dragon", 5, 4);
+
+        // Consumables
+        atlas.Register("consumable_health_potion", 6, 4);
 
         return atlas;
     }

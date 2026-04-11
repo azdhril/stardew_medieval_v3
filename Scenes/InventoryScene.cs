@@ -10,32 +10,26 @@ using stardew_medieval_v3.UI;
 namespace stardew_medieval_v3.Scenes;
 
 /// <summary>
-/// Inventory overlay scene with two tabs: a 20-slot grid view and a Tibia-style
-/// equipment view. Opened via I key, closed via I or Escape.
-/// Drawn on top of the game world with a semi-transparent dark background.
+/// Inventory overlay scene with unified view: equipment silhouette on the left,
+/// 20-slot item grid on the right. Supports drag-and-drop between grid and
+/// equipment slots. Opened via I key, closed via I or Escape.
 /// </summary>
 public class InventoryScene : Scene
 {
-    private const int PanelWidth = 280;
-    private const int PanelHeight = 260;
+    // Panel: equipment (left) + grid (right) side by side
+    private const int PanelWidth = 380;
+    private const int PanelHeight = 220;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
 
     private InventoryGridRenderer _gridRenderer = null!;
-    private EquipmentRenderer _equipRenderer = null!;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
 
-    /// <summary>Active tab: 0 = Grid, 1 = Equipment.</summary>
-    private int _activeTab;
+    // Mouse tracking for drag
+    private bool _wasMouseDown;
 
-    /// <summary>
-    /// Create a new InventoryScene overlay.
-    /// </summary>
-    /// <param name="services">Shared service container.</param>
-    /// <param name="inventory">The InventoryManager to display and manipulate.</param>
-    /// <param name="atlas">The SpriteAtlas for item icon rendering.</param>
     public InventoryScene(ServiceContainer services, InventoryManager inventory, SpriteAtlas atlas)
         : base(services)
     {
@@ -48,18 +42,13 @@ public class InventoryScene : Scene
         var device = Services.GraphicsDevice;
         _font = Services.Content.Load<SpriteFont>("DefaultFont");
 
-        // 1x1 pixel for background dimming and panel
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
-        // Initialize sub-renderers
         _gridRenderer = new InventoryGridRenderer(_inventory, _atlas);
         _gridRenderer.LoadContent(device, _font);
 
-        _equipRenderer = new EquipmentRenderer(_inventory, _atlas);
-        _equipRenderer.LoadContent(device, _font);
-
-        _activeTab = 0;
+        _wasMouseDown = false;
 
         Console.WriteLine("[InventoryScene] Loaded");
     }
@@ -68,60 +57,48 @@ public class InventoryScene : Scene
     {
         var input = Services.Input;
 
-        // Close inventory on I or Escape (instant, no fade)
+        // Close inventory on I or Escape
         if (input.IsKeyPressed(Keys.I) || input.IsKeyPressed(Keys.Escape))
         {
+            _gridRenderer.CancelDrag();
             Services.SceneManager.PopImmediate();
             return;
         }
 
-        // Tab switch on Tab key
-        if (input.IsKeyPressed(Keys.Tab))
+        // Calculate layout positions
+        var viewport = Services.GraphicsDevice.Viewport;
+        int panelX = (viewport.Width - PanelWidth) / 2;
+        int panelY = (viewport.Height - PanelHeight) / 2;
+
+        // Equipment on the left side of the panel
+        int equipOffsetX = panelX + 20;
+        int equipOffsetY = panelY + 30;
+
+        // Grid on the right side of the panel
+        int gridOffsetX = panelX + 130;
+        int gridOffsetY = panelY + 30;
+
+        // Drag and drop handling
+        bool mouseDown = Mouse.GetState().LeftButton == ButtonState.Pressed;
+        Point mousePos = input.MousePosition;
+
+        if (mouseDown && !_wasMouseDown)
         {
-            _activeTab = _activeTab == 0 ? 1 : 0;
-            _gridRenderer.ClearSelection();
-            Console.WriteLine($"[InventoryScene] Switched to tab {_activeTab}");
+            // Mouse just pressed — start drag
+            _gridRenderer.HandleMouseDown(mousePos, gridOffsetX, gridOffsetY, equipOffsetX, equipOffsetY);
+        }
+        else if (mouseDown && _wasMouseDown)
+        {
+            // Mouse held — update drag position
+            _gridRenderer.UpdateDrag(mousePos);
+        }
+        else if (!mouseDown && _wasMouseDown)
+        {
+            // Mouse released — drop
+            _gridRenderer.HandleMouseUp(mousePos, gridOffsetX, gridOffsetY, equipOffsetX, equipOffsetY);
         }
 
-        // Click handling
-        if (input.IsLeftClickPressed)
-        {
-            var viewport = Services.GraphicsDevice.Viewport;
-            int panelX = (viewport.Width - PanelWidth) / 2;
-            int panelY = (viewport.Height - PanelHeight) / 2;
-            int contentX = panelX + 10;
-            int contentY = panelY + 30;
-
-            if (_activeTab == 0)
-            {
-                // Grid tab: click to select/move items
-                _gridRenderer.HandleClick(input.MousePosition, contentX, contentY);
-            }
-            else
-            {
-                // Equipment tab: click to equip/unequip
-                var clickResult = _equipRenderer.HandleClick(input.MousePosition, contentX, contentY);
-                if (clickResult != null)
-                {
-                    int selectedSlot = _gridRenderer.SelectedSlot;
-                    if (selectedSlot >= 0)
-                    {
-                        // Have a selected inventory slot: try to equip from it
-                        _inventory.TryEquip(selectedSlot);
-                        _gridRenderer.ClearSelection();
-                    }
-                    else
-                    {
-                        // No selection: try to unequip to first empty slot
-                        int firstEmpty = FindFirstEmptySlot();
-                        if (firstEmpty >= 0)
-                        {
-                            _inventory.TryUnequip(clickResult, firstEmpty);
-                        }
-                    }
-                }
-            }
-        }
+        _wasMouseDown = mouseDown;
     }
 
     public override void Draw(SpriteBatch spriteBatch)
@@ -130,89 +107,50 @@ public class InventoryScene : Scene
         int screenWidth = viewport.Width;
         int screenHeight = viewport.Height;
 
-        // Semi-transparent dark background overlay
+        // Semi-transparent dark background
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
         spriteBatch.Draw(_pixel,
             new Rectangle(0, 0, screenWidth, screenHeight),
             Color.Black * 0.6f);
         spriteBatch.End();
 
-        // Panel background
+        // Panel
         int panelX = (screenWidth - PanelWidth) / 2;
         int panelY = (screenHeight - PanelHeight) / 2;
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
-        // Panel solid background
+        // Panel background
         spriteBatch.Draw(_pixel,
             new Rectangle(panelX, panelY, PanelWidth, PanelHeight),
             Color.DarkSlateGray * 0.9f);
 
-        // Tab buttons at top
-        string itemsLabel = "Items";
-        string equipLabel = "Equipment";
-        var itemsSize = _font.MeasureString(itemsLabel);
-        var equipSize = _font.MeasureString(equipLabel);
+        // Title
+        string title = "Inventory";
+        var titleSize = _font.MeasureString(title);
+        spriteBatch.DrawString(_font, title,
+            new Vector2(panelX + (PanelWidth - titleSize.X) / 2, panelY + 6),
+            Color.White);
 
-        int tabY = panelY + 5;
-        int tabItemsX = panelX + 20;
-        int tabEquipX = panelX + PanelWidth / 2 + 10;
+        // Divider line between equipment and grid
+        int dividerX = panelX + 120;
+        spriteBatch.Draw(_pixel,
+            new Rectangle(dividerX, panelY + 25, 1, PanelHeight - 35),
+            Color.Gray * 0.5f);
 
-        // Active tab in white, inactive in gray
-        spriteBatch.DrawString(_font, itemsLabel,
-            new Vector2(tabItemsX, tabY),
-            _activeTab == 0 ? Color.White : Color.Gray);
-        spriteBatch.DrawString(_font, equipLabel,
-            new Vector2(tabEquipX, tabY),
-            _activeTab == 1 ? Color.White : Color.Gray);
+        // Equipment offset (left side)
+        int equipOffsetX = panelX + 20;
+        int equipOffsetY = panelY + 30;
 
-        // Underline for active tab
-        if (_activeTab == 0)
-        {
-            spriteBatch.Draw(_pixel,
-                new Rectangle(tabItemsX, tabY + (int)itemsSize.Y + 1, (int)itemsSize.X, 2),
-                Color.White);
-        }
-        else
-        {
-            spriteBatch.Draw(_pixel,
-                new Rectangle(tabEquipX, tabY + (int)equipSize.Y + 1, (int)equipSize.X, 2),
-                Color.White);
-        }
+        // Grid offset (right side)
+        int gridOffsetX = panelX + 130;
+        int gridOffsetY = panelY + 30;
 
-        // Content area
-        int contentX = panelX + 10;
-        int contentY = panelY + 30;
+        // Draw everything through the unified renderer
+        _gridRenderer.Draw(spriteBatch, gridOffsetX, gridOffsetY, equipOffsetX, equipOffsetY);
 
-        if (_activeTab == 0)
-        {
-            // Grid tab
-            _gridRenderer.Draw(spriteBatch, contentX, contentY);
-
-            // Show selected item name at bottom of panel
-            int selectedSlot = _gridRenderer.SelectedSlot;
-            if (selectedSlot >= 0)
-            {
-                var stack = _inventory.GetSlot(selectedSlot);
-                if (stack != null)
-                {
-                    var def = ItemRegistry.Get(stack.ItemId);
-                    if (def != null)
-                    {
-                        string infoText = $"{def.Name} ({def.Rarity})";
-                        var infoSize = _font.MeasureString(infoText);
-                        spriteBatch.DrawString(_font, infoText,
-                            new Vector2(panelX + (PanelWidth - infoSize.X) / 2, panelY + PanelHeight - 20),
-                            Color.LightGoldenrodYellow);
-                    }
-                }
-            }
-        }
-        else
-        {
-            // Equipment tab
-            _equipRenderer.Draw(spriteBatch, contentX, contentY);
-        }
+        // Tooltip: show hovered item name at bottom
+        DrawTooltip(spriteBatch, panelX, panelY);
 
         spriteBatch.End();
     }
@@ -224,15 +162,45 @@ public class InventoryScene : Scene
     }
 
     /// <summary>
-    /// Find the first empty inventory slot index, or -1 if full.
+    /// Draw item name tooltip at bottom of panel when hovering a slot.
     /// </summary>
-    private int FindFirstEmptySlot()
+    private void DrawTooltip(SpriteBatch sb, int panelX, int panelY)
     {
+        var mousePos = Services.Input.MousePosition;
+        var viewport = Services.GraphicsDevice.Viewport;
+
+        int gridOffsetX = panelX + 130;
+        int gridOffsetY = panelY + 30;
+
+        // Check if hovering a grid slot
+        string? tooltipText = null;
         for (int i = 0; i < InventoryManager.SlotCount; i++)
         {
-            if (_inventory.GetSlot(i) == null)
-                return i;
+            int col = i % 5;
+            int row = i / 5;
+            int x = gridOffsetX + col * 42; // SlotSize(40) + Padding(2)
+            int y = gridOffsetY + row * 42;
+            var slotRect = new Rectangle(x, y, 40, 40);
+
+            if (slotRect.Contains(mousePos))
+            {
+                var stack = _inventory.GetSlot(i);
+                if (stack != null)
+                {
+                    var def = ItemRegistry.Get(stack.ItemId);
+                    if (def != null)
+                        tooltipText = $"{def.Name} ({def.Rarity})";
+                }
+                break;
+            }
         }
-        return -1;
+
+        if (tooltipText != null)
+        {
+            var textSize = _font.MeasureString(tooltipText);
+            sb.DrawString(_font, tooltipText,
+                new Vector2(panelX + (PanelWidth - textSize.X) / 2, panelY + PanelHeight - 18),
+                Color.LightGoldenrodYellow);
+        }
     }
 }
