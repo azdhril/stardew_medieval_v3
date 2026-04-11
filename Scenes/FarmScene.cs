@@ -88,9 +88,13 @@ public class FarmScene : Scene
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, font);
 
-        // Test items for development
+        // Test items for development (multiple rarities for visual testing)
         _inventory.TryAdd("Cabbage", 5);
         _inventory.TryAdd("Iron_Sword");
+        _inventory.TryAdd("Cosmic_Carrot", 3);
+        _inventory.TryAdd("Flame_Blade");
+        _inventory.TryAdd("Leather_Armor");
+        _inventory.TryAdd("Health_Potion", 10);
 
         // Load save data if available
         var save = SaveManager.Load();
@@ -132,12 +136,12 @@ public class FarmScene : Scene
                 _inventory.SetActiveHotbar(i);
         }
 
-        // TODO: Plan 02 - uncomment when InventoryScene exists
-        // if (input.IsKeyPressed(Keys.I))
-        // {
-        //     Services.SceneManager.PushImmediate(new InventoryScene(Services, _inventory, _spriteAtlas));
-        //     return;
-        // }
+        // Open inventory overlay (instant, no fade)
+        if (input.IsKeyPressed(Keys.I))
+        {
+            Services.SceneManager.PushImmediate(new InventoryScene(Services, _inventory, _spriteAtlas));
+            return;
+        }
 
         // Time progression
         Services.Time.Update(deltaTime);
