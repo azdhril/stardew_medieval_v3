@@ -435,7 +435,7 @@ for (int i = _enemies.Count - 1; i >= 0; i--)
 | A5 | No wall collision check needed for knockback in v1 farm area | Pitfall 2 | MEDIUM -- enemies could clip through decorative tiles on farm map, flag for Phase 5 |
 | A6 | LMB context switching (combat vs farming) based on active hotbar item type | Pitfall 7 | LOW -- user decisions specify LMB=melee and E=farm interaction, but integration needs care |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Loot item IDs for enemy drops**
    - What we know: D-16 says "bones", D-17 says "mana crystal", D-18 says "stone". These items don't exist in items.json yet.
