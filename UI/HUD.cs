@@ -62,12 +62,7 @@ public class HUD
         string staminaText = $"STA: {_stats.CurrentStamina:F0}/{_stats.MaxStamina:F0}";
         spriteBatch.DrawString(_font, staminaText, new Vector2(barX + 4, barY), Color.White);
 
-        // === Bottom-center: Controls hint ===
-        string controls = "H:Hoe G:Water R:Seeds F:Hands E:Interact Tab:CycleCrop P:Sleep";
-        var ctrlSize = _font.MeasureString(controls);
-        spriteBatch.DrawString(_font, controls,
-            new Vector2(screenWidth / 2f - ctrlSize.X / 2f, screenHeight - 20),
-            Color.Gray * 0.7f);
+        // Controls hint removed -- hotbar now occupies bottom-center area
     }
 
     private void DrawRect(SpriteBatch sb, int x, int y, int w, int h, Color color)

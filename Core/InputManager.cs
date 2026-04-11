@@ -10,12 +10,30 @@ public class InputManager
 {
     private KeyboardState _currentKeys;
     private KeyboardState _previousKeys;
+    private MouseState _currentMouse;
+    private MouseState _previousMouse;
 
     public Vector2 Movement { get; private set; }
     public bool InteractPressed { get; private set; }
 
+    /// <summary>Current mouse position in screen coordinates.</summary>
+    public Point MousePosition => _currentMouse.Position;
+
+    /// <summary>True on the frame left mouse button is first pressed.</summary>
+    public bool IsLeftClickPressed =>
+        _currentMouse.LeftButton == ButtonState.Pressed &&
+        _previousMouse.LeftButton == ButtonState.Released;
+
+    /// <summary>True on the frame right mouse button is first pressed.</summary>
+    public bool IsRightClickPressed =>
+        _currentMouse.RightButton == ButtonState.Pressed &&
+        _previousMouse.RightButton == ButtonState.Released;
+
     public void Update()
     {
+        _previousMouse = _currentMouse;
+        _currentMouse = Mouse.GetState();
+
         _previousKeys = _currentKeys;
         _currentKeys = Keyboard.GetState();
 

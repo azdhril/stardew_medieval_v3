@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using stardew_medieval_v3.Inventory;
 
 namespace stardew_medieval_v3.Core;
 
@@ -21,4 +22,10 @@ public class ServiceContainer
     /// Set after SceneManager is created (circular reference resolved via setter).
     /// </summary>
     public SceneManager SceneManager { get; set; } = null!;
+
+    /// <summary>
+    /// Shared inventory instance, set by FarmScene after creation.
+    /// Allows other scenes (e.g. InventoryScene) to access inventory via Services.
+    /// </summary>
+    public InventoryManager? Inventory { get; set; }
 }

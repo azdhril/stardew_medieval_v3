@@ -66,6 +66,16 @@
 
     { "Id": "Hoe", "Name": "Hoe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_hoe", "Stats": {} },
     { "Id": "Watering_Can", "Name": "Watering Can", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_watering_can", "Stats": {} },
-    { "Id": "Scythe", "Name": "Scythe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_scythe", "Stats": {} }
+    { "Id": "Scythe", "Name": "Scythe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_scythe", "Stats": {} },
+
+    { "Id": "Iron_Sword", "Name": "Iron Sword", "Type": "Weapon", "Rarity": "Common", "StackLimit": 1, "SpriteId": "weapon_iron_sword", "Stats": { "damage": 8 } },
+    { "Id": "Steel_Sword", "Name": "Steel Sword", "Type": "Weapon", "Rarity": "Uncommon", "StackLimit": 1, "SpriteId": "weapon_steel_sword", "Stats": { "damage": 15 } },
+    { "Id": "Flame_Blade", "Name": "Flame Blade", "Type": "Weapon", "Rarity": "Rare", "StackLimit": 1, "SpriteId": "weapon_flame_blade", "Stats": { "damage": 25 } },
+
+    { "Id": "Leather_Armor", "Name": "Leather Armor", "Type": "Armor", "Rarity": "Common", "StackLimit": 1, "SpriteId": "armor_leather", "Stats": { "defense": 5 } },
+    { "Id": "Iron_Armor", "Name": "Iron Armor", "Type": "Armor", "Rarity": "Uncommon", "StackLimit": 1, "SpriteId": "armor_iron", "Stats": { "defense": 12 } },
+    { "Id": "Dragon_Armor", "Name": "Dragon Armor", "Type": "Armor", "Rarity": "Rare", "StackLimit": 1, "SpriteId": "armor_dragon", "Stats": { "defense": 22 } },
+
+    { "Id": "Health_Potion", "Name": "Health Potion", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "SpriteId": "consumable_health_potion", "Stats": { "heal": 30 } }
   ]
 }
