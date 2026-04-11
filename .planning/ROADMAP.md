@@ -52,9 +52,9 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 02-01-PLAN.md — InventoryManager data layer, SpriteAtlas, HotbarRenderer, mouse input (Wave 1)
-- [ ] 02-02-PLAN.md — Inventory UI overlay with grid tab, equipment tab, and item interaction (Wave 2)
-- [ ] 02-03-PLAN.md — ItemDropEntity with magnetism, farming fixes, harvest-to-inventory integration (Wave 3)
+- [x] 02-01-PLAN.md — InventoryManager data layer, SpriteAtlas, HotbarRenderer, mouse input (Wave 1)
+- [x] 02-02-PLAN.md — Inventory UI overlay with grid tab, equipment tab, and item interaction (Wave 2)
+- [x] 02-03-PLAN.md — ItemDropEntity with magnetism, farming fixes, harvest-to-inventory integration (Wave 3)
 
 ### Phase 3: Combat
 **Goal**: Players can fight enemies with melee and magic in real-time combat with visible feedback
