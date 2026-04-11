@@ -148,7 +148,7 @@ public class FarmScene : Scene
                 _inventory.SetActiveHotbar(i);
         }
 
-        // Consumable quick-use: Q = slot 0, E = slot 1
+        // Consumable quick-use: Q = slot 0 (E kept free for actions)
         if (input.IsKeyPressed(Keys.Q))
         {
             float heal = _inventory.UseConsumable(0);
@@ -156,15 +156,6 @@ public class FarmScene : Scene
             {
                 _player.Stats.RestoreStamina(heal);
                 Console.WriteLine($"[FarmScene] Used consumable Q, restored {heal} stamina");
-            }
-        }
-        if (input.IsKeyPressed(Keys.E))
-        {
-            float heal = _inventory.UseConsumable(1);
-            if (heal > 0)
-            {
-                _player.Stats.RestoreStamina(heal);
-                Console.WriteLine($"[FarmScene] Used consumable E, restored {heal} stamina");
             }
         }
 

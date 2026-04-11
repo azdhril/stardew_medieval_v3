@@ -19,8 +19,8 @@ public class InventoryManager
     /// <summary>Number of hotbar reference slots.</summary>
     public const int HotbarSize = 8;
 
-    /// <summary>Number of consumable quick-slots (Q/E).</summary>
-    public const int ConsumableSlotCount = 2;
+    /// <summary>Number of consumable quick-slots (Q only, E kept free for actions).</summary>
+    public const int ConsumableSlotCount = 1;
 
     private readonly ItemStack?[] _slots = new ItemStack?[SlotCount];
     private readonly string?[] _hotbarRefs = new string?[HotbarSize];

@@ -135,7 +135,7 @@ public class HotbarRenderer
     public void Draw(SpriteBatch sb, int screenWidth, int screenHeight)
     {
         // Draw consumable slots
-        string[] consumableKeys = { "Q", "E" };
+        string[] consumableKeys = { "Q" };
         for (int i = 0; i < InventoryManager.ConsumableSlotCount; i++)
         {
             var rect = GetConsumableSlotRect(i, screenWidth, screenHeight);

@@ -112,9 +112,19 @@ public class PlayerEntity : Entity
     }
 
     /// <summary>
-    /// Get the tile position the player is standing on.
+    /// Get the foot position (center-bottom of collision box) used for tile calculations.
+    /// Position is sprite center (head level), but gameplay tiles should be based on feet.
     /// </summary>
-    public Point GetTilePosition() => TileMap.WorldToTile(Position);
+    public Vector2 GetFootPosition()
+    {
+        var box = CollisionBox;
+        return new Vector2(box.X + box.Width / 2f, box.Y + box.Height / 2f);
+    }
+
+    /// <summary>
+    /// Get the tile position the player is standing on (based on feet, not sprite center).
+    /// </summary>
+    public Point GetTilePosition() => TileMap.WorldToTile(GetFootPosition());
 
     /// <summary>
     /// Get the tile position the player is facing (for interactions).
