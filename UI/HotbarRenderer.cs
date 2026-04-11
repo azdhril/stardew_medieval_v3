@@ -9,7 +9,7 @@ using stardew_medieval_v3.Inventory;
 namespace stardew_medieval_v3.UI;
 
 /// <summary>
-/// Renders the reference-based hotbar (8 slots) and consumable slots (2, Q/E)
+/// Renders the reference-based hotbar (8 slots) and consumable slot (1, Q)
 /// at the bottom of the screen. Supports drag-and-drop reordering without
 /// opening inventory.
 /// </summary>

@@ -114,9 +114,8 @@ public class FarmScene : Scene
             _inventory.SetHotbarRef(1, "Flame_Blade");
             _inventory.SetHotbarRef(2, "Cabbage");
 
-            // Default consumable refs
+            // Default consumable ref (Q slot only)
             _inventory.SetConsumableRef(0, "Health_Potion");
-            _inventory.SetConsumableRef(1, "Bread");
         }
 
         Console.WriteLine("[FarmScene] Loaded");

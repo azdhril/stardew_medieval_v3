@@ -129,7 +129,7 @@ public class ItemDropEntity : Entity
         {
             float t = 1f - (dist / MagnetRange); // 0 at edge, 1 near center
             float speed = MathHelper.Lerp(40f, MaxMagnetSpeed, t * t);
-            Vector2 direction = Vector2.Normalize(playerPos - Position);
+            Vector2 direction = (playerPos - Position) / dist;
             Position += direction * speed * deltaTime;
         }
     }
