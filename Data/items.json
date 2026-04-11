@@ -84,6 +84,10 @@
     { "Id": "Iron_Necklace", "Name": "Iron Necklace", "Type": "Armor", "Rarity": "Common", "StackLimit": 1, "SpriteId": "armor_iron", "EquipSlot": "Necklace", "Stats": { "defense": 2 } },
 
     { "Id": "Health_Potion", "Name": "Health Potion", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "SpriteId": "consumable_health_potion", "Stats": { "heal": 30 } },
-    { "Id": "Bread", "Name": "Bread", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "SpriteId": "consumable_health_potion", "Stats": { "heal": 10 } }
+    { "Id": "Bread", "Name": "Bread", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "SpriteId": "consumable_health_potion", "Stats": { "heal": 10 } },
+
+    { "Id": "Bones", "Name": "Bones", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "SpriteId": "loot_bones", "Stats": {} },
+    { "Id": "Mana_Crystal", "Name": "Mana Crystal", "Type": "Loot", "Rarity": "Uncommon", "StackLimit": 99, "SpriteId": "loot_mana_crystal", "Stats": {} },
+    { "Id": "Stone_Chunk", "Name": "Stone Chunk", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "SpriteId": "loot_stone", "Stats": {} }
   ]
 }
