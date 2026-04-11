@@ -8,6 +8,7 @@ using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Farming;
 using stardew_medieval_v3.Player;
+using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.UI;
 using stardew_medieval_v3.World;
 
@@ -26,6 +27,9 @@ public class FarmScene : Scene
     private ToolController _toolController = null!;
     private HUD _hud = null!;
     private Texture2D _pixel = null!;
+    private InventoryManager _inventory = null!;
+    private SpriteAtlas _spriteAtlas = null!;
+    private HotbarRenderer _hotbar = null!;
 
     public FarmScene(ServiceContainer services) : base(services) { }
 
@@ -74,6 +78,20 @@ public class FarmScene : Scene
         // Item registry
         ItemRegistry.Initialize();
 
+        // Inventory and hotbar
+        _inventory = new InventoryManager();
+        Services.Inventory = _inventory;
+
+        var itemSheet = LoadTexture(device, "Content/Sprites/Items/7_Pickup_Items_16x16.png");
+        _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
+
+        _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
+        _hotbar.LoadContent(device, font);
+
+        // Test items for development
+        _inventory.TryAdd("Cabbage", 5);
+        _inventory.TryAdd("Iron_Sword");
+
         // Load save data if available
         var save = SaveManager.Load();
         if (save != null)
@@ -83,6 +101,7 @@ public class FarmScene : Scene
             _player.Position = new Vector2(save.PlayerX, save.PlayerY);
             _player.Stats.SetStamina(save.StaminaCurrent);
             _gridManager.LoadFromSaveData(save.FarmCells, CropRegistry.All);
+            _inventory.LoadFromState(save);
         }
 
         Console.WriteLine("[FarmScene] Loaded");
@@ -105,6 +124,20 @@ public class FarmScene : Scene
             Services.SceneManager.Push(new TestScene(Services));
             return;
         }
+
+        // Hotbar number key selection (1-8)
+        for (int i = 0; i < 8; i++)
+        {
+            if (input.IsKeyPressed(Keys.D1 + i))
+                _inventory.SetActiveHotbar(i);
+        }
+
+        // TODO: Plan 02 - uncomment when InventoryScene exists
+        // if (input.IsKeyPressed(Keys.I))
+        // {
+        //     Services.SceneManager.PushImmediate(new InventoryScene(Services, _inventory, _spriteAtlas));
+        //     return;
+        // }
 
         // Time progression
         Services.Time.Update(deltaTime);
@@ -164,6 +197,7 @@ public class FarmScene : Scene
         // === Screen space (HUD) ===
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
         _hud.Draw(spriteBatch, viewport.Width, viewport.Height);
+        _hotbar.Draw(spriteBatch, viewport.Width, viewport.Height);
         spriteBatch.End();
     }
 
@@ -220,6 +254,7 @@ public class FarmScene : Scene
             FarmCells = _gridManager.GetSaveData(),
             CurrentScene = "Farm"
         };
+        _inventory.SaveToState(state);
         SaveManager.Save(state);
     }
 
