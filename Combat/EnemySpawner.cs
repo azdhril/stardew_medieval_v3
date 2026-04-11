@@ -73,4 +73,17 @@ public class EnemySpawner
         enemies.AddRange(SpawnAll());
         Console.WriteLine($"[EnemySpawner] Respawned {enemies.Count} enemies for new day");
     }
+
+    /// <summary>
+    /// Spawn the Skeleton King boss at a fixed position on the farm.
+    /// Per D-21: boss spawns as a large red rectangle away from regular enemies.
+    /// </summary>
+    /// <returns>New BossEntity at the hardcoded boss spawn position.</returns>
+    public BossEntity SpawnBoss()
+    {
+        var bossPosition = new Vector2(600, 400);
+        var boss = new BossEntity(bossPosition);
+        Console.WriteLine($"[EnemySpawner] Spawned Skeleton King boss at ({bossPosition.X}, {bossPosition.Y})");
+        return boss;
+    }
 }

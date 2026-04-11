@@ -30,6 +30,9 @@ public class GameState
     public Dictionary<string, string> Equipment { get; set; } = new();
     public List<string?> ConsumableRefs { get; set; } = new();
     public List<string?> HotbarSlots { get; set; } = new(new string?[8]);
+
+    // === New (v4) per D-23: Boss tracking ===
+    public bool BossKilled { get; set; } = false;
 }
 
 public class FarmCellSaveData

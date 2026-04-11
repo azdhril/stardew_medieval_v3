@@ -38,6 +38,9 @@ public class FarmScene : Scene
     private readonly List<ItemDropEntity> _itemDrops = new();
     private readonly List<EnemyEntity> _enemies = new();
     private EnemySpawner _spawner = null!;
+    private BossEntity? _boss;
+    private SpriteFont _font = null!;
+    private GameState? _loadedState;
     private readonly Random _lootRng = new();
 
     public FarmScene(ServiceContainer services) : base(services) { }
@@ -85,16 +88,17 @@ public class FarmScene : Scene
         // Enemies
         _spawner = new EnemySpawner();
         _enemies.AddRange(_spawner.SpawnAll());
+        _boss = _spawner.SpawnBoss();
 
         // HUD (requires player and combat for HP bar and cooldown)
-        var font = content.Load<SpriteFont>("DefaultFont");
+        _font = content.Load<SpriteFont>("DefaultFont");
         _hud = new HUD(Services.Time, _player.Stats, _toolController, _player, _combat);
-        _hud.LoadContent(device, font);
+        _hud.LoadContent(device, _font);
 
         var itemSheet = LoadTexture(device, "Content/Sprites/Items/7_Pickup_Items_16x16.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
-        _hotbar.LoadContent(device, font);
+        _hotbar.LoadContent(device, _font);
 
         // Load save
         var save = SaveManager.Load();
@@ -106,6 +110,11 @@ public class FarmScene : Scene
             _player.Stats.SetStamina(save.StaminaCurrent);
             _gridManager.LoadFromSaveData(save.FarmCells, CropRegistry.All);
             _inventory.LoadFromState(save);
+            _loadedState = save;
+        }
+        else
+        {
+            _loadedState = new GameState();
         }
 
         // Test items (only when no save or empty inventory)
@@ -212,8 +221,10 @@ public class FarmScene : Scene
             _slash.Trigger(_player.Position, _player.FacingDirection);
         _slash.Update(deltaTime);
 
-        // Update projectiles with enemy list for collision detection
+        // Update projectiles with enemy list for collision detection (include boss)
         var enemiesAsEntities = new List<Core.Entity>(_enemies);
+        if (_boss != null && _boss.IsAlive)
+            enemiesAsEntities.Add(_boss);
         _projectiles.Update(deltaTime, enemiesAsEntities, _player);
 
         // Melee hitbox checks against enemies
@@ -270,6 +281,60 @@ public class FarmScene : Scene
             }
         }
 
+        // Boss update
+        if (_boss != null && _boss.IsAlive)
+        {
+            _boss.Update(deltaTime, _player.Position, _projectiles);
+
+            // Check boss summon phases: spawn skeleton minions at HP thresholds
+            var minions = _boss.CheckSummonPhase();
+            if (minions != null)
+                _enemies.AddRange(minions);
+
+            // Check boss telegraphed slash attack
+            if (_boss.IsBossSlashReady)
+            {
+                var slashHitbox = _boss.GetBossSlashHitbox();
+                if (slashHitbox.Intersects(_player.CollisionBox))
+                {
+                    _combat.TryPlayerTakeDamage(_player, _boss.Data.AttackDamage);
+                    Console.WriteLine("[FarmScene] Boss slash hit player!");
+                }
+            }
+
+            // Melee hitbox checks: player melee vs boss
+            if (_combat.Melee.IsSwinging)
+            {
+                var hitbox = _combat.Melee.GetHitbox(_player.Position, _player.FacingDirection);
+                if (hitbox.Intersects(_boss.CollisionBox) && !_combat.Melee.HasHit(_boss))
+                {
+                    float damage = _combat.CalculateMeleeDamage();
+                    _boss.TakeDamage(damage);
+                    _combat.Melee.RecordHit(_boss);
+
+                    var knockDir = _boss.Position - _player.Position;
+                    if (knockDir != Vector2.Zero) knockDir.Normalize();
+                    _boss.ApplyKnockbackWithResistance(knockDir, 32f);
+
+                    Console.WriteLine($"[FarmScene] Melee hit Skeleton King for {damage:F0} damage");
+                }
+            }
+
+            // Handle boss death
+            if (!_boss.IsAlive)
+            {
+                var bossLoot = _boss.GetBossLoot(_loadedState!.BossKilled);
+                foreach (var (itemId, quantity) in bossLoot)
+                {
+                    SpawnItemDrop(itemId, quantity, _boss.Position);
+                    Console.WriteLine($"[FarmScene] Skeleton King dropped {quantity}x {itemId}");
+                }
+                _loadedState!.BossKilled = true;
+                _boss = null;
+                Console.WriteLine("[FarmScene] Skeleton King defeated!");
+            }
+        }
+
         // Handle player death: respawn at farm center with full HP
         if (!_player.IsAlive)
         {
@@ -322,6 +387,11 @@ public class FarmScene : Scene
             enemy.Draw(spriteBatch, _pixel);
             EnemyHealthBar.Draw(spriteBatch, _pixel, enemy.Position, enemy.Data.Height, enemy.HP, enemy.MaxHP);
         }
+        if (_boss != null && _boss.IsAlive)
+        {
+            _boss.Draw(spriteBatch, _pixel);
+            EnemyHealthBar.Draw(spriteBatch, _pixel, _boss.Position, _boss.Data.Height, _boss.HP, _boss.MaxHP);
+        }
         _player.Draw(spriteBatch);
         _slash.Draw(spriteBatch, _pixel);
         _projectiles.Draw(spriteBatch, _pixel);
@@ -341,6 +411,11 @@ public class FarmScene : Scene
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
         _hud.Draw(spriteBatch, viewport.Width, viewport.Height);
         _hotbar.Draw(spriteBatch, viewport.Width, viewport.Height);
+        if (_boss != null && _boss.IsAlive)
+        {
+            BossHealthBar.Draw(spriteBatch, _pixel, _font,
+                "Skeleton King", _boss.HP, _boss.MaxHP, viewport.Width, viewport.Height);
+        }
         spriteBatch.End();
     }
 
@@ -387,6 +462,9 @@ public class FarmScene : Scene
         _player.Stats.RestoreStamina();
         _spawner.Respawn(_enemies);
 
+        // Respawn boss on day advance (replayable encounter)
+        _boss = _spawner.SpawnBoss();
+
         var state = new GameState
         {
             DayNumber = Services.Time.DayNumber,
@@ -396,7 +474,8 @@ public class FarmScene : Scene
             PlayerY = _player.Position.Y,
             GameTime = Services.Time.GameTime,
             FarmCells = _gridManager.GetSaveData(),
-            CurrentScene = "Farm"
+            CurrentScene = "Farm",
+            BossKilled = _loadedState?.BossKilled ?? false
         };
         _inventory.SaveToState(state);
         SaveManager.Save(state);

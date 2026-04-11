@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public static class SaveManager
 {
-    private const int CURRENT_SAVE_VERSION = 3;
+    private const int CURRENT_SAVE_VERSION = 4;
 
     private static string SavePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -87,6 +87,14 @@ public static class SaveManager
             state.HotbarSlots ??= new List<string?>(new string?[8]);
             state.SaveVersion = 3;
             Console.WriteLine("[SaveManager] Migrated save from v2 to v3");
+        }
+
+        if (state.SaveVersion < 4)
+        {
+            // v3 -> v4: boss tracking
+            state.BossKilled = false;
+            state.SaveVersion = 4;
+            Console.WriteLine("[SaveManager] Migrated save from v3 to v4");
         }
     }
 }
