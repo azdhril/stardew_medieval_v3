@@ -66,12 +66,12 @@ Plans:
   3. Both player and enemies display HP bars that decrease when taking damage
   4. Three distinct enemy types exist (melee rusher, ranged caster, slow tank) with visibly different behaviors
   5. A boss enemy performs telegraphed attacks (visible wind-up) and drops unique loot on death
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md — Player combat core: melee attack, fireball projectile, HP bars, i-frames (Wave 1)
+- [ ] 03-02-PLAN.md — Enemy types (Skeleton, Dark Mage, Golem), AI FSM, loot, FarmScene integration (Wave 2)
+- [ ] 03-03-PLAN.md — Skeleton King boss fight with telegraphed attacks, summon phases, unique loot (Wave 3)
 
 ### Phase 4: World & NPCs
 **Goal**: Players can navigate between farm, village, and dungeon entrance, interact with NPCs, buy items, and receive the main quest
@@ -135,7 +135,7 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 |-------|----------------|--------|-----------|
 | 1. Architecture Foundation | 4/4 | Complete | - |
 | 2. Items & Inventory | 0/3 | Planned | - |
-| 3. Combat | 0/3 | Not started | - |
+| 3. Combat | 0/3 | Planned | - |
 | 4. World & NPCs | 0/3 | Not started | - |
 | 5. Dungeon | 0/3 | Not started | - |
 | 6. Progression & Polish | 0/3 | Not started | - |
