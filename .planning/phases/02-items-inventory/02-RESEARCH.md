@@ -8,7 +8,7 @@
 
 Phase 2 builds a complete inventory system on top of Phase 1's data foundation (`ItemDefinition`, `ItemRegistry`, `ItemStack`, `GameState` placeholders). The existing data layer is solid -- 45 items in `items.json`, typed enums (`ItemType`, `Rarity`), and serialization-ready `ItemStack`. The work is primarily: (1) an `InventoryManager` class for slot-based item management, (2) UI rendering for inventory grid, hotbar, and equipment tabs using the existing UI sprite kit, (3) an `ItemDropEntity` in world-space with bounce spawn + magnetic pickup, (4) farming integration changing harvest from console-log-only to item-drop-to-inventory flow, and (5) save/load integration through the existing `GameState` fields.
 
-The UI sprite kit (`UI_Slot_Normal.png`, `UI_Slot_Selected.png`, `UI_Panel_SlotPane.png`) and item icon spritesheet (`7_Pickup_Items_16x16.png`) are already available. The `HUD.png` preview shows the target hotbar aesthetic (numbered slots at screen bottom with item icons). The `SceneManager.Push()` pattern enables inventory as an overlay scene that pauses gameplay underneath.
+The UI sprite kit (`UI_Slot_Normal.png`, `UI_Slot_Selected.png`, `UI_Panel_SlotPane.png`) and item icon spritesheet (`Pickup_Items.png`) are already available. The `HUD.png` preview shows the target hotbar aesthetic (numbered slots at screen bottom with item icons). The `SceneManager.Push()` pattern enables inventory as an overlay scene that pauses gameplay underneath.
 
 **Primary recommendation:** Build InventoryManager as a pure data class (no rendering), then build InventoryScene (overlay via SceneManager.Push) and HotbarRenderer (always-visible HUD component) as separate UI layers consuming InventoryManager state. ItemDropEntity extends Entity base class for world-space drops with physics.
 
@@ -168,10 +168,10 @@ public class ItemDropEntity : Entity
 [ASSUMED: physics values tunable during implementation]
 
 ### Pattern 4: SpriteAtlas for Item Icons
-**What:** A mapping from `ItemDefinition.SpriteId` to a source `Rectangle` within the `7_Pickup_Items_16x16.png` spritesheet. Items render their icon by looking up the atlas.
+**What:** A mapping from `ItemDefinition.SpriteId` to a source `Rectangle` within the `Pickup_Items.png` spritesheet. Items render their icon by looking up the atlas.
 **When to use:** Anywhere an item icon needs rendering (inventory slots, hotbar, item drops, equipment screen).
 **Key insight:** The spritesheet is 16x16 per icon, arranged in rows. A simple JSON or hardcoded dictionary maps crop names to grid positions. Crop growth sheets can also provide the "ripe" frame as a fallback icon.
-[VERIFIED: 7_Pickup_Items_16x16.png exists with ~70 icons in grid layout]
+[VERIFIED: Pickup_Items.png exists with ~70 icons in grid layout]
 
 ### Anti-Patterns to Avoid
 - **Mixing UI state with data state:** Do NOT store "selected slot" or "active tab" in InventoryManager. Those belong in the Scene/Renderer.
@@ -409,7 +409,7 @@ public (float attack, float defense) GetEquipmentStats()
 | A1 | Hotbar slots = inventory slots 0-7 (shared, not separate) | Architecture Patterns | Medium -- if separate, need sync logic and different save format |
 | A2 | Magnetism range 48-64px works well at Zoom=3f with 16px tiles | Code Examples | Low -- easily tunable constant |
 | A3 | Click-to-move (no drag-and-drop) is sufficient for MVP | Architecture Patterns | Low -- drag can be added later, click works |
-| A4 | `7_Pickup_Items_16x16.png` icons map 1:1 to items.json SpriteIds | Architecture Patterns | Medium -- may need manual sprite atlas mapping |
+| A4 | `Pickup_Items.png` icons map 1:1 to items.json SpriteIds | Architecture Patterns | Medium -- may need manual sprite atlas mapping |
 | A5 | Equipment stat changes are computed on-demand, not cached | Code Examples | Low -- only 2 equipment slots, trivial computation |
 | A6 | PushImmediate() works for inventory (no fade desired) | Common Pitfalls | Low -- method exists, may need slight tweak for semi-transparent background |
 | A7 | Farming fix (FARM-01) is about using GetFacingTile() vs GetTilePosition() | Phase Requirements | Medium -- actual bug may be different, needs investigation during execution |
@@ -417,7 +417,7 @@ public (float attack, float defense) GetEquipmentStats()
 ## Open Questions
 
 1. **Sprite Atlas Mapping**
-   - What we know: `7_Pickup_Items_16x16.png` contains ~70 icons in a grid. `SpriteId` field exists in each `ItemDefinition`.
+   - What we know: `Pickup_Items.png` contains ~70 icons in a grid. `SpriteId` field exists in each `ItemDefinition`.
    - What's unclear: Exact grid positions of each icon within the spritesheet. Some crops (cabbage, carrot, etc.) may not have matching icons in this sheet.
    - Recommendation: During implementation, visually inspect the spritesheet and build a hardcoded mapping. For crops without dedicated icons, use the final growth stage frame from the crop spritesheet.
 

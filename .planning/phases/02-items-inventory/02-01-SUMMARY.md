@@ -117,7 +117,7 @@ Each task was committed atomically:
 **Impact on plan:** Both auto-fixes were environment setup for the worktree. No code changes, no scope creep.
 
 ## Issues Encountered
-- Spritesheet path in plan says `Content/Sprites/Farming/7_Pickup_Items_16x16.png` but actual location is `Content/Sprites/Items/7_Pickup_Items_16x16.png`. Used correct path in implementation.
+- Spritesheet path in plan says `Content/Sprites/Farming/Pickup_Items.png` but actual location is `Content/Sprites/Items/Pickup_Items.png`. Used correct path in implementation.
 
 ## User Setup Required
 None - no external service configuration required.
