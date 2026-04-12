@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 4 context gathered
-last_updated: "2026-04-12T20:21:31.289Z"
-last_activity: 2026-04-12 -- Phase 3.1 verification backfill complete
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-04-12T21:43:44.480Z"
+last_activity: 2026-04-12
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_plans: 17
+  completed_plans: 14
+  percent: 82
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** O loop central deve ser satisfatorio: cuidar da fazenda -> explorar/lutar -> voltar com loot -> evoluir -> desbloquear mais conteudo.
-**Current focus:** Phase 03 — combat
+**Current focus:** Phase 04 — world-npcs
 
 ## Current Position
 
-Phase: 3.1 (verification backfill) — COMPLETE
-Plan: 3 of 3
-Status: Phases 1–3 complete and verified
-Last activity: 2026-04-12 -- Phase 3.1 verification backfill complete
+Phase: 04 (world-npcs) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-04-12
 
 Progress: [█████░░░░░] 50%
 
@@ -52,6 +52,7 @@ Progress: [█████░░░░░] 50%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 04 P01 | 15min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,7 @@ Recent decisions affecting current work:
 
 - [Roadmap]: 6 phases derived from 42 requirements; architecture-first build order per research findings
 - [Roadmap]: Phase 4 (World & NPCs) depends only on Phase 1, not on Combat -- can be reordered if needed
+- [Phase 04]: [04-01] MainQuest wired in FarmScene (actual composition root) not Game1 (thin shell)
 
 ### Pending Todos
 
@@ -74,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T20:21:31.285Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-world-npcs/04-CONTEXT.md
+Last session: 2026-04-12T21:43:44.475Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

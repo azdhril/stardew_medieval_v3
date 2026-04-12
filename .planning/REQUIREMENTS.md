@@ -49,15 +49,15 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 - [ ] **WLD-01**: Map transitions entre Farm <-> Village <-> Dungeon com fade to black
 - [ ] **WLD-02**: Vila minima: mapa com castelo do Rei e 1 loja
-- [ ] **WLD-03**: Trigger zones em bordas/portas para ativar transicoes de mapa
-- [ ] **WLD-04**: Estado do player preservado entre transicoes de mapa
+- [x] **WLD-03**: Trigger zones em bordas/portas para ativar transicoes de mapa
+- [x] **WLD-04**: Estado do player preservado entre transicoes de mapa
 
 ### NPCs & Dialogue
 
 - [ ] **NPC-01**: Sistema de dialogo com caixa de texto e retrato do NPC, avanca com botao
 - [ ] **NPC-02**: Rei NPC no castelo que da a missao principal ("limpar a dungeon")
 - [ ] **NPC-03**: Shopkeeper NPC com UI de compra/venda (sementes, pocoes, equipamento basico)
-- [ ] **NPC-04**: NPCs com estado de quest (sem missao, missao ativa, missao completa) que altera dialogo
+- [x] **NPC-04**: NPCs com estado de quest (sem missao, missao ativa, missao completa) que altera dialogo
 
 ### Progression
 
@@ -156,12 +156,12 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 | CMB-06 | Phase 3 | Satisfied |
 | WLD-01 | Phase 4 | Pending |
 | WLD-02 | Phase 4 | Pending |
-| WLD-03 | Phase 4 | Pending |
-| WLD-04 | Phase 4 | Pending |
+| WLD-03 | Phase 4 | Complete |
+| WLD-04 | Phase 4 | Complete |
 | NPC-01 | Phase 4 | Pending |
 | NPC-02 | Phase 4 | Pending |
 | NPC-03 | Phase 4 | Pending |
-| NPC-04 | Phase 4 | Pending |
+| NPC-04 | Phase 4 | Complete |
 | HUD-03 | Phase 4 | Pending |
 | HUD-05 | Phase 4 | Pending |
 | DNG-01 | Phase 5 | Pending |
