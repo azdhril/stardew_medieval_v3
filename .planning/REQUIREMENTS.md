@@ -9,34 +9,34 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 ### Architecture
 
-- [ ] **ARCH-01**: SceneManager gerencia transicao entre scenes (Farm, Village, Dungeon) com fade in/out
-- [ ] **ARCH-02**: Entity base class com posicao, sprite, colisao, compartilhada por Player/Enemy/NPC
-- [ ] **ARCH-03**: Unified ItemDefinition model para crops, tools, weapons, armor, consumables e loot
-- [ ] **ARCH-04**: GameState reestruturado para suportar inventario, XP, quest state, gold, scene atual
-- [ ] **ARCH-05**: Game1.cs refatorado para delegar logica para scenes ao inves de coordenar diretamente
+- [x] **ARCH-01**: SceneManager gerencia transicao entre scenes (Farm, Village, Dungeon) com fade in/out
+- [x] **ARCH-02**: Entity base class com posicao, sprite, colisao, compartilhada por Player/Enemy/NPC
+- [x] **ARCH-03**: Unified ItemDefinition model para crops, tools, weapons, armor, consumables e loot
+- [x] **ARCH-04**: GameState reestruturado para suportar inventario, XP, quest state, gold, scene atual
+- [x] **ARCH-05**: Game1.cs refatorado para delegar logica para scenes ao inves de coordenar diretamente
 
 ### Farming (Polish)
 
-- [ ] **FARM-01**: Posicao correta do player ao arar, semear e regar (fix visual do crop system)
-- [ ] **FARM-02**: Sprites adequados para colheita (substituir overlays coloridos por sprites reais)
-- [ ] **FARM-03**: Farming integrado ao novo sistema de inventario (sementes/colheita vao para o inventario)
+- [x] **FARM-01**: Posicao correta do player ao arar, semear e regar (fix visual do crop system)
+- [x] **FARM-02**: Sprites adequados para colheita (substituir overlays coloridos por sprites reais)
+- [x] **FARM-03**: Farming integrado ao novo sistema de inventario (sementes/colheita vao para o inventario)
 
 ### Inventory & Items
 
-- [ ] **INV-01**: Inventory grid com 20 slots, suporte a stacking de consumiveis
-- [ ] **INV-02**: Hotbar com 8 slots acessiveis por number keys (1-8)
-- [ ] **INV-03**: Equipment slots separados (arma, armadura) que afetam combat stats
-- [ ] **INV-04**: Sistema de raridade de itens (common/uncommon/rare) com cores distintas e stat multipliers
-- [ ] **INV-05**: Itens dropados no chao com magnetismo -- puxa para o player a partir de certa distancia (estilo Stardew)
+- [x] **INV-01**: Inventory grid com 20 slots, suporte a stacking de consumiveis
+- [x] **INV-02**: Hotbar com 8 slots acessiveis por number keys (1-8)
+- [x] **INV-03**: Equipment slots separados (arma, armadura) que afetam combat stats
+- [x] **INV-04**: Sistema de raridade de itens (common/uncommon/rare) com cores distintas e stat multipliers
+- [x] **INV-05**: Itens dropados no chao com magnetismo -- puxa para o player a partir de certa distancia (estilo Stardew)
 
 ### Combat
 
-- [ ] **CMB-01**: Ataque melee direcional com espada na direcao que o player olha, com knockback ao acertar
-- [ ] **CMB-02**: Pelo menos 1 magia ranged (projectile com velocidade, colisao com inimigos, cooldown/mana)
-- [ ] **CMB-03**: Sistema de HP para player e inimigos com barras de vida visiveis
-- [ ] **CMB-04**: 3 tipos de inimigo com IA basica: melee rusher (skeleton), ranged caster (mage), slow tank (golem)
-- [ ] **CMB-05**: Enemy AI com estados: Idle -> Patrol -> Chase -> Attack -> Return
-- [ ] **CMB-06**: Boss fight com ataques telegrafados (wind-up antes do strike) e loot unico
+- [x] **CMB-01**: Ataque melee direcional com espada na direcao que o player olha, com knockback ao acertar
+- [x] **CMB-02**: Pelo menos 1 magia ranged (projectile com velocidade, colisao com inimigos, cooldown/mana)
+- [x] **CMB-03**: Sistema de HP para player e inimigos com barras de vida visiveis
+- [x] **CMB-04**: 3 tipos de inimigo com IA basica: melee rusher (skeleton), ranged caster (mage), slow tank (golem)
+- [x] **CMB-05**: Enemy AI com estados: Idle -> Patrol -> Chase -> Attack -> Return
+- [x] **CMB-06**: Boss fight com ataques telegrafados (wind-up antes do strike) e loot unico
 
 ### Dungeon
 
@@ -69,7 +69,7 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 ### UI/HUD
 
 - [ ] **HUD-01**: HUD grafica com sprites: barra de HP, barra de stamina, hotbar com icones, relogio/dia
-- [ ] **HUD-02**: Inventory UI abrivel (tecla I ou similar) mostrando grid + equipment slots
+- [x] **HUD-02**: Inventory UI abrivel (tecla I ou similar) mostrando grid + equipment slots
 - [ ] **HUD-03**: Shop UI com lista de itens, precos, botoes comprar/vender
 - [ ] **HUD-04**: Quest tracker simples mostrando missao ativa e objetivo atual
 - [ ] **HUD-05**: Caixa de dialogo estilizada com retrato do NPC e texto com avanco
@@ -134,26 +134,26 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | Phase 1 | Pending |
-| ARCH-02 | Phase 1 | Pending |
-| ARCH-03 | Phase 1 | Pending |
-| ARCH-04 | Phase 1 | Pending |
-| ARCH-05 | Phase 1 | Pending |
-| FARM-01 | Phase 2 | Pending |
-| FARM-02 | Phase 2 | Pending |
-| FARM-03 | Phase 2 | Pending |
-| INV-01 | Phase 2 | Pending |
-| INV-02 | Phase 2 | Pending |
-| INV-03 | Phase 2 | Pending |
-| INV-04 | Phase 2 | Pending |
-| INV-05 | Phase 2 | Pending |
-| HUD-02 | Phase 2 | Pending |
-| CMB-01 | Phase 3 | Pending |
-| CMB-02 | Phase 3 | Pending |
-| CMB-03 | Phase 3 | Pending |
-| CMB-04 | Phase 3 | Pending |
-| CMB-05 | Phase 3 | Pending |
-| CMB-06 | Phase 3 | Pending |
+| ARCH-01 | Phase 1 | Satisfied |
+| ARCH-02 | Phase 1 | Satisfied |
+| ARCH-03 | Phase 1 | Satisfied |
+| ARCH-04 | Phase 1 | Satisfied |
+| ARCH-05 | Phase 1 | Satisfied |
+| FARM-01 | Phase 2 | Satisfied |
+| FARM-02 | Phase 2 | Satisfied |
+| FARM-03 | Phase 2 | Satisfied |
+| INV-01 | Phase 2 | Satisfied |
+| INV-02 | Phase 2 | Satisfied |
+| INV-03 | Phase 2 | Satisfied |
+| INV-04 | Phase 2 | Satisfied |
+| INV-05 | Phase 2 | Satisfied |
+| HUD-02 | Phase 2 | Satisfied |
+| CMB-01 | Phase 3 | Satisfied |
+| CMB-02 | Phase 3 | Satisfied |
+| CMB-03 | Phase 3 | Satisfied |
+| CMB-04 | Phase 3 | Satisfied |
+| CMB-05 | Phase 3 | Satisfied |
+| CMB-06 | Phase 3 | Satisfied |
 | WLD-01 | Phase 4 | Pending |
 | WLD-02 | Phase 4 | Pending |
 | WLD-03 | Phase 4 | Pending |
@@ -184,4 +184,4 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 
 ---
 *Requirements defined: 2026-04-10*
-*Last updated: 2026-04-10 after roadmap creation*
+*Last updated: 2026-04-12 after Phase 3.1 verification backfill*
