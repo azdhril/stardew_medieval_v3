@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-12T00:03:00.849Z",
+  "timestamp": "2026-04-12T00:48:13.930Z",
   "phase": "03",
   "phase_name": "combat",
   "phase_dir": ".planning/phases/03-combat",
@@ -9,28 +9,32 @@
   "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
-    {"id": "03-01", "name": "Combat core (melee, projectiles, damage)", "status": "done"},
-    {"id": "03-02", "name": "Enemy types (Skeleton, Dark Mage, Golem) + loot", "status": "done"},
-    {"id": "03-03 T1", "name": "Skeleton King boss + minion summon + first-kill loot", "status": "done"}
+    {"id": "03-01", "name": "Combat core", "status": "done"},
+    {"id": "03-02", "name": "Enemy types + loot", "status": "done"},
+    {"id": "03-03 T1", "name": "Skeleton King boss", "status": "done"},
+    {"id": "post-merge-ergonomics", "name": "HitBox/CollisionBox split, F3 debug, directional boss slash, enemy melee reach", "status": "done"},
+    {"id": "player-enemy-collision", "name": "Player blocks vs enemies via overlap-area comparison (no sticking)", "status": "done"},
+    {"id": "enemy-enemy-separation", "name": "Post-move pair separation resolver in FarmScene", "status": "done"},
+    {"id": "tools-refactor-partial", "name": "SpriteAtlas multi-texture; tool sheet + hand.png registered; ToolController reads active hotbar; HUD tool text removed; starter Hoe/Watering_Can/Scythe seeded into hotbar 0-2", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": "03-03 T2", "name": "Human-verify checkpoint: test CMB-01..CMB-06 end-to-end", "status": "not_started"},
-    {"id": "phase-verify", "name": "Run gsd-verifier for Phase 03 goal check", "status": "not_started"},
-    {"id": "commit", "name": "Commit uncommitted combat ergonomics tweaks (8 files)", "status": "not_started"}
+    {"id": "hand-icon-empty-slot", "name": "Draw hand.png in active hotbar slot when empty (tool_hand sprite already registered)", "status": "not_started"},
+    {"id": "item-drop-multi-texture", "name": "ItemDropEntity.cs:153 still uses _atlas.Texture directly; switch to _atlas.GetTexture(def.SpriteId) if tools ever drop in world", "status": "not_started"},
+    {"id": "playtest-combat", "name": "Verify CMB-01..CMB-06 end-to-end (melee reach, boss directional slash, Dark Mage projectiles, knockback, death/loot, Skeleton King phases)", "status": "not_started"},
+    {"id": "playtest-tools-hotbar", "name": "Verify tool usage: active hotbar slot drives ToolType; drag tool out of hotbar -> Hands; seeds still work via Tab cycle", "status": "not_started"},
+    {"id": "commit", "name": "Commit all uncommitted ergonomic + tools-refactor changes", "status": "not_started"},
+    {"id": "phase-verify", "name": "Run /gsd-verify-phase 3", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [
-    {"action": "Playtest Phase 03 combat end-to-end", "context": "Verify CMB-01..CMB-06 pass after ergonomic fixes", "blocking": true}
+    {"action": "Playtest combat + tools hotbar", "context": "Multiple cascading changes landed without a full playtest", "blocking": true}
   ],
   "decisions": [
-    {"decision": "Split Entity into CollisionBox (feet, terrain) + HitBox (body, combat)", "rationale": "Enemy projectiles targeting Position (head) missed player colliding with feet. Full-body HitBox means player must dodge with whole body, not just feet.", "phase": "03"},
-    {"decision": "HitBox sized 30% frame width × 70% height, shifted down 5%", "rationale": "Player spritesheet has transparent padding; tight body-matching HitBox feels fair visually.", "phase": "03"},
-    {"decision": "EnemyEntity.HitBox overrides base to equal CollisionBox", "rationale": "Enemies render as solid colored rectangles with no sprite padding; base formula gave tiny 4px HitBoxes.", "phase": "03"},
-    {"decision": "Regular enemies get GetMeleeAttackHitbox() with extended directional reach (width+8 × 16)", "rationale": "AI AttackRange=24 stopped enemies before bodies could overlap player HitBox. Boss already used this pattern with GetBossSlashHitbox(); same pattern applied to Skeleton/Golem/minions.", "phase": "03"},
-    {"decision": "BossEntity.GetBossSlashHitbox() uses dominant-axis facing from _lastPlayerPos", "rationale": "Boss was hardcoded facing Down; now follows player for all 4 cardinal directions.", "phase": "03"},
-    {"decision": "F3 debug toggle renders HitBox (yellow), CollisionBox (green), MeleeAttack (red), SlashEffect (white)", "rationale": "Visual calibration was impossible without seeing hitboxes; F3 overlay enables fast iteration.", "phase": "03"},
-    {"decision": "Player MeleeAttack resized to 34×24 (30% narrower), Left/Right gap reduced 8→4 (10% closer)", "rationale": "Felt too wide/far after HitBox split; calibrated live in F3 debug.", "phase": "03"},
-    {"decision": "SlashEffect synced to MeleeAttack geometry exactly", "rationale": "White visual must match red hitbox for player trust.", "phase": "03"}
+    {"decision": "Player-enemy collision uses overlap-area delta (block only if move increases overlap)", "rationale": "Naive block-on-intersect stuck the player when enemies walked into them. Overlap-area approach always allows escape while preventing entry.", "phase": "03"},
+    {"decision": "Enemy-enemy separation is post-movement pairwise pushback in FarmScene.ResolveEnemySeparation", "rationale": "Simpler than integrating into AI; O(n^2) fine for current enemy counts. Boss is treated as immovable, minions are pushed the full distance.", "phase": "03"},
+    {"decision": "ToolController derives EquippedTool from active hotbar item id, not keybinds", "rationale": "User wants Stardew-style: tools are inventory items on hotbar, dragging out -> Hands. H/G/R/F/C keys removed.", "phase": "03"},
+    {"decision": "SpriteAtlas refactored to (texture, rect) per sprite", "rationale": "Tool icons live on Tool_Icons_NO_Outline.png (separate from items sheet); hand.png is its own 16x16 file. Multi-texture lookup needed.", "phase": "03"},
+    {"decision": "tool_hoe mapped to lamparina column (index 8) as placeholder", "rationale": "Sheet has no hoe icon; user approved lamparina as temp.", "phase": "03"}
   ],
   "uncommitted_files": [
     "Combat/BossEntity.cs",
@@ -39,12 +43,16 @@
     "Combat/ProjectileManager.cs",
     "Combat/SlashEffect.cs",
     "Core/Entity.cs",
+    "Data/SpriteAtlas.cs",
+    "Farming/ToolController.cs",
+    "Player/PlayerEntity.cs",
     "Scenes/FarmScene.cs",
+    "UI/HUD.cs",
     "UI/HotbarRenderer.cs",
     "UI/InventoryGridRenderer.cs",
     ".planning/ROADMAP.md",
     ".planning/STATE.md"
   ],
-  "next_action": "Playtest combat: spawn enemies (B key / debug), verify Skeleton/Golem/minions now land melee hits at AttackRange distance. Toggle F3 to visualize. Then commit the tweaks and run /gsd-verify-phase 3.",
-  "context_notes": "Phase 03 executed cleanly via 3 wave-based worktree subagents. After merge, playtest revealed a cascade of combat ergonomic issues that were all fixed iteratively: projectile aiming, HitBox semantics, enemy attack reach, directional boss slash. Build is clean (0 errors). The last fix (enemy melee reach) has not been playtested yet. Context was at 97% so paused before testing."
+  "next_action": "Finish tools refactor: draw hand.png in empty active hotbar slot (spriteId tool_hand). Then playtest combat + tools. Then commit everything.",
+  "context_notes": "Two big refactors landed without playtest in this session: (1) player-enemy + enemy-enemy collision, (2) tools-as-hotbar-items. Build is clean (0 errors). ToolController constructor signature changed — now takes InventoryManager. HUD constructor still takes ToolController but no longer renders the [Tool] label."
 }
