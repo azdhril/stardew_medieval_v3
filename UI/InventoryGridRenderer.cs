@@ -48,6 +48,8 @@ public class InventoryGridRenderer
     private bool _isDragging;
     private int _dragSourceSlot = -1;
     private EquipSlot? _dragSourceEquip;
+    private int _dragSourceHotbar = -1;       // dragging FROM hotbar ref slot
+    private int _dragSourceConsumable = -1;   // dragging FROM consumable ref slot
     private Point _dragPosition;
 
     public bool IsDragging => _isDragging;
@@ -71,6 +73,9 @@ public class InventoryGridRenderer
         _isDragging = false;
         _dragSourceSlot = -1;
         _dragSourceEquip = null;
+        _dragSourceHotbar = -1;
+        _dragSourceConsumable = -1;
+        _hotbar?.SetExternalDragSource(-1, -1);
     }
 
     public void LoadContent(GraphicsDevice device, SpriteFont font)
@@ -106,7 +111,7 @@ public class InventoryGridRenderer
         Console.WriteLine("[InventoryGridRenderer] Content loaded");
     }
 
-    /// <summary>Handle mouse press — start drag from grid or equipment.</summary>
+    /// <summary>Handle mouse press — start drag from grid, equipment, hotbar ref, or consumable ref.</summary>
     public void HandleMouseDown(Point mousePos, int gridX, int gridY, int equipX, int equipY)
     {
         int hitSlot = HitTestGrid(mousePos, gridX, gridY);
@@ -126,6 +131,32 @@ public class InventoryGridRenderer
                 _isDragging = true;
                 _dragSourceEquip = EquipSlots[i];
                 _dragPosition = mousePos;
+                return;
+            }
+        }
+
+        // Hotbar / consumable ref slots (bottom of screen). Dragging a ref out
+        // to the grid (or anywhere that isn't another ref slot) clears it,
+        // which effectively "unequips" the hotbar slot back to Hand.
+        if (_hotbar != null)
+        {
+            int hotbarHit = _hotbar.HitTestMain(mousePos, _screenWidth, _screenHeight);
+            if (hotbarHit >= 0 && _inventory.GetHotbarRef(hotbarHit) != null)
+            {
+                _isDragging = true;
+                _dragSourceHotbar = hotbarHit;
+                _dragPosition = mousePos;
+                _hotbar.SetExternalDragSource(hotbarHit, -1);
+                return;
+            }
+
+            int consHit = _hotbar.HitTestConsumable(mousePos, _screenWidth, _screenHeight);
+            if (consHit >= 0 && _inventory.GetConsumableRef(consHit) != null)
+            {
+                _isDragging = true;
+                _dragSourceConsumable = consHit;
+                _dragPosition = mousePos;
+                _hotbar.SetExternalDragSource(-1, consHit);
                 return;
             }
         }
@@ -183,6 +214,44 @@ public class InventoryGridRenderer
             {
                 // Grid → Consumable: set reference (validates type)
                 _inventory.SetConsumableRef(targetConsumable, dragItemId);
+            }
+        }
+        else if (_dragSourceHotbar >= 0)
+        {
+            // FROM hotbar ref: drop onto another hotbar slot swaps refs,
+            // consumable sets ref, anywhere else (including grid) clears it
+            // so the slot reverts to Hand.
+            string? dragId = _inventory.GetHotbarRef(_dragSourceHotbar);
+            if (targetHotbar >= 0 && targetHotbar != _dragSourceHotbar)
+            {
+                _inventory.SwapHotbarRefs(_dragSourceHotbar, targetHotbar);
+            }
+            else if (targetConsumable >= 0 && dragId != null)
+            {
+                if (_inventory.SetConsumableRef(targetConsumable, dragId))
+                    _inventory.SetHotbarRef(_dragSourceHotbar, null);
+            }
+            else if (targetHotbar < 0 && targetConsumable < 0)
+            {
+                // Dropped away from the hotbar row → clear the reference.
+                _inventory.SetHotbarRef(_dragSourceHotbar, null);
+            }
+        }
+        else if (_dragSourceConsumable >= 0)
+        {
+            string? dragId = _inventory.GetConsumableRef(_dragSourceConsumable);
+            if (targetConsumable >= 0 && targetConsumable != _dragSourceConsumable)
+            {
+                _inventory.SwapConsumableRefs(_dragSourceConsumable, targetConsumable);
+            }
+            else if (targetHotbar >= 0 && dragId != null)
+            {
+                _inventory.SetHotbarRef(targetHotbar, dragId);
+                _inventory.SetConsumableRef(_dragSourceConsumable, null);
+            }
+            else if (targetHotbar < 0 && targetConsumable < 0)
+            {
+                _inventory.SetConsumableRef(_dragSourceConsumable, null);
             }
         }
 
@@ -296,6 +365,14 @@ public class InventoryGridRenderer
         {
             var stack = _inventory.GetSlot(_dragSourceSlot);
             if (stack != null) { itemId = stack.ItemId; quantity = stack.Quantity; }
+        }
+        else if (_dragSourceHotbar >= 0)
+        {
+            itemId = _inventory.GetHotbarRef(_dragSourceHotbar);
+        }
+        else if (_dragSourceConsumable >= 0)
+        {
+            itemId = _inventory.GetConsumableRef(_dragSourceConsumable);
         }
 
         if (itemId == null) return;

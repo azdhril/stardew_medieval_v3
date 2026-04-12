@@ -111,12 +111,12 @@ public class SpriteAtlas
         atlas.Register("crop_pineapple_rotten",   7, 2);
         atlas.Register("crop_watermelon",         8, 2);
         atlas.Register("crop_watermelon_rotten",  9, 2);
-
-        // --- Row 3: tree fruits (apple / orange / banana / lime) — not implemented ---
-
-        // --- Row 5: equipment (row 3 gap, row 4 tree fruits) ---
-        atlas.Register("armor_leather_boots",     4, 5);
-        atlas.Register("weapon_magic_staff",      5, 5);
+        // --- Row 3: gap ---
+        // --- Row 4: tree fruits (apple / orange / banana / lime) — not implemented ---
+        // --- Row 5: gap ---
+        // --- Row 6: equipment (row 3 gap, row 4 tree fruits) ---
+        atlas.Register("armor_leather_boots",     4, 6);
+        atlas.Register("weapon_magic_staff",      5, 6);
 
         return atlas;
     }

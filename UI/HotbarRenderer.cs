@@ -25,6 +25,7 @@ public class HotbarRenderer
 
     private Texture2D _slotNormal = null!;
     private Texture2D _slotSelected = null!;
+    private Texture2D? _handIcon;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
 
@@ -34,6 +35,27 @@ public class HotbarRenderer
     private int _dragSourceConsumable = -1; // consumable slot being dragged
     private Point _dragPosition;
     private bool _wasMouseDown;
+
+    // Click vs. drag disambiguation — a quick press+release without movement
+    // selects the hotbar slot (same as pressing 1-8); movement past threshold
+    // enters drag mode for reordering.
+    private const int ClickDragThreshold = 4;
+    private bool _pressActive;
+    private int _pressSlotMain = -1;
+    private int _pressSlotConsumable = -1;
+    private Point _pressStartPos;
+
+    // External drag suppression — set by InventoryGridRenderer when it is
+    // dragging a hotbar/consumable ref, so we hide the icon on the source slot.
+    private int _externalDragMain = -1;
+    private int _externalDragConsumable = -1;
+
+    /// <summary>Suppress icon rendering on a slot being dragged by an external renderer.</summary>
+    public void SetExternalDragSource(int mainIndex, int consumableIndex)
+    {
+        _externalDragMain = mainIndex;
+        _externalDragConsumable = consumableIndex;
+    }
 
     public bool IsDragging => _isDragging;
 
@@ -74,6 +96,17 @@ public class HotbarRenderer
             _slotSelected.SetData(new[] { Color.Gold });
         }
 
+        try
+        {
+            using var handStream = File.OpenRead("Content/Sprites/Items/Tools/hand.png");
+            _handIcon = Texture2D.FromStream(device, handStream);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HotbarRenderer] Failed to load hand.png: {ex.Message}");
+            _handIcon = null;
+        }
+
         Console.WriteLine("[HotbarRenderer] Content loaded");
     }
 
@@ -86,21 +119,44 @@ public class HotbarRenderer
 
         if (mouseDown && !_wasMouseDown)
         {
-            // Mouse just pressed — check if on a hotbar or consumable slot
+            // Mouse just pressed — remember which slot (if any) and wait for
+            // either a release (click = select) or movement (drag).
             int mainHit = HitTestMain(mousePos, screenWidth, screenHeight);
             int consHit = HitTestConsumable(mousePos, screenWidth, screenHeight);
 
-            if (mainHit >= 0 && _inventory.GetHotbarRef(mainHit) != null)
+            if (mainHit >= 0 || consHit >= 0)
             {
-                _isDragging = true;
-                _dragSourceMain = mainHit;
-                _dragPosition = mousePos;
+                _pressActive = true;
+                _pressSlotMain = mainHit;
+                _pressSlotConsumable = consHit;
+                _pressStartPos = mousePos;
             }
-            else if (consHit >= 0 && _inventory.GetConsumableRef(consHit) != null)
+        }
+        else if (mouseDown && _pressActive && !_isDragging)
+        {
+            // Still pressed — promote to drag only if we moved past threshold
+            // AND the press slot actually has an item to drag.
+            int dx = mousePos.X - _pressStartPos.X;
+            int dy = mousePos.Y - _pressStartPos.Y;
+            if (dx * dx + dy * dy >= ClickDragThreshold * ClickDragThreshold)
             {
-                _isDragging = true;
-                _dragSourceConsumable = consHit;
-                _dragPosition = mousePos;
+                if (_pressSlotMain >= 0 && _inventory.GetHotbarRef(_pressSlotMain) != null)
+                {
+                    _isDragging = true;
+                    _dragSourceMain = _pressSlotMain;
+                    _dragPosition = mousePos;
+                }
+                else if (_pressSlotConsumable >= 0 && _inventory.GetConsumableRef(_pressSlotConsumable) != null)
+                {
+                    _isDragging = true;
+                    _dragSourceConsumable = _pressSlotConsumable;
+                    _dragPosition = mousePos;
+                }
+                else
+                {
+                    // Moved away from an empty slot — cancel press so release doesn't select it.
+                    _pressActive = false;
+                }
             }
         }
         else if (mouseDown && _isDragging)
@@ -109,7 +165,7 @@ public class HotbarRenderer
         }
         else if (!mouseDown && _isDragging)
         {
-            // Drop
+            // Drop — swap if over a different slot
             int mainTarget = HitTestMain(mousePos, screenWidth, screenHeight);
             int consTarget = HitTestConsumable(mousePos, screenWidth, screenHeight);
 
@@ -119,17 +175,34 @@ public class HotbarRenderer
                 _inventory.SwapConsumableRefs(_dragSourceConsumable, consTarget);
 
             CancelDrag();
+            _pressActive = false;
+        }
+        else if (!mouseDown && _pressActive)
+        {
+            // Released without dragging — treat as a click. Selecting a main
+            // hotbar slot is the same as pressing its 1-8 key. Consumable
+            // slots have no "active" state, so clicks there are no-ops.
+            int mainTarget = HitTestMain(mousePos, screenWidth, screenHeight);
+            if (mainTarget >= 0 && mainTarget == _pressSlotMain)
+                _inventory.SetActiveHotbar(mainTarget);
+
+            _pressActive = false;
+            _pressSlotMain = -1;
+            _pressSlotConsumable = -1;
         }
 
         _wasMouseDown = mouseDown;
     }
 
-    /// <summary>Cancel any active drag.</summary>
+    /// <summary>Cancel any active drag or pending click.</summary>
     public void CancelDrag()
     {
         _isDragging = false;
         _dragSourceMain = -1;
         _dragSourceConsumable = -1;
+        _pressActive = false;
+        _pressSlotMain = -1;
+        _pressSlotConsumable = -1;
     }
 
     public void Draw(SpriteBatch sb, int screenWidth, int screenHeight)
@@ -141,7 +214,8 @@ public class HotbarRenderer
             var rect = GetConsumableSlotRect(i, screenWidth, screenHeight);
             sb.Draw(_slotNormal, rect, Color.White);
 
-            if (!(_isDragging && _dragSourceConsumable == i))
+            bool consHidden = (_isDragging && _dragSourceConsumable == i) || _externalDragConsumable == i;
+            if (!consHidden)
             {
                 var stack = _inventory.GetConsumableStack(i);
                 if (stack != null)
@@ -158,11 +232,21 @@ public class HotbarRenderer
             var slotTex = i == _inventory.ActiveHotbarIndex ? _slotSelected : _slotNormal;
             sb.Draw(slotTex, rect, Color.White);
 
-            if (!(_isDragging && _dragSourceMain == i))
+            var stack = _inventory.GetHotbarStack(i);
+            bool hiddenForDrag = (_isDragging && _dragSourceMain == i) || _externalDragMain == i;
+
+            if (stack != null && !hiddenForDrag)
             {
-                var stack = _inventory.GetHotbarStack(i);
-                if (stack != null)
-                    DrawItemInSlot(sb, stack, rect);
+                DrawItemInSlot(sb, stack, rect);
+            }
+            else if ((stack == null || hiddenForDrag) && _handIcon != null)
+            {
+                // Empty slot — show the hand as a watermark to hint that an
+                // empty active slot uses the Hand tool (harvest / interact).
+                var iconRect = new Rectangle(
+                    rect.X + IconPadding, rect.Y + IconPadding,
+                    rect.Width - IconPadding * 2, rect.Height - IconPadding * 2);
+                sb.Draw(_handIcon, iconRect, Color.White * 0.28f);
             }
 
             sb.DrawString(_font, (i + 1).ToString(), new Vector2(rect.X + 2, rect.Y), Color.Gray * 0.7f);
