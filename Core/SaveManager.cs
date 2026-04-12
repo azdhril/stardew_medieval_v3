@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public static class SaveManager
 {
-    private const int CURRENT_SAVE_VERSION = 4;
+    private const int CURRENT_SAVE_VERSION = 5;
 
     private static string SavePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -95,6 +95,16 @@ public static class SaveManager
             state.BossKilled = false;
             state.SaveVersion = 4;
             Console.WriteLine("[SaveManager] Migrated save from v3 to v4");
+        }
+
+        if (state.SaveVersion < 5)
+        {
+            // v4 -> v5: MainQuestState now semantically backed by int QuestState (already present since v3).
+            // No data reshape; existing 0=NotStarted/1=Active/2=Complete mapping is preserved.
+            // Clamp to valid enum range so future casts are safe (T-04-01 mitigation).
+            if (state.QuestState < 0 || state.QuestState > 2) state.QuestState = 0;
+            state.SaveVersion = 5;
+            Console.WriteLine("[SaveManager] Migrated save from v4 to v5 (MainQuestState normalization)");
         }
     }
 }

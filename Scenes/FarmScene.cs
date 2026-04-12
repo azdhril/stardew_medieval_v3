@@ -11,6 +11,7 @@ using stardew_medieval_v3.Entities;
 using stardew_medieval_v3.Farming;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Inventory;
+using stardew_medieval_v3.Quest;
 using stardew_medieval_v3.UI;
 using stardew_medieval_v3.World;
 
@@ -30,6 +31,7 @@ public class FarmScene : Scene
     private HUD _hud = null!;
     private Texture2D _pixel = null!;
     private InventoryManager _inventory = null!;
+    private MainQuest _mainQuest = null!;
     private CombatManager _combat = null!;
     private ProjectileManager _projectiles = null!;
     private SlashEffect _slash = new();
@@ -80,6 +82,10 @@ public class FarmScene : Scene
         _inventory = new InventoryManager();
         Services.Inventory = _inventory;
 
+        // Main quest container -- lives in Services so any scene can observe/advance it
+        _mainQuest = new MainQuest();
+        Services.Quest = _mainQuest;
+
         // ToolController depends on _inventory — must be created after it
         _toolController = new ToolController(_gridManager, _cropManager, _player, _inventory, SpawnItemDrop);
 
@@ -119,11 +125,14 @@ public class FarmScene : Scene
             _player.Stats.SetStamina(save.StaminaCurrent);
             _gridManager.LoadFromSaveData(save.FarmCells, CropRegistry.All);
             _inventory.LoadFromState(save);
+            _mainQuest.LoadFromState(save);
+            Console.WriteLine($"[FarmScene] MainQuest state loaded: {_mainQuest.State}");
             _loadedState = save;
         }
         else
         {
             _loadedState = new GameState();
+            Console.WriteLine($"[FarmScene] MainQuest state loaded: {_mainQuest.State}");
         }
 
         // Seed starter tools into hotbar slots 0-2 on a fresh game
@@ -646,6 +655,7 @@ public class FarmScene : Scene
             BossKilled = _loadedState?.BossKilled ?? false
         };
         _inventory.SaveToState(state);
+        _mainQuest.SaveToState(state);
         SaveManager.Save(state);
     }
 
