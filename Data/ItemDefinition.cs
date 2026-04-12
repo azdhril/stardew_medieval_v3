@@ -23,6 +23,13 @@ public class ItemDefinition
     /// <summary>Maximum stack size in inventory.</summary>
     public int StackLimit { get; set; } = 99;
 
+    /// <summary>
+    /// Base economic value used by the shop. Sell price defaults to BasePrice/2.
+    /// Shop buy price lives in <c>ShopStock</c> (may differ for markup). A value
+    /// of 0 means the item is non-economic (quest/loot-only, cannot be sold).
+    /// </summary>
+    public int BasePrice { get; set; } = 0;
+
     /// <summary>Sprite identifier for rendering.</summary>
     public string SpriteId { get; set; } = "";
 
