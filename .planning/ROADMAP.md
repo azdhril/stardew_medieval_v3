@@ -102,13 +102,14 @@ Plans:
   3. Player can talk to the King NPC and receive the main quest ("clear the dungeon") via a styled dialogue box with portrait
   4. Player can open the shop UI, see items with prices, and buy/sell items using gold
   5. NPC dialogue changes based on quest state (no quest, quest active, quest complete)
-**Plans**: TBD
+**Plans:** 4 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01-PLAN.md — Foundation contracts: MainQuest + NpcEntity + TriggerZone + Save v5 + Gold API (Wave 1)
+- [ ] 04-02-PLAN.md — World scenes & maps: VillageScene/CastleScene/ShopScene + TMX + FarmScene edge trigger (Wave 2)
+- [ ] 04-03-PLAN.md — Dialogue system + King NPC + HUD quest tracker + F9 debug key (Wave 3)
+- [ ] 04-04-PLAN.md — Shop UI: ShopPanel + Toast + Shopkeeper NPC + ShopStock (Wave 4)
 
 ### Phase 5: Dungeon
 **Goal**: Players can enter and progress through a complete dungeon experience from entrance to boss room
@@ -156,6 +157,6 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 | 2. Items & Inventory | 3/3 | Complete | - |
 | 3. Combat | 3/3 | Complete | - |
 | 3.1. Verification Backfill & Metadata Sync | 3/3 | Complete | - |
-| 4. World & NPCs | 0/3 | Not started | - |
+| 4. World & NPCs | 0/4 | Not started | - |
 | 5. Dungeon | 0/3 | Not started | - |
 | 6. Progression & Polish | 0/3 | Not started | - |
