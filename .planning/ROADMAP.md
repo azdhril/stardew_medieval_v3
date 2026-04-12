@@ -12,10 +12,10 @@ Transform a working farming prototype into a complete farming+combat hybrid RPG.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Architecture Foundation** - Refactor Game1 into SceneManager, create Entity base class, restructure GameState
-- [ ] **Phase 2: Items & Inventory** - Unified item system, inventory grid, hotbar, equipment, farming polish
-- [ ] **Phase 3: Combat** - Melee and magic attacks, HP system, enemy AI, boss encounter
-- [ ] **Phase 3.1: Verification Backfill & Metadata Sync** - INSERTED. Produce 02/03-VERIFICATION.md, sync STATE/ROADMAP/REQUIREMENTS drift
+- [x] **Phase 1: Architecture Foundation** - Refactor Game1 into SceneManager, create Entity base class, restructure GameState
+- [x] **Phase 2: Items & Inventory** - Unified item system, inventory grid, hotbar, equipment, farming polish
+- [x] **Phase 3: Combat** - Melee and magic attacks, HP system, enemy AI, boss encounter
+- [x] **Phase 3.1: Verification Backfill & Metadata Sync** - INSERTED. Produce 02/03-VERIFICATION.md, sync STATE/ROADMAP/REQUIREMENTS drift
 - [ ] **Phase 4: World & NPCs** - Map transitions, village with shop and King, dialogue system, quest
 - [ ] **Phase 5: Dungeon** - Multi-room dungeon with progression, treasure, and boss room
 - [ ] **Phase 6: Progression & Polish** - XP/leveling, gold economy, graphical HUD, save system, death penalty
@@ -85,10 +85,12 @@ Plans:
   3. `STATE.md` reflects phases 1–3 complete (not "Phase 03 executing, 0%")
   4. ROADMAP Progress table marks Phase 2 and Phase 3 as `Complete` with correct plan counts
   5. REQUIREMENTS.md traceability flips ARCH-01..05, INV-01..05, FARM-01..03, HUD-02, CMB-01..06 from `Pending` to `Satisfied` and checkboxes from `[ ]` to `[x]`
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03_1-01: TBD
+- [x] 03.1-01-PLAN.md — Write 02-VERIFICATION.md (Wave 1)
+- [x] 03.1-02-PLAN.md — Write 03-VERIFICATION.md (Wave 1)
+- [x] 03.1-03-PLAN.md — Sync STATE/ROADMAP/REQUIREMENTS metadata (Wave 2)
 
 ### Phase 4: World & NPCs
 **Goal**: Players can navigate between farm, village, and dungeon entrance, interact with NPCs, buy items, and receive the main quest
@@ -151,9 +153,9 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Architecture Foundation | 4/4 | Complete | - |
-| 2. Items & Inventory | 0/3 | Planned | - |
-| 3. Combat | 0/3 | Planned | - |
-| 3.1. Verification Backfill & Metadata Sync | 0/1 | Not started | - |
+| 2. Items & Inventory | 3/3 | Complete | - |
+| 3. Combat | 3/3 | Complete | - |
+| 3.1. Verification Backfill & Metadata Sync | 3/3 | Complete | - |
 | 4. World & NPCs | 0/3 | Not started | - |
 | 5. Dungeon | 0/3 | Not started | - |
 | 6. Progression & Polish | 0/3 | Not started | - |
