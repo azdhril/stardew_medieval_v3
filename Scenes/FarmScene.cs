@@ -45,8 +45,12 @@ public class FarmScene : Scene
     private GameState? _loadedState;
     private readonly Random _lootRng = new();
     private bool _debugDraw;
+    private readonly string _fromScene;
 
-    public FarmScene(ServiceContainer services) : base(services) { }
+    public FarmScene(ServiceContainer services, string fromScene = "Fresh") : base(services)
+    {
+        _fromScene = fromScene;
+    }
 
     public override void LoadContent()
     {
@@ -60,10 +64,28 @@ public class FarmScene : Scene
         _map = new TileMap();
         _map.Load("Content/Maps/test_farm.tmx", device);
 
-        // Player
-        _player = new PlayerEntity { Position = TileMap.TileCenterWorld(10, 10) };
-        var playerTex = LoadTexture(device, "Content/Sprites/Player/player_spritesheet.png");
-        _player.LoadContent(playerTex);
+        // Player -- reuse Services.Player across scenes so state (HP, HP, inventory-linked position)
+        // survives transitions (WLD-04). First entry creates it; subsequent FarmScene entries reuse.
+        if (Services.Player == null)
+        {
+            _player = new PlayerEntity { Position = TileMap.TileCenterWorld(10, 10) };
+            var playerTex = LoadTexture(device, "Content/Sprites/Player/player_spritesheet.png");
+            _player.LoadContent(playerTex);
+            Services.Player = _player;
+            Services.PlayerSpriteSheet = playerTex;
+        }
+        else
+        {
+            _player = Services.Player;
+        }
+
+        // Per-entry spawn adjustment (WLD-04). First boot ("Fresh") keeps tile (10,10);
+        // returning from Village places the player just west of the east-edge trigger.
+        _player.Position = _fromScene switch
+        {
+            "Village" => new Vector2(896, 272),
+            _ => _player.Position, // keep existing (either save-loaded or tile(10,10) fresh)
+        };
 
         // Crops
         CropRegistry.Initialize(device);
@@ -135,6 +157,10 @@ public class FarmScene : Scene
             Console.WriteLine($"[FarmScene] MainQuest state loaded: {_mainQuest.State}");
         }
 
+        // Publish loaded state so other scenes can update CurrentScene on entry
+        Services.GameState = _loadedState;
+        _loadedState.CurrentScene = "Farm";
+
         // Seed starter tools into hotbar slots 0-2 on a fresh game
         if (save == null)
         {
@@ -173,6 +199,7 @@ public class FarmScene : Scene
             _inventory.SetConsumableRef(0, "Health_Potion");
         }
 
+        Console.WriteLine($"[FarmScene] Entered from {_fromScene}, spawn ({_player.Position.X},{_player.Position.Y})");
         Console.WriteLine("[FarmScene] Loaded");
     }
 
@@ -389,6 +416,18 @@ public class FarmScene : Scene
         if (_boss != null && _boss.IsAlive) solids.Add(_boss);
         _player.Update(deltaTime, input.Movement, _map, solids);
         Services.Camera.Follow(_player.Position, deltaTime);
+
+        // Scene-transition triggers (east-edge -> village, etc.)
+        var pBox = _player.CollisionBox;
+        foreach (var t in _map.Triggers)
+        {
+            if (!pBox.Intersects(t.Bounds)) continue;
+            if (t.Name == "enter_village")
+            {
+                Services.SceneManager.TransitionTo(new VillageScene(Services, "Farm"));
+                return;
+            }
+        }
 
         // Item drops: update magnetism/pickup, remove collected
         for (int i = _itemDrops.Count - 1; i >= 0; i--)
