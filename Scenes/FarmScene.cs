@@ -137,6 +137,7 @@ public class FarmScene : Scene
         _spriteAtlas.RegisterHand(handTex);
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, _font);
+        Services.Atlas = _spriteAtlas;
 
         // Load save
         var save = SaveManager.Load();

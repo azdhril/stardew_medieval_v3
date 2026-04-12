@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Quest;
@@ -51,4 +52,11 @@ public class ServiceContainer
     /// entry so the next auto-save captures the last active scene name.
     /// </summary>
     public GameState? GameState { get; set; }
+
+    /// <summary>
+    /// Shared sprite atlas (item/tool icons). Set by FarmScene after atlas
+    /// construction so overlay scenes (e.g. ShopOverlayScene) can render icons
+    /// without rebuilding registrations.
+    /// </summary>
+    public SpriteAtlas? Atlas { get; set; }
 }
