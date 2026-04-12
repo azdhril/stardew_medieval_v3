@@ -108,7 +108,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — Foundation contracts: MainQuest + NpcEntity + TriggerZone + Save v5 + Gold API (Wave 1)
 - [x] 04-02-PLAN.md — World scenes & maps: VillageScene/CastleScene/ShopScene + TMX + FarmScene edge trigger (Wave 2)
-- [ ] 04-03-PLAN.md — Dialogue system + King NPC + HUD quest tracker + F9 debug key (Wave 3)
+- [x] 04-03-PLAN.md — Dialogue system + King NPC + HUD quest tracker + F9 debug key (Wave 3)
 - [ ] 04-04-PLAN.md — Shop UI: ShopPanel + Toast + Shopkeeper NPC + ShopStock (Wave 4)
 
 ### Phase 5: Dungeon
