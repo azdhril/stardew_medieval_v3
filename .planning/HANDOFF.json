@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-12T00:03:00.849Z",
+  "phase": "03",
+  "phase_name": "combat",
+  "phase_dir": ".planning/phases/03-combat",
+  "plan": 3,
+  "task": 2,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "03-01", "name": "Combat core (melee, projectiles, damage)", "status": "done"},
+    {"id": "03-02", "name": "Enemy types (Skeleton, Dark Mage, Golem) + loot", "status": "done"},
+    {"id": "03-03 T1", "name": "Skeleton King boss + minion summon + first-kill loot", "status": "done"}
+  ],
+  "remaining_tasks": [
+    {"id": "03-03 T2", "name": "Human-verify checkpoint: test CMB-01..CMB-06 end-to-end", "status": "not_started"},
+    {"id": "phase-verify", "name": "Run gsd-verifier for Phase 03 goal check", "status": "not_started"},
+    {"id": "commit", "name": "Commit uncommitted combat ergonomics tweaks (8 files)", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {"action": "Playtest Phase 03 combat end-to-end", "context": "Verify CMB-01..CMB-06 pass after ergonomic fixes", "blocking": true}
+  ],
+  "decisions": [
+    {"decision": "Split Entity into CollisionBox (feet, terrain) + HitBox (body, combat)", "rationale": "Enemy projectiles targeting Position (head) missed player colliding with feet. Full-body HitBox means player must dodge with whole body, not just feet.", "phase": "03"},
+    {"decision": "HitBox sized 30% frame width × 70% height, shifted down 5%", "rationale": "Player spritesheet has transparent padding; tight body-matching HitBox feels fair visually.", "phase": "03"},
+    {"decision": "EnemyEntity.HitBox overrides base to equal CollisionBox", "rationale": "Enemies render as solid colored rectangles with no sprite padding; base formula gave tiny 4px HitBoxes.", "phase": "03"},
+    {"decision": "Regular enemies get GetMeleeAttackHitbox() with extended directional reach (width+8 × 16)", "rationale": "AI AttackRange=24 stopped enemies before bodies could overlap player HitBox. Boss already used this pattern with GetBossSlashHitbox(); same pattern applied to Skeleton/Golem/minions.", "phase": "03"},
+    {"decision": "BossEntity.GetBossSlashHitbox() uses dominant-axis facing from _lastPlayerPos", "rationale": "Boss was hardcoded facing Down; now follows player for all 4 cardinal directions.", "phase": "03"},
+    {"decision": "F3 debug toggle renders HitBox (yellow), CollisionBox (green), MeleeAttack (red), SlashEffect (white)", "rationale": "Visual calibration was impossible without seeing hitboxes; F3 overlay enables fast iteration.", "phase": "03"},
+    {"decision": "Player MeleeAttack resized to 34×24 (30% narrower), Left/Right gap reduced 8→4 (10% closer)", "rationale": "Felt too wide/far after HitBox split; calibrated live in F3 debug.", "phase": "03"},
+    {"decision": "SlashEffect synced to MeleeAttack geometry exactly", "rationale": "White visual must match red hitbox for player trust.", "phase": "03"}
+  ],
+  "uncommitted_files": [
+    "Combat/BossEntity.cs",
+    "Combat/EnemyEntity.cs",
+    "Combat/MeleeAttack.cs",
+    "Combat/ProjectileManager.cs",
+    "Combat/SlashEffect.cs",
+    "Core/Entity.cs",
+    "Scenes/FarmScene.cs",
+    "UI/HotbarRenderer.cs",
+    "UI/InventoryGridRenderer.cs",
+    ".planning/ROADMAP.md",
+    ".planning/STATE.md"
+  ],
+  "next_action": "Playtest combat: spawn enemies (B key / debug), verify Skeleton/Golem/minions now land melee hits at AttackRange distance. Toggle F3 to visualize. Then commit the tweaks and run /gsd-verify-phase 3.",
+  "context_notes": "Phase 03 executed cleanly via 3 wave-based worktree subagents. After merge, playtest revealed a cascade of combat ergonomic issues that were all fixed iteratively: projectile aiming, HitBox semantics, enemy attack reach, directional boss slash. Build is clean (0 errors). The last fix (enemy melee reach) has not been playtested yet. Context was at 97% so paused before testing."
+}
