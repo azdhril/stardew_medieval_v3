@@ -55,81 +55,105 @@ public class SpriteAtlas
     }
 
     /// <summary>
-    /// Create a default SpriteAtlas with all known item SpriteIds mapped to their
-    /// grid positions in the 7_Pickup_Items_16x16.png spritesheet.
+    /// Register all sprites on the Pickup_Items.png spritesheet (14 cols).
+    /// NOTE: the sheet has 1-row vertical gaps between content bands.
+    /// Actual row layout:
+    ///   Rows 0-2: crops + rotten pairs (packed, no gaps)
+    ///   Row 3:    empty gap
+    ///   Row 4:    tree fruits (apple/orange/banana/lime — not implemented)
+    ///   Row 5:    fish (cols 0-3, skip), boot (col 4), magic staff (col 5)
+    ///   Row 6:    empty gap
+    ///   Row 7:    wood logs & stars (not implemented, skipped)
     /// </summary>
     public static SpriteAtlas CreateDefault(Texture2D itemSheet)
     {
         var atlas = new SpriteAtlas(itemSheet);
 
-        // Row 0: Vegetables / Crops
-        atlas.Register("crop_cabbage", 0, 0);
-        atlas.Register("crop_carrot", 1, 0);
-        atlas.Register("crop_cauliflower", 2, 0);
-        atlas.Register("crop_pepper", 3, 0);
-        atlas.Register("crop_radish", 4, 0);
-        atlas.Register("crop_strawberry", 5, 0);
-        atlas.Register("crop_turnip", 6, 0);
-        atlas.Register("crop_onion", 7, 0);
-        atlas.Register("crop_cotton", 8, 0);
-        atlas.Register("crop_grape_purple", 9, 0);
-        atlas.Register("crop_grape_pink", 10, 0);
+        // --- Row 0: crops + rotten variants (cabbage, radish, carrot, strawberry, wheat, pepper, beet) ---
+        atlas.Register("crop_cabbage",            0, 0);
+        atlas.Register("crop_cabbage_rotten",     1, 0);
+        atlas.Register("crop_radish",             2, 0);
+        atlas.Register("crop_radish_rotten",      3, 0);
+        atlas.Register("crop_carrot",             4, 0);
+        atlas.Register("crop_carrot_rotten",      5, 0);
+        atlas.Register("crop_strawberry",         6, 0);
+        atlas.Register("crop_strawberry_rotten",  7, 0);
+        atlas.Register("crop_wheat",              8, 0);
+        atlas.Register("crop_wheat_rotten",       9, 0);
+        atlas.Register("crop_pepper",            10, 0);
+        atlas.Register("crop_pepper_rotten",     11, 0);
+        atlas.Register("crop_beet",              12, 0);  // no Beet crop yet, registered for future
+        atlas.Register("crop_beet_rotten",       13, 0);
 
-        // Row 1: More crops and fruits
-        atlas.Register("crop_tomato", 0, 1);
-        atlas.Register("crop_corn", 1, 1);
-        atlas.Register("crop_pumpkin", 2, 1);
-        atlas.Register("crop_watermelon", 3, 1);
-        atlas.Register("crop_pineapple", 4, 1);
-        atlas.Register("crop_zucchini", 5, 1);
-        atlas.Register("crop_wheat", 6, 1);
-        atlas.Register("crop_coffee", 7, 1);
-        atlas.Register("crop_cosmic_carrot", 8, 1);
-        atlas.Register("crop_prickly_pear", 9, 1);
+        // --- Row 1: shitake, onion, cauliflower, corn, tomato, grape_purple ---
+        atlas.Register("crop_shitake",            0, 1);  // no Shitake crop yet
+        atlas.Register("crop_shitake_rotten",     1, 1);
+        atlas.Register("crop_onion",              2, 1);
+        atlas.Register("crop_onion_rotten",       3, 1);
+        atlas.Register("crop_cauliflower",        4, 1);
+        atlas.Register("crop_cauliflower_rotten", 5, 1);
+        atlas.Register("crop_corn",               6, 1);
+        atlas.Register("crop_corn_rotten",        7, 1);
+        atlas.Register("crop_tomato",             8, 1);
+        atlas.Register("crop_tomato_rotten",      9, 1);
+        atlas.Register("crop_grape_purple",      10, 1);
+        atlas.Register("crop_grape_purple_rotten", 11, 1);
+        // cols 12-13: "unknown fruit" — intentionally skipped per design
 
-        // Row 2: Seeds
-        atlas.Register("seed_cabbage", 0, 2);
-        atlas.Register("seed_carrot", 1, 2);
-        atlas.Register("seed_cauliflower", 2, 2);
-        atlas.Register("seed_pepper", 3, 2);
-        atlas.Register("seed_radish", 4, 2);
-        atlas.Register("seed_strawberry", 5, 2);
-        atlas.Register("seed_turnip", 6, 2);
-        atlas.Register("seed_onion", 7, 2);
-        atlas.Register("seed_cotton", 8, 2);
-        atlas.Register("seed_grape_purple", 9, 2);
-        atlas.Register("seed_grape_pink", 10, 2);
+        // --- Row 2: coffee, cucumber, pumpkin, pineapple, watermelon ---
+        atlas.Register("crop_coffee",             0, 2);
+        atlas.Register("crop_coffee_rotten",      1, 2);
+        atlas.Register("crop_cucumber",           2, 2);  // no Cucumber crop yet
+        atlas.Register("crop_cucumber_rotten",    3, 2);
+        atlas.Register("crop_pumpkin",            4, 2);
+        atlas.Register("crop_pumpkin_rotten",     5, 2);
+        atlas.Register("crop_pineapple",          6, 2);
+        atlas.Register("crop_pineapple_rotten",   7, 2);
+        atlas.Register("crop_watermelon",         8, 2);
+        atlas.Register("crop_watermelon_rotten",  9, 2);
 
-        // Row 3: More seeds
-        atlas.Register("seed_tomato", 0, 3);
-        atlas.Register("seed_corn", 1, 3);
-        atlas.Register("seed_pumpkin", 2, 3);
-        atlas.Register("seed_watermelon", 3, 3);
-        atlas.Register("seed_pineapple", 4, 3);
-        atlas.Register("seed_zucchini", 5, 3);
-        atlas.Register("seed_wheat", 6, 3);
-        atlas.Register("seed_coffee", 7, 3);
-        atlas.Register("seed_cosmic_carrot", 8, 3);
-        atlas.Register("seed_prickly_pear", 9, 3);
+        // --- Row 3: tree fruits (apple / orange / banana / lime) — not implemented ---
 
-        // Weapons (placeholders on items sheet)
-        atlas.Register("weapon_iron_sword", 0, 4);
-        atlas.Register("weapon_steel_sword", 1, 4);
-        atlas.Register("weapon_flame_blade", 2, 4);
-
-        // Armor
-        atlas.Register("armor_leather", 3, 4);
-        atlas.Register("armor_iron", 4, 4);
-        atlas.Register("armor_dragon", 5, 4);
-
-        // Consumables
-        atlas.Register("consumable_health_potion", 6, 4);
+        // --- Row 5: equipment (row 3 gap, row 4 tree fruits) ---
+        atlas.Register("armor_leather_boots",     4, 5);
+        atlas.Register("weapon_magic_staff",      5, 5);
 
         return atlas;
     }
 
     /// <summary>
-    /// Register tool sprites on the Tool_Icons_NO_Outline.png sheet (160x16, 10 cols).
+    /// Register sprites on the Food_Icons.png spritesheet (8 cols). Seeds for existing
+    /// crops live here (paired with their crop icon). We only register seed ids for
+    /// crops that exist in items.json.
+    /// Layout (col,row) for seeds:
+    ///   Row 3: seed_wheat(1), seed_watermelon(3), seed_pepper(5)
+    ///   Row 4: seed_tomato(1), seed_carrot(3)
+    ///   Row 5: seed_grape_purple(1), seed_cabbage(3)
+    ///   Row 6: seed_pumpkin(1)
+    ///   Row 7: seed_corn(1), seed_turnip(3)
+    ///   Row 8: seed_radish(3)
+    ///   Row 9: seed_onion(3)
+    ///   Row 11: seed_strawberry(1)
+    /// </summary>
+    public void RegisterFoodIcons(Texture2D foodSheet)
+    {
+        RegisterOn(foodSheet, "seed_wheat",        1, 3);
+        RegisterOn(foodSheet, "seed_watermelon",   3, 3);
+        RegisterOn(foodSheet, "seed_pepper",       5, 3);
+        RegisterOn(foodSheet, "seed_tomato",       1, 4);
+        RegisterOn(foodSheet, "seed_carrot",       3, 4);
+        RegisterOn(foodSheet, "seed_grape_purple", 1, 5);
+        RegisterOn(foodSheet, "seed_cabbage",      3, 5);
+        RegisterOn(foodSheet, "seed_pumpkin",      1, 6);
+        RegisterOn(foodSheet, "seed_corn",         1, 7);
+        RegisterOn(foodSheet, "seed_turnip",       3, 7);
+        RegisterOn(foodSheet, "seed_radish",       3, 8);
+        RegisterOn(foodSheet, "seed_onion",        3, 9);
+        RegisterOn(foodSheet, "seed_strawberry",   1, 11);
+    }
+
+    /// <summary>
+    /// Register tool sprites on the Tool_Icons.png sheet (160x16, 10 cols).
     /// Order: arco(0), flecha(1), picareta(2), machado(3), espada(4), scythe(5),
     /// regador(6), vara de pesca(7), lamparina(8), tocha(9).
     /// Hoe is mapped to lamparina until a dedicated hoe icon exists.

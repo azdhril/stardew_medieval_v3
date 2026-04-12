@@ -216,8 +216,7 @@ public class GridManager
 
             if (!viewArea.Intersects(destRect)) continue;
 
-            var tint = crop.IsWilted ? new Color(180, 120, 80) : Color.White;
-            spriteBatch.Draw(crop.Data.GrowthSheet, destRect, srcRect, tint);
+            spriteBatch.Draw(crop.Data.GrowthSheet, destRect, srcRect, Color.White);
         }
     }
 

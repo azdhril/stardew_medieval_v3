@@ -19,6 +19,7 @@ public class ItemDropEntity : Entity
     private readonly string _itemId;
     private readonly SpriteAtlas _atlas;
     private readonly Rectangle _spriteRect;
+    private readonly Texture2D _spriteTexture;
     private readonly Vector2 _startPos;
     private readonly Vector2 _bounceOffset;
 
@@ -66,7 +67,9 @@ public class ItemDropEntity : Entity
 
         // Look up the real item sprite (per D-08: use actual item sprite, not generic sack)
         var def = ItemRegistry.Get(itemId);
-        _spriteRect = atlas.GetRect(def?.SpriteId ?? "");
+        string spriteId = def?.SpriteId ?? "";
+        _spriteRect = atlas.GetRect(spriteId);
+        _spriteTexture = atlas.GetTexture(spriteId);
     }
 
     /// <summary>
@@ -150,6 +153,6 @@ public class ItemDropEntity : Entity
             (int)(Position.Y - 8 + bob),
             16, 16);
 
-        spriteBatch.Draw(_atlas.Texture, destRect, _spriteRect, Color.White);
+        spriteBatch.Draw(_spriteTexture, destRect, _spriteRect, Color.White);
     }
 }

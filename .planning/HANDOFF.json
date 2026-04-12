@@ -1,58 +1,57 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-12T00:48:13.930Z",
+  "timestamp": "2026-04-12T02:30:00.000Z",
   "phase": "03",
   "phase_name": "combat",
   "phase_dir": ".planning/phases/03-combat",
   "plan": 3,
-  "task": 2,
+  "task": 3,
   "total_tasks": 3,
   "status": "paused",
+  "summary": "Phase 03 technically done; paused mid-item-registry-overhaul (user-requested polish pass). Awaiting playtest of sprite fixes + staff combat + seed planting.",
   "completed_tasks": [
     {"id": "03-01", "name": "Combat core", "status": "done"},
     {"id": "03-02", "name": "Enemy types + loot", "status": "done"},
-    {"id": "03-03 T1", "name": "Skeleton King boss", "status": "done"},
-    {"id": "post-merge-ergonomics", "name": "HitBox/CollisionBox split, F3 debug, directional boss slash, enemy melee reach", "status": "done"},
-    {"id": "player-enemy-collision", "name": "Player blocks vs enemies via overlap-area comparison (no sticking)", "status": "done"},
-    {"id": "enemy-enemy-separation", "name": "Post-move pair separation resolver in FarmScene", "status": "done"},
-    {"id": "tools-refactor-partial", "name": "SpriteAtlas multi-texture; tool sheet + hand.png registered; ToolController reads active hotbar; HUD tool text removed; starter Hoe/Watering_Can/Scythe seeded into hotbar 0-2", "status": "done"}
+    {"id": "03-03", "name": "Skeleton King boss", "status": "done"},
+    {"id": "post-merge-ergonomics", "name": "HitBox/CollisionBox split, F3 debug, collision overhaul, tools-as-hotbar refactor", "status": "done"},
+    {"id": "item-registry-overhaul", "name": "Pickup_Items grid rewrite (14 cols, pairs crop+rotten), Food_Icons seed registration, 15 rotten item defs, Magic_Staff weapon, Leather_Boots sprite fix, ItemDrop multi-texture, brown tint removed, wilted-harvest drops rotten", "status": "done"},
+    {"id": "combat-weapon-switch", "name": "CombatManager branches by active hotbar weapon: sword=LMB melee, staff=LMB fireball with per-weapon cooldown (1s staff). RMB fireball removed. HUD fireball indicator hidden when not cooling down.", "status": "done"},
+    {"id": "plant-per-seed-fix", "name": "CropManager.TryPlant accepts cropName; ToolController derives from active seed, consumes 1 on plant, clears hotbar ref when empty. InventoryManager.TryConsume added.", "status": "done"},
+    {"id": "boot-staff-row-fix", "name": "Pickup_Items has vertical gaps between bands: boot/staff moved from row 4 to row 5.", "status": "done"},
+    {"id": "debug-kit-update", "name": "F2 grants Magic_Staff + Leather_Boots + Tomato_Seed alongside existing kit.", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": "hand-icon-empty-slot", "name": "Draw hand.png in active hotbar slot when empty (tool_hand sprite already registered)", "status": "not_started"},
-    {"id": "item-drop-multi-texture", "name": "ItemDropEntity.cs:153 still uses _atlas.Texture directly; switch to _atlas.GetTexture(def.SpriteId) if tools ever drop in world", "status": "not_started"},
-    {"id": "playtest-combat", "name": "Verify CMB-01..CMB-06 end-to-end (melee reach, boss directional slash, Dark Mage projectiles, knockback, death/loot, Skeleton King phases)", "status": "not_started"},
-    {"id": "playtest-tools-hotbar", "name": "Verify tool usage: active hotbar slot drives ToolType; drag tool out of hotbar -> Hands; seeds still work via Tab cycle", "status": "not_started"},
-    {"id": "commit", "name": "Commit all uncommitted ergonomic + tools-refactor changes", "status": "not_started"},
-    {"id": "phase-verify", "name": "Run /gsd-verify-phase 3", "status": "not_started"}
+    {"id": "playtest-sprites", "name": "Verify Pickup_Items crops (rows 0-2) render correctly (user stated these 3 rows are contiguous); verify boot/staff on row 5", "status": "not_started"},
+    {"id": "playtest-seeds", "name": "Put 3 different seeds in hotbar slots, plant each, confirm 3 distinct crops grow", "status": "not_started"},
+    {"id": "playtest-staff", "name": "Sword equipped: LMB melee; swap to Magic_Staff: LMB fireball 1s cooldown; HUD F indicator shows only during cooldown", "status": "not_started"},
+    {"id": "playtest-wilted", "name": "Let crop wilt; harvest drops 1x {Crop}_Rotten and picks up to inventory", "status": "not_started"},
+    {"id": "commit-item-overhaul", "name": "Commit the batch after playtest passes", "status": "not_started"},
+    {"id": "playtest-combat", "name": "Full CMB-01..CMB-06 playtest (carried from prior session)", "status": "not_started"},
+    {"id": "phase-verify", "name": "/gsd-verify-phase 3", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [
-    {"action": "Playtest combat + tools hotbar", "context": "Multiple cascading changes landed without a full playtest", "blocking": true}
+    {"action": "Playtest all item/combat changes", "context": "Sprite grid rewrite, weapon-switch combat, per-seed planting, rotten drops — all land together, untested", "blocking": true}
   ],
   "decisions": [
-    {"decision": "Player-enemy collision uses overlap-area delta (block only if move increases overlap)", "rationale": "Naive block-on-intersect stuck the player when enemies walked into them. Overlap-area approach always allows escape while preventing entry.", "phase": "03"},
-    {"decision": "Enemy-enemy separation is post-movement pairwise pushback in FarmScene.ResolveEnemySeparation", "rationale": "Simpler than integrating into AI; O(n^2) fine for current enemy counts. Boss is treated as immovable, minions are pushed the full distance.", "phase": "03"},
-    {"decision": "ToolController derives EquippedTool from active hotbar item id, not keybinds", "rationale": "User wants Stardew-style: tools are inventory items on hotbar, dragging out -> Hands. H/G/R/F/C keys removed.", "phase": "03"},
-    {"decision": "SpriteAtlas refactored to (texture, rect) per sprite", "rationale": "Tool icons live on Tool_Icons_NO_Outline.png (separate from items sheet); hand.png is its own 16x16 file. Multi-texture lookup needed.", "phase": "03"},
-    {"decision": "tool_hoe mapped to lamparina column (index 8) as placeholder", "rationale": "Sheet has no hoe icon; user approved lamparina as temp.", "phase": "03"}
+    {"decision": "Pickup_Items.png has 1-row vertical gaps between content bands (rows 3, 6 are empty)", "rationale": "User corrected mid-session: sheet is not densely packed. Rows 0-2 contiguous crops, row 4 tree fruits, row 5 fish/boot/staff, row 7 wood/stars.", "phase": "03"},
+    {"decision": "Active hotbar weapon chooses action type (Stardew-style)", "rationale": "User: so pode atacar com 1 arma de cada vez. Flag spell in items.json Stats distinguishes staff from sword. Cooldown per-weapon via Stats.cooldown.", "phase": "03"},
+    {"decision": "Wilted harvest drops {Crop}_Rotten if rotten variant exists in registry", "rationale": "User wants rotten crops to yield low-value item. Convention: YieldItemName + _Rotten.", "phase": "03"},
+    {"decision": "Seed slot directly plants its crop (no more Tab cycling required)", "rationale": "Pre-existing bug: Tab-cycled selection ignored active seed. Fix derives crop name from seed id and consumes 1 unit on plant.", "phase": "03"}
   ],
   "uncommitted_files": [
-    "Combat/BossEntity.cs",
-    "Combat/EnemyEntity.cs",
-    "Combat/MeleeAttack.cs",
-    "Combat/ProjectileManager.cs",
-    "Combat/SlashEffect.cs",
-    "Core/Entity.cs",
+    "Combat/CombatManager.cs",
     "Data/SpriteAtlas.cs",
+    "Data/items.json",
+    "Entities/ItemDropEntity.cs",
+    "Farming/CropManager.cs",
+    "Farming/GridManager.cs",
     "Farming/ToolController.cs",
-    "Player/PlayerEntity.cs",
+    "Inventory/InventoryManager.cs",
     "Scenes/FarmScene.cs",
     "UI/HUD.cs",
-    "UI/HotbarRenderer.cs",
-    "UI/InventoryGridRenderer.cs",
-    ".planning/ROADMAP.md",
-    ".planning/STATE.md"
+    ".planning/HANDOFF.json"
   ],
-  "next_action": "Finish tools refactor: draw hand.png in empty active hotbar slot (spriteId tool_hand). Then playtest combat + tools. Then commit everything.",
-  "context_notes": "Two big refactors landed without playtest in this session: (1) player-enemy + enemy-enemy collision, (2) tools-as-hotbar-items. Build is clean (0 errors). ToolController constructor signature changed — now takes InventoryManager. HUD constructor still takes ToolController but no longer renders the [Tool] label."
+  "next_action": "User runs game, presses F2, playtests: (1) sprite correctness rows 0-2 + boot/staff row 5, (2) different seeds plant different crops, (3) sword vs staff LMB, (4) wilted drops rotten. Then commit.",
+  "context_notes": "Build clean (0 errors). Two mid-session bugs fixed: all seeds planted same crop (used Tab-cycled index), and F2 missed Magic_Staff. Then user reported Magic_Staff=banana sprite and Leather_Boots=fruit sprite — diagnosed as row miscount (gaps in sheet between content bands). Boot/staff moved row 4 -> row 5. Crops rows 0-2 assumed contiguous per user statement; if playtest shows crops shifted too, the gap theory extends further."
 }

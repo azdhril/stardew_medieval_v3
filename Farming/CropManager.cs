@@ -32,7 +32,12 @@ public class CropManager
         Console.WriteLine($"[CropManager] Selected: {GetSelectedCrop()?.Name}");
     }
 
-    public bool TryPlant(Point tile)
+    /// <summary>
+    /// Plant a crop on the given tile. If <paramref name="cropName"/> is non-null,
+    /// look it up by name (e.g. "Cabbage" from a "Cabbage_Seed" in the hotbar).
+    /// Otherwise falls back to the Tab-cycled selection.
+    /// </summary>
+    public bool TryPlant(Point tile, string? cropName = null)
     {
         var cell = _grid.GetCell(tile);
         if (cell == null || !cell.IsTilled)
@@ -47,7 +52,15 @@ public class CropManager
             return false;
         }
 
-        var cropData = GetSelectedCrop();
+        CropData? cropData = null;
+        if (cropName != null)
+        {
+            cropData = _availableCrops.Find(c => c.Name == cropName);
+            if (cropData == null)
+                Console.WriteLine($"[CropManager] No crop data for '{cropName}', falling back to selection");
+        }
+        cropData ??= GetSelectedCrop();
+
         if (cropData == null)
         {
             Console.WriteLine("[CropManager] No crop selected");

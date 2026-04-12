@@ -93,32 +93,22 @@ public class HUD
     /// </summary>
     private void DrawFireballCooldown(SpriteBatch sb, int screenWidth, int screenHeight)
     {
-        int iconSize = 16;
-        // Position to the right of the hotbar area (bottom-center + offset)
-        int iconX = screenWidth / 2 + 140;
-        int iconY = screenHeight - 28;
-
-        // Background
-        DrawRect(sb, iconX - 1, iconY - 1, iconSize + 2, iconSize + 2, Color.Black);
-
         float remaining = _combat.FireballCooldownRemaining;
         float max = _combat.FireballCooldownMax;
 
-        if (remaining > 0 && max > 0)
-        {
-            // On cooldown: dark background with progress fill from bottom
-            DrawRect(sb, iconX, iconY, iconSize, iconSize, new Color(40, 40, 40));
-            float progress = 1f - (remaining / max);
-            int fillHeight = (int)(iconSize * progress);
-            DrawRect(sb, iconX, iconY + (iconSize - fillHeight), iconSize, fillHeight, Color.Orange * 0.5f);
-        }
-        else
-        {
-            // Ready: bright orange
-            DrawRect(sb, iconX, iconY, iconSize, iconSize, Color.Orange);
-        }
+        // Only render while a spell cast is actively cooling down. Otherwise stay hidden
+        // (there is no RMB fireball anymore — fireballs are cast by equipping a staff).
+        if (remaining <= 0 || max <= 0) return;
 
-        // "F" label for fireball
+        int iconSize = 16;
+        int iconX = screenWidth / 2 + 140;
+        int iconY = screenHeight - 28;
+
+        DrawRect(sb, iconX - 1, iconY - 1, iconSize + 2, iconSize + 2, Color.Black);
+        DrawRect(sb, iconX, iconY, iconSize, iconSize, new Color(40, 40, 40));
+        float progress = 1f - (remaining / max);
+        int fillHeight = (int)(iconSize * progress);
+        DrawRect(sb, iconX, iconY + (iconSize - fillHeight), iconSize, fillHeight, Color.Orange * 0.5f);
         sb.DrawString(_font, "F", new Vector2(iconX + 3, iconY - 1), Color.White);
     }
 

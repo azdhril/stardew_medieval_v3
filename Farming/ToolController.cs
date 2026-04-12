@@ -100,12 +100,42 @@ public class ToolController
                 _grid.TryWater(tile, _player.Stats);
                 break;
             case ToolType.Seeds:
-                _cropManager.TryPlant(tile);
+                TryPlantActiveSeed(tile);
                 break;
             case ToolType.Hands:
             case ToolType.Scythe:
                 TryHarvest(tile);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Plant the crop matching the seed currently in the active hotbar slot
+    /// (e.g. "Cabbage_Seed" -> crop "Cabbage"). Consumes 1 seed on success and
+    /// clears the hotbar reference if the stack runs out.
+    /// </summary>
+    private void TryPlantActiveSeed(Point tile)
+    {
+        string? seedId = ActiveItemId;
+        if (seedId == null || !seedId.EndsWith("_Seed"))
+        {
+            _cropManager.TryPlant(tile);
+            return;
+        }
+        // Convention: "Cabbage_Seed" -> "Cabbage", "Cosmic_Carrot_Seed" -> "Cosmic Carrot"
+        string cropName = seedId.Substring(0, seedId.Length - "_Seed".Length).Replace('_', ' ');
+        if (_cropManager.TryPlant(tile, cropName))
+        {
+            int consumed = _inventory.TryConsume(seedId, 1);
+            if (consumed > 0 && !_inventory.HasItem(seedId))
+            {
+                // Stack emptied — clear any hotbar/consumable refs pointing at it
+                for (int i = 0; i < InventoryManager.HotbarSize; i++)
+                {
+                    if (_inventory.GetHotbarRef(i) == seedId)
+                        _inventory.SetHotbarRef(i, null);
+                }
+            }
         }
     }
 
@@ -122,11 +152,23 @@ public class ToolController
 
         if (crop.IsWilted)
         {
-            // Clear wilted crop, reset cell (Stardew style)
+            // Wilted harvest: if a rotten variant exists in the registry, drop 1x of it.
+            // Otherwise just clear the tile (Stardew style). Rotten id convention:
+            // "{YieldItemName}_Rotten" (e.g. Cabbage -> Cabbage_Rotten).
+            string rottenId = crop.Data.YieldItemName + "_Rotten";
+            if (ItemRegistry.Get(rottenId) != null)
+            {
+                Vector2 rotPos = new Vector2(tile.X * 16 + 8, tile.Y * 16 + 8);
+                _spawnDrop(rottenId, 1, rotPos);
+                Console.WriteLine($"[Harvest] Spawned 1x {rottenId} from wilted {crop.Data.Name}");
+            }
+            else
+            {
+                Console.WriteLine($"[Harvest] Cleared wilted {crop.Data.Name} (no rotten variant)");
+            }
             _cropManager.RemoveCrop(tile);
             cell.IsTilled = false;
             cell.IsWatered = false;
-            Console.WriteLine($"[Harvest] Cleared wilted {crop.Data.Name}");
             return;
         }
 

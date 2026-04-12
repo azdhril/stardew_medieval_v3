@@ -86,6 +86,28 @@ public class InventoryManager
         return remaining;
     }
 
+    /// <summary>
+    /// Remove up to <paramref name="quantity"/> units of the given item from inventory
+    /// (searches stacks left-to-right). Clears the slot when a stack reaches zero.
+    /// Returns how many units were actually removed.
+    /// </summary>
+    public int TryConsume(string itemId, int quantity = 1)
+    {
+        int remaining = quantity;
+        for (int i = 0; i < SlotCount && remaining > 0; i++)
+        {
+            var s = _slots[i];
+            if (s == null || s.ItemId != itemId) continue;
+            int take = Math.Min(remaining, s.Quantity);
+            s.Quantity -= take;
+            remaining -= take;
+            if (s.Quantity <= 0) _slots[i] = null;
+        }
+        int consumed = quantity - remaining;
+        if (consumed > 0) OnInventoryChanged?.Invoke();
+        return consumed;
+    }
+
     /// <summary>Remove and return the stack at a given slot.</summary>
     public ItemStack? RemoveAt(int index)
     {

@@ -98,9 +98,11 @@ public class FarmScene : Scene
         _hud = new HUD(Services.Time, _player.Stats, _toolController, _player, _combat);
         _hud.LoadContent(device, _font);
 
-        var itemSheet = LoadTexture(device, "Content/Sprites/Items/7_Pickup_Items_16x16.png");
+        var itemSheet = LoadTexture(device, "Content/Sprites/Items/Pickup_Items.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
-        var toolSheet = LoadTexture(device, "Content/Sprites/Items/Tools/Tool_Icons_NO_Outline.png");
+        var foodSheet = LoadTexture(device, "Content/Sprites/Items/Fruits and Vegetables/Food_Icons.png");
+        _spriteAtlas.RegisterFoodIcons(foodSheet);
+        var toolSheet = LoadTexture(device, "Content/Sprites/Items/Tools/Tool_Icons.png");
         _spriteAtlas.RegisterTools(toolSheet);
         var handTex = LoadTexture(device, "Content/Sprites/Items/Tools/hand.png");
         _spriteAtlas.RegisterHand(handTex);
@@ -140,6 +142,7 @@ public class FarmScene : Scene
         {
             _inventory.TryAdd("Cabbage", 5);
             _inventory.TryAdd("Iron_Sword");
+            _inventory.TryAdd("Magic_Staff");
             _inventory.TryAdd("Cosmic_Carrot", 3);
             _inventory.TryAdd("Flame_Blade");
             _inventory.TryAdd("Leather_Armor");
@@ -596,11 +599,14 @@ public class FarmScene : Scene
             ("Watering_Can", 1),
             ("Scythe", 1),
             ("Iron_Sword", 1),
+            ("Magic_Staff", 1),
             ("Leather_Armor", 1),
+            ("Leather_Boots", 1),
             ("Health_Potion", 5),
             ("Cabbage_Seed", 10),
             ("Carrot_Seed", 10),
             ("Wheat_Seed", 10),
+            ("Tomato_Seed", 10),
             ("Cabbage", 5),
         };
 

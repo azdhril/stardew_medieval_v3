@@ -20,9 +20,12 @@ public class CombatManager
     private float _iFrameTimer;
     private const float IFrameDuration = 1.0f;
 
-    // Fireball cooldown (per D-09: 2s cooldown)
+    // Fireball cooldown. Duration is read from the equipped staff's "cooldown" stat
+    // (fallback 2s if unset). Tracks both the current timer and the max used for the
+    // last cast, so the HUD can draw a progress arc relative to the actual duration.
     private float _fireballCooldownTimer;
-    private const float FireballCooldown = 2.0f;
+    private float _fireballCooldownMax = 2.0f;
+    private const float FireballCooldownDefault = 2.0f;
 
     // Flag set when fireball should be spawned this frame
     private bool _fireballRequested;
@@ -36,8 +39,8 @@ public class CombatManager
     /// <summary>Remaining fireball cooldown in seconds.</summary>
     public float FireballCooldownRemaining => _fireballCooldownTimer;
 
-    /// <summary>Maximum fireball cooldown duration.</summary>
-    public float FireballCooldownMax => FireballCooldown;
+    /// <summary>Maximum fireball cooldown duration for the last cast (depends on equipped staff).</summary>
+    public float FireballCooldownMax => _fireballCooldownMax;
 
     /// <summary>Access the melee attack component.</summary>
     public MeleeAttack Melee => _melee;
@@ -63,45 +66,43 @@ public class CombatManager
     }
 
     /// <summary>
-    /// Process combat input: LMB for melee, RMB for fireball.
-    /// Per D-01/D-08: melee requires weapon in active hotbar slot.
-    /// Per D-08/D-09: fireball has fixed 2s cooldown.
+    /// Process combat input. Stardew-style: the active hotbar item defines the action.
+    /// A weapon tagged "melee" (sword) swings on LMB; a weapon tagged "spell" (staff)
+    /// casts a fireball on LMB using its own "cooldown" stat. Only one weapon is active
+    /// at a time — there is no separate melee/spell keybind split.
     /// </summary>
     /// <param name="input">Input manager for mouse click detection.</param>
     /// <param name="player">Player entity (skipped if not alive).</param>
     public void HandleInput(InputManager input, PlayerEntity player)
     {
         if (!player.IsAlive) return;
+        if (!input.IsLeftClickPressed) return;
 
-        // LMB: Melee attack
-        if (input.IsLeftClickPressed)
-        {
-            var activeItem = _inventory.GetActiveHotbarItem();
-            if (activeItem != null)
-            {
-                var itemDef = ItemRegistry.Get(activeItem.ItemId);
-                if (itemDef?.Type == ItemType.Weapon)
-                {
-                    // Get weapon cooldown from stats, fallback 0.5s
-                    float cooldown = 0.5f;
-                    if (itemDef.Stats.TryGetValue("cooldown", out float cd))
-                        cooldown = cd;
+        var activeItem = _inventory.GetActiveHotbarItem();
+        if (activeItem == null) return;
 
-                    if (_melee.TrySwing(cooldown))
-                        Console.WriteLine($"[CombatManager] Melee swing with {itemDef.Id}");
-                }
-            }
-        }
+        var itemDef = ItemRegistry.Get(activeItem.ItemId);
+        if (itemDef?.Type != ItemType.Weapon) return;
 
-        // RMB: Fireball
-        if (input.IsRightClickPressed)
+        bool isSpell = itemDef.Stats.TryGetValue("spell", out float s) && s > 0;
+
+        if (isSpell)
         {
             if (_fireballCooldownTimer <= 0)
             {
-                _fireballCooldownTimer = FireballCooldown;
+                float cd = itemDef.Stats.TryGetValue("cooldown", out float cdv) ? cdv : FireballCooldownDefault;
+                _fireballCooldownMax = cd;
+                _fireballCooldownTimer = cd;
                 _fireballRequested = true;
-                Console.WriteLine("[CombatManager] Fireball cast!");
+                Console.WriteLine($"[CombatManager] Fireball cast with {itemDef.Id} (cd={cd:F1}s)");
             }
+        }
+        else
+        {
+            // Melee (default for any Weapon without spell flag)
+            float swingCd = itemDef.Stats.TryGetValue("cooldown", out float scd) ? scd : 0.5f;
+            if (_melee.TrySwing(swingCd))
+                Console.WriteLine($"[CombatManager] Melee swing with {itemDef.Id}");
         }
     }
 
