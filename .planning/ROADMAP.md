@@ -15,6 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Architecture Foundation** - Refactor Game1 into SceneManager, create Entity base class, restructure GameState
 - [ ] **Phase 2: Items & Inventory** - Unified item system, inventory grid, hotbar, equipment, farming polish
 - [ ] **Phase 3: Combat** - Melee and magic attacks, HP system, enemy AI, boss encounter
+- [ ] **Phase 3.1: Verification Backfill & Metadata Sync** - INSERTED. Produce 02/03-VERIFICATION.md, sync STATE/ROADMAP/REQUIREMENTS drift
 - [ ] **Phase 4: World & NPCs** - Map transitions, village with shop and King, dialogue system, quest
 - [ ] **Phase 5: Dungeon** - Multi-room dungeon with progression, treasure, and boss room
 - [ ] **Phase 6: Progression & Polish** - XP/leveling, gold economy, graphical HUD, save system, death penalty
@@ -72,6 +73,22 @@ Plans:
 - [x] 03-01-PLAN.md — Player combat core: melee attack, fireball projectile, HP bars, i-frames (Wave 1)
 - [x] 03-02-PLAN.md — Enemy types (Skeleton, Dark Mage, Golem), AI FSM, loot, FarmScene integration (Wave 2)
 - [x] 03-03-PLAN.md — Skeleton King boss fight with telegraphed attacks, summon phases, unique loot (Wave 3)
+
+### Phase 3.1: Verification Backfill & Metadata Sync (INSERTED)
+**Goal**: Formally verify Phase 2 and Phase 3 deliverables and resync planning metadata that drifted during execution -- promotes 15 requirements from `partial` to `satisfied` and aligns STATE/ROADMAP/REQUIREMENTS with reality
+**Depends on**: Phase 3
+**Requirements**: INV-01, INV-02, INV-03, INV-04, INV-05, FARM-01, FARM-02, FARM-03, HUD-02, CMB-01, CMB-02, CMB-03, CMB-04, CMB-05, CMB-06 (verification only — implementation already landed in phases 2 and 3)
+**Gap Closure**: Closes 15 `partial` requirements from `.planning/v1.0-MILESTONE-AUDIT.md`
+**Success Criteria** (what must be TRUE):
+  1. `.planning/phases/02-items-inventory/02-VERIFICATION.md` exists with goal-backward analysis covering INV-01..05, FARM-01..03, HUD-02
+  2. `.planning/phases/03-combat/03-VERIFICATION.md` exists with goal-backward analysis covering CMB-01..06 (UAT 15/15 already passed)
+  3. `STATE.md` reflects phases 1–3 complete (not "Phase 03 executing, 0%")
+  4. ROADMAP Progress table marks Phase 2 and Phase 3 as `Complete` with correct plan counts
+  5. REQUIREMENTS.md traceability flips ARCH-01..05, INV-01..05, FARM-01..03, HUD-02, CMB-01..06 from `Pending` to `Satisfied` and checkboxes from `[ ]` to `[x]`
+**Plans**: TBD
+
+Plans:
+- [ ] 03_1-01: TBD
 
 ### Phase 4: World & NPCs
 **Goal**: Players can navigate between farm, village, and dungeon entrance, interact with NPCs, buy items, and receive the main quest
@@ -136,6 +153,7 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 | 1. Architecture Foundation | 4/4 | Complete | - |
 | 2. Items & Inventory | 0/3 | Planned | - |
 | 3. Combat | 0/3 | Planned | - |
+| 3.1. Verification Backfill & Metadata Sync | 0/1 | Not started | - |
 | 4. World & NPCs | 0/3 | Not started | - |
 | 5. Dungeon | 0/3 | Not started | - |
 | 6. Progression & Polish | 0/3 | Not started | - |
