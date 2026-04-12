@@ -19,8 +19,8 @@ public class InventoryGridRenderer
     private const int Columns = 5;
     private const int Rows = 4;
     private const int SlotSize = 40;
-    private const int Padding = 2;
-    private const int IconPadding = 4;
+    private const int Padding = 0;
+    private const int IconPadding = 1;
     private const int EquipSlotSize = 36;
 
     private static readonly EquipSlot[] EquipSlots = {
@@ -237,7 +237,7 @@ public class InventoryGridRenderer
                 if (def != null)
                 {
                     var srcRect = _atlas.GetRect(def.SpriteId);
-                    sb.Draw(_atlas.Texture,
+                    sb.Draw(_atlas.GetTexture(def.SpriteId),
                         new Rectangle(rect.X + 3, rect.Y + 3, EquipSlotSize - 6, EquipSlotSize - 6),
                         srcRect, Color.White);
                 }
@@ -260,7 +260,7 @@ public class InventoryGridRenderer
         var destRect = new Rectangle(
             slotRect.X + IconPadding, slotRect.Y + IconPadding,
             slotRect.Width - IconPadding * 2, slotRect.Height - IconPadding * 2);
-        sb.Draw(_atlas.Texture, destRect, srcRect, Color.White);
+        sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White);
 
         Color? rarityColor = def.Rarity switch
         {
@@ -307,7 +307,7 @@ public class InventoryGridRenderer
         var destRect = new Rectangle(
             _dragPosition.X - drawSize / 2, _dragPosition.Y - drawSize / 2,
             drawSize, drawSize);
-        sb.Draw(_atlas.Texture, destRect, srcRect, Color.White * 0.85f);
+        sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White * 0.85f);
 
         if (quantity > 1)
         {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
@@ -32,7 +33,7 @@ public class PlayerEntity : Entity
         FrameHeight = spriteSheet.Height / 4;
     }
 
-    public void Update(float deltaTime, Vector2 input, TileMap map)
+    public void Update(float deltaTime, Vector2 input, TileMap map, IEnumerable<Entity>? solids = null)
     {
         // Update combat timers (knockback, flash)
         UpdateKnockback(deltaTime);
@@ -53,7 +54,7 @@ public class PlayerEntity : Entity
 
             // Try to move with collision
             var delta = input * Speed * deltaTime;
-            TryMove(delta, map);
+            TryMove(delta, map, solids);
 
             // Animate
             AnimationTimer += deltaTime;
@@ -70,20 +71,20 @@ public class PlayerEntity : Entity
         }
     }
 
-    private void TryMove(Vector2 delta, TileMap map)
+    private void TryMove(Vector2 delta, TileMap map, IEnumerable<Entity>? solids)
     {
         // Try X
-        var newPos = Position + new Vector2(delta.X, 0);
+        var beforeBox = CollisionBox;
         var oldPos = Position;
-        Position = newPos;
-        if (map.CheckCollision(CollisionBox))
+        Position = oldPos + new Vector2(delta.X, 0);
+        if (map.CheckCollision(CollisionBox) || CreatesNewSolidOverlap(solids, beforeBox, CollisionBox))
             Position = new Vector2(oldPos.X, Position.Y);
 
-        // Try Y
-        newPos = Position + new Vector2(0, delta.Y);
+        // Try Y (compare to post-X box so Y doesn't re-enter what X escaped)
+        beforeBox = CollisionBox;
         oldPos = Position;
-        Position = newPos;
-        if (map.CheckCollision(CollisionBox))
+        Position = oldPos + new Vector2(0, delta.Y);
+        if (map.CheckCollision(CollisionBox) || CreatesNewSolidOverlap(solids, beforeBox, CollisionBox))
             Position = new Vector2(Position.X, oldPos.Y);
 
         // Clamp to map bounds
@@ -131,6 +132,31 @@ public class PlayerEntity : Entity
         // Flash white on hit
         Color tint = IsFlashing ? Color.Red : Color.White;
         spriteBatch.Draw(SpriteSheet, destRect, srcRect, tint);
+    }
+
+    /// <summary>
+    /// Returns true if moving from <paramref name="oldBox"/> to <paramref name="newBox"/>
+    /// would increase overlap area with any solid. Prevents entering further while still
+    /// allowing escape when an enemy pushes into the player (no "sticking").
+    /// </summary>
+    private static bool CreatesNewSolidOverlap(IEnumerable<Entity>? solids, Rectangle oldBox, Rectangle newBox)
+    {
+        if (solids == null) return false;
+        foreach (var e in solids)
+        {
+            if (e == null || !e.IsAlive) continue;
+            var eb = e.CollisionBox;
+            int oldOverlap = OverlapArea(oldBox, eb);
+            int newOverlap = OverlapArea(newBox, eb);
+            if (newOverlap > oldOverlap) return true;
+        }
+        return false;
+    }
+
+    private static int OverlapArea(Rectangle a, Rectangle b)
+    {
+        var r = Rectangle.Intersect(a, b);
+        return r.IsEmpty ? 0 : r.Width * r.Height;
     }
 
     /// <summary>

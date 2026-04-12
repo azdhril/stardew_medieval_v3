@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(find . -maxdepth 1 -type d -not -name \".*\" -not -name \"node_modules\" -exec test -d \"{}/.git\" \\\\; -print)",
+      "Bash(dotnet build:*)",
+      "Bash(cp C:/Users/tinho/OneDrive/Documentos/Github/stardew_medieval_v3/Core/GameState.cs C:/Users/tinho/.claude/worktrees/agent-a6db8c41/OneDrive/Documentos/Github/stardew_medieval_v3/Core/GameState.cs)",
+      "Bash(cp C:/Users/tinho/OneDrive/Documentos/Github/stardew_medieval_v3/Core/SaveManager.cs C:/Users/tinho/.claude/worktrees/agent-a6db8c41/OneDrive/Documentos/Github/stardew_medieval_v3/Core/SaveManager.cs)",
+      "Skill(gsd-code-review)",
+      "Skill(gsd-discuss-phase)",
+      "Bash(find \"Content/Sprites/System/UI Elements/Slot\" -type f)",
+      "Bash(find \"Content/Sprites/System/Preview\" -type f)",
+      "Bash(ls Content/Data/)",
+      "Bash(ls Data/*.json)"
+    ]
+  }
+}

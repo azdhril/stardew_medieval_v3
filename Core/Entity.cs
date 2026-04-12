@@ -44,16 +44,50 @@ public abstract class Entity
     protected float FrameTime { get; set; } = 0.15f;
 
     /// <summary>
-    /// Collision box at the entity's feet. Subclasses can override for custom dimensions.
+    /// Center point of the collision box. Use this for targeting instead of Position,
+    /// which is the sprite center (much higher than the feet-level collision box).
+    /// </summary>
+    public Vector2 CollisionCenter
+    {
+        get
+        {
+            var box = CollisionBox;
+            return new Vector2(box.X + box.Width / 2f, box.Y + box.Height / 2f);
+        }
+    }
+
+    /// <summary>
+    /// Full-body hitbox covering the entire sprite. Used for combat damage checks
+    /// (enemy attacks, projectiles hitting the player). The player should need to
+    /// dodge with their whole body, not just their feet.
+    /// </summary>
+    public virtual Rectangle HitBox
+    {
+        get
+        {
+            int fw = FrameWidth > 0 ? FrameWidth : 16;
+            int fh = FrameHeight > 0 ? FrameHeight : 16;
+            int w = (int)(fw * 0.3f);  // 30% of frame width (narrower)
+            int h = (int)(fh * 0.7f);
+            return new Rectangle(
+                (int)Position.X - w / 2,
+                (int)(Position.Y + fh * 0.05f) - h / 2,  // shifted down 20%
+                w, h);
+        }
+    }
+
+    /// <summary>
+    /// Collision box at the entity's feet. Used for movement/terrain collision only.
     /// </summary>
     public virtual Rectangle CollisionBox
     {
         get
         {
             int w = 10, h = 6;
+            int fh = FrameHeight > 0 ? FrameHeight : 16;
             return new Rectangle(
                 (int)Position.X - w / 2,
-                (int)Position.Y + FrameHeight / 2 - h - 2,
+                (int)Position.Y + fh / 2 - h - 2 - (int)(fh * 0.05f),
                 w, h);
         }
     }

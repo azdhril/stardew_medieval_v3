@@ -63,8 +63,8 @@ public class SlashEffect
 
         if (alpha <= 0.01f) return;
 
-        // Base hitbox dimensions matching MeleeAttack
-        int baseWidth = (int)(48 * scale);
+        // Base hitbox dimensions matching MeleeAttack.GetHitbox
+        int baseWidth = (int)(34 * scale);
         int baseDepth = (int)(24 * scale);
         if (baseWidth < 2 || baseDepth < 2) return;
 
@@ -72,18 +72,18 @@ public class SlashEffect
         {
             Direction.Up => new Rectangle(
                 (int)_playerPos.X - baseWidth / 2,
-                (int)_playerPos.Y - baseDepth - 8,
+                (int)_playerPos.Y - baseDepth + 2,
                 baseWidth, baseDepth),
             Direction.Down => new Rectangle(
                 (int)_playerPos.X - baseWidth / 2,
                 (int)_playerPos.Y + 8,
                 baseWidth, baseDepth),
             Direction.Left => new Rectangle(
-                (int)_playerPos.X - baseDepth - 8,
+                (int)_playerPos.X - baseDepth - 4,
                 (int)_playerPos.Y - baseWidth / 2,
                 baseDepth, baseWidth),
             Direction.Right => new Rectangle(
-                (int)_playerPos.X + 8,
+                (int)_playerPos.X + 4,
                 (int)_playerPos.Y - baseWidth / 2,
                 baseDepth, baseWidth),
             _ => Rectangle.Empty

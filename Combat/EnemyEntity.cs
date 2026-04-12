@@ -16,6 +16,7 @@ public class EnemyEntity : Entity
     private readonly EnemyAI _ai;
     private bool _meleeAttackReady;
     private Texture2D? _pixel;
+    private Vector2 _lastPlayerPos;
 
     /// <summary>Static enemy type data (stats, loot, visual info).</summary>
     public EnemyData Data => _data;
@@ -40,6 +41,11 @@ public class EnemyEntity : Entity
                 _data.Height);
         }
     }
+
+    /// <summary>
+    /// Enemy HitBox matches their full visible body (colored rectangle, no sprite padding).
+    /// </summary>
+    public override Rectangle HitBox => CollisionBox;
 
     /// <summary>
     /// Create a new enemy entity with data-driven stats at the given spawn position.
@@ -67,6 +73,8 @@ public class EnemyEntity : Entity
     public void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles)
     {
         if (!IsAlive) return;
+
+        _lastPlayerPos = playerPos;
 
         // Update AI state machine
         _ai.Update(deltaTime, Position, playerPos, _data);
@@ -97,6 +105,48 @@ public class EnemyEntity : Entity
                 _meleeAttackReady = true;
             }
         }
+    }
+
+    /// <summary>
+    /// Get the melee attack hitbox: a small rectangle projected from the enemy's body
+    /// edge toward the player (dominant axis). Gives the enemy effective melee reach
+    /// so AttackRange (AI stop distance) actually results in a body-overlap hit.
+    /// </summary>
+    public Rectangle GetMeleeAttackHitbox()
+    {
+        int reachWidth = _data.Width + 8;
+        int reachDepth = 16;
+
+        Vector2 diff = _lastPlayerPos - Position;
+        Direction facing;
+        if (MathF.Abs(diff.X) > MathF.Abs(diff.Y))
+            facing = diff.X >= 0 ? Direction.Right : Direction.Left;
+        else
+            facing = diff.Y >= 0 ? Direction.Down : Direction.Up;
+
+        int halfW = _data.Width / 2;
+        int halfH = _data.Height / 2;
+
+        return facing switch
+        {
+            Direction.Up => new Rectangle(
+                (int)Position.X - reachWidth / 2,
+                (int)Position.Y - halfH - reachDepth,
+                reachWidth, reachDepth),
+            Direction.Down => new Rectangle(
+                (int)Position.X - reachWidth / 2,
+                (int)Position.Y + halfH,
+                reachWidth, reachDepth),
+            Direction.Left => new Rectangle(
+                (int)Position.X - halfW - reachDepth,
+                (int)Position.Y - reachWidth / 2,
+                reachDepth, reachWidth),
+            Direction.Right => new Rectangle(
+                (int)Position.X + halfW,
+                (int)Position.Y - reachWidth / 2,
+                reachDepth, reachWidth),
+            _ => Rectangle.Empty,
+        };
     }
 
     /// <summary>

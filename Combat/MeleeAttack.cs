@@ -49,26 +49,26 @@ public class MeleeAttack
     /// <returns>Rectangle representing the attack hitbox in world space.</returns>
     public Rectangle GetHitbox(Vector2 playerPos, Direction facing)
     {
-        // Hitbox: 48px wide, 24px deep, offset in facing direction
-        const int width = 48;
+        // Hitbox: narrowed 30% from original 48px
+        const int width = 34;
         const int depth = 24;
 
         return facing switch
         {
             Direction.Up => new Rectangle(
                 (int)playerPos.X - width / 2,
-                (int)playerPos.Y - depth - 8,
+                (int)playerPos.Y - depth + 2,   // shifted down ~30%
                 width, depth),
             Direction.Down => new Rectangle(
                 (int)playerPos.X - width / 2,
                 (int)playerPos.Y + 8,
                 width, depth),
             Direction.Left => new Rectangle(
-                (int)playerPos.X - depth - 8,
+                (int)playerPos.X - depth - 4,    // closer to player (~10%)
                 (int)playerPos.Y - width / 2,
                 depth, width),
             Direction.Right => new Rectangle(
-                (int)playerPos.X + 8,
+                (int)playerPos.X + 4,            // closer to player (~10%)
                 (int)playerPos.Y - width / 2,
                 depth, width),
             _ => Rectangle.Empty

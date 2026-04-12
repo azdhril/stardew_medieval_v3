@@ -86,7 +86,7 @@ public class ProjectileManager
                     var enemy = enemies[e];
                     if (!enemy.IsAlive) continue;
 
-                    if (proj.Hitbox.Intersects(enemy.CollisionBox))
+                    if (proj.Hitbox.Intersects(enemy.HitBox))
                     {
                         enemy.TakeDamage(proj.Damage);
                         // Knockback away from projectile origin
@@ -103,7 +103,7 @@ public class ProjectileManager
             else
             {
                 // Enemy projectile: check collision with player
-                if (player.IsAlive && proj.Hitbox.Intersects(player.CollisionBox))
+                if (player.IsAlive && proj.Hitbox.Intersects(player.HitBox))
                 {
                     OnPlayerHit?.Invoke(proj.Damage);
                     proj.IsExpired = true;

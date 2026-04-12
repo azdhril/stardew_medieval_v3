@@ -2,6 +2,8 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using stardew_medieval_v3.Core;
+using stardew_medieval_v3.Data;
+using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
 
 namespace stardew_medieval_v3.Farming;
@@ -9,67 +11,82 @@ namespace stardew_medieval_v3.Farming;
 public enum ToolType { Hands, Hoe, WateringCan, Seeds, Scythe }
 
 /// <summary>
-/// Manages tool selection and dispatches farming actions.
-/// Same keybinds as Unity version: H=Hoe, G=WateringCan, R=Seeds, F=Hands, Tab=CycleCrop
+/// Dispatches farming actions based on whatever is in the player's active hotbar slot.
+/// No keybinds for tool switching — tools are inventory items placed on the hotbar.
+/// Active slot empty → Hands. Seed item → Seeds. Tool item → corresponding ToolType.
 /// </summary>
 public class ToolController
 {
-    public ToolType EquippedTool { get; private set; } = ToolType.Hands;
+    public ToolType EquippedTool => DeriveEquippedTool();
+
+    /// <summary>The item id currently in the active hotbar slot (e.g. "Hoe", "Cabbage_Seed"), or null.</summary>
+    public string? ActiveItemId => _inventory.GetHotbarRef(_inventory.ActiveHotbarIndex);
 
     private readonly GridManager _grid;
     private readonly CropManager _cropManager;
     private readonly PlayerEntity _player;
+    private readonly InventoryManager _inventory;
     private readonly Action<string, int, Vector2> _spawnDrop;
 
-    public ToolController(GridManager grid, CropManager cropManager, PlayerEntity player, Action<string, int, Vector2> spawnDrop)
+    public ToolController(GridManager grid, CropManager cropManager, PlayerEntity player,
+        InventoryManager inventory, Action<string, int, Vector2> spawnDrop)
     {
         _grid = grid;
         _cropManager = cropManager;
         _player = player;
+        _inventory = inventory;
         _spawnDrop = spawnDrop;
+    }
+
+    private ToolType DeriveEquippedTool()
+    {
+        var id = ActiveItemId;
+        if (id == null) return ToolType.Hands;
+        switch (id)
+        {
+            case "Hoe": return ToolType.Hoe;
+            case "Watering_Can": return ToolType.WateringCan;
+            case "Scythe": return ToolType.Scythe;
+        }
+        var def = ItemRegistry.Get(id);
+        if (def != null && def.Type == ItemType.Seed) return ToolType.Seeds;
+        return ToolType.Hands;
     }
 
     public void Update(InputManager input)
     {
-        // Tool switching
-        if (input.IsKeyPressed(Keys.H))
-        {
-            EquippedTool = ToolType.Hoe;
-            Console.WriteLine("[ToolController] Equipped: Hoe");
-        }
-        if (input.IsKeyPressed(Keys.G))
-        {
-            EquippedTool = ToolType.WateringCan;
-            Console.WriteLine("[ToolController] Equipped: WateringCan");
-        }
-        if (input.IsKeyPressed(Keys.R))
-        {
-            EquippedTool = ToolType.Seeds;
-            Console.WriteLine("[ToolController] Equipped: Seeds");
-        }
-        if (input.IsKeyPressed(Keys.F))
-        {
-            EquippedTool = ToolType.Hands;
-            Console.WriteLine("[ToolController] Equipped: Hands");
-        }
-        if (input.IsKeyPressed(Keys.C))
-        {
-            EquippedTool = ToolType.Scythe;
-            Console.WriteLine("[ToolController] Equipped: Scythe");
-        }
-
-        // Cycle crops with Tab when Seeds equipped
+        // Cycle crops with Tab when the active slot is a seed
         if (input.IsKeyPressed(Keys.Tab) && EquippedTool == ToolType.Seeds)
         {
             _cropManager.CycleSelectedCrop();
         }
 
-        // Interact with E — FARM-01 fix: target the facing tile, not the standing tile
-        if (input.InteractPressed)
+        // E and LMB both trigger the tool action on the facing tile.
+        // LMB is suppressed when the active item is a weapon so CombatManager
+        // can handle the click as a melee swing instead.
+        bool actionPressed = input.InteractPressed
+            || (input.IsLeftClickPressed && !IsActiveItemWeapon());
+
+        if (actionPressed)
         {
-            var tile = _player.GetFacingTile();
-            DoAction(tile);
+            try
+            {
+                var tile = _player.GetFacingTile();
+                DoAction(tile);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ToolController] EXCEPTION during DoAction: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            }
         }
+    }
+
+    private bool IsActiveItemWeapon()
+    {
+        var id = ActiveItemId;
+        if (id == null) return false;
+        var def = ItemRegistry.Get(id);
+        return def?.Type == ItemType.Weapon;
     }
 
     private void DoAction(Point tile)

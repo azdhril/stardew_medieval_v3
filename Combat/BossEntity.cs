@@ -47,6 +47,9 @@ public class BossEntity : EnemyEntity
     private float _telegraphFlashTimer;
     private const float TelegraphFlashInterval = 0.1f;
 
+    // Last known player position for directional slash hitbox
+    private Vector2 _lastPlayerPos;
+
     /// <summary>True while the boss is winding up a telegraphed slash attack.</summary>
     public bool IsWindingUp => _isWindingUp;
 
@@ -82,6 +85,8 @@ public class BossEntity : EnemyEntity
     public new void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles)
     {
         if (!IsAlive) return;
+
+        _lastPlayerPos = playerPos;
 
         // Update AI state machine
         AI.Update(deltaTime, Position, playerPos, Data);
@@ -164,15 +169,37 @@ public class BossEntity : EnemyEntity
         int slashWidth = 64;
         int slashDepth = 32;
 
-        // Default: below boss (facing down)
-        int x = (int)Position.X - slashWidth / 2;
-        int y = (int)Position.Y + Data.Height / 2;
+        // Determine 4-dir facing from player offset (dominant axis wins)
+        Vector2 diff = _lastPlayerPos - Position;
+        Direction facing;
+        if (MathF.Abs(diff.X) > MathF.Abs(diff.Y))
+            facing = diff.X >= 0 ? Direction.Right : Direction.Left;
+        else
+            facing = diff.Y >= 0 ? Direction.Down : Direction.Up;
 
-        // Adjust based on AI movement direction (approximate facing)
-        var moveDir = AI.GetMoveDirection(Position, Position + new Vector2(0, 1), Data);
+        int halfW = Data.Width / 2;
+        int halfH = Data.Height / 2;
 
-        // Use position relative to last known player position for direction
-        return new Rectangle(x, y, slashWidth, slashDepth);
+        return facing switch
+        {
+            Direction.Up => new Rectangle(
+                (int)Position.X - slashWidth / 2,
+                (int)Position.Y - halfH - slashDepth,
+                slashWidth, slashDepth),
+            Direction.Down => new Rectangle(
+                (int)Position.X - slashWidth / 2,
+                (int)Position.Y + halfH,
+                slashWidth, slashDepth),
+            Direction.Left => new Rectangle(
+                (int)Position.X - halfW - slashDepth,
+                (int)Position.Y - slashWidth / 2,
+                slashDepth, slashWidth),
+            Direction.Right => new Rectangle(
+                (int)Position.X + halfW,
+                (int)Position.Y - slashWidth / 2,
+                slashDepth, slashWidth),
+            _ => Rectangle.Empty,
+        };
     }
 
     /// <summary>

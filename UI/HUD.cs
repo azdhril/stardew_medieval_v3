@@ -45,10 +45,7 @@ public class HUD
         string dayText = $"Day {_time.DayNumber}  {_time.GetDisplayHour()}";
         spriteBatch.DrawString(_font, dayText, new Vector2(12, 10), Color.White);
 
-        // === Top-right: Equipped Tool & Selected Crop ===
-        string toolText = $"[{_tools.EquippedTool}]";
-        var toolSize = _font.MeasureString(toolText);
-        spriteBatch.DrawString(_font, toolText, new Vector2(screenWidth - toolSize.X - 12, 10), Color.Yellow);
+        // (Equipped tool label removed — tools are now hotbar items)
 
         // === Top-left below day: Player HP Bar (per D-12) ===
         int hpBarX = 12;

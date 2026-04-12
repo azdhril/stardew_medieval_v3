@@ -11,7 +11,7 @@ public static class BossHealthBar
 {
     private const int BarWidth = 300;
     private const int BarHeight = 12;
-    private const int BottomMargin = 40;
+    private const int BottomMargin = 78; // sits above hotbar (hotbar top = screenH - 50)
 
     /// <summary>
     /// Draw a large boss health bar at the bottom center of the screen.

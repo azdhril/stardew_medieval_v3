@@ -274,6 +274,16 @@ public class InventoryManager
         return value;
     }
 
+    /// <summary>Debug: wipe all slots, hotbar refs, consumable refs, and equipment.</summary>
+    public void ClearAll()
+    {
+        for (int i = 0; i < _slots.Length; i++) _slots[i] = null;
+        for (int i = 0; i < _hotbarRefs.Length; i++) _hotbarRefs[i] = null;
+        for (int i = 0; i < _consumableRefs.Length; i++) _consumableRefs[i] = null;
+        _equipment.Clear();
+        OnInventoryChanged?.Invoke();
+    }
+
     // === Equipment ===
 
     /// <summary>Get the equipped item Id for a given slot, or null.</summary>

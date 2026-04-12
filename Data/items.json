@@ -68,7 +68,7 @@
     { "Id": "Watering_Can", "Name": "Watering Can", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_watering_can", "Stats": {} },
     { "Id": "Scythe", "Name": "Scythe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_scythe", "Stats": {} },
 
-    { "Id": "Iron_Sword", "Name": "Iron Sword", "Type": "Weapon", "Rarity": "Common", "StackLimit": 1, "SpriteId": "weapon_iron_sword", "Stats": { "damage": 8 } },
+    { "Id": "Iron_Sword", "Name": "Iron Sword", "Type": "Weapon", "Rarity": "Common", "StackLimit": 1, "SpriteId": "tool_sword", "Stats": { "damage": 8 } },
     { "Id": "Steel_Sword", "Name": "Steel Sword", "Type": "Weapon", "Rarity": "Uncommon", "StackLimit": 1, "SpriteId": "weapon_steel_sword", "Stats": { "damage": 15 } },
     { "Id": "Flame_Blade", "Name": "Flame Blade", "Type": "Weapon", "Rarity": "Rare", "StackLimit": 1, "SpriteId": "weapon_flame_blade", "Stats": { "damage": 25 } },
 

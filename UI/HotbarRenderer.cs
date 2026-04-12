@@ -15,10 +15,10 @@ namespace stardew_medieval_v3.UI;
 /// </summary>
 public class HotbarRenderer
 {
-    private const int SlotSize = 36;
-    private const int Padding = 4;
+    private const int SlotSize = 42;
+    private const int Padding = 0;
     private const int BottomMargin = 8;
-    private const int IconPadding = 2;
+    private const int IconPadding = 1;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
@@ -179,10 +179,11 @@ public class HotbarRenderer
         if (def != null)
         {
             var srcRect = _atlas.GetRect(def.SpriteId);
+            var tex = _atlas.GetTexture(def.SpriteId);
             var destRect = new Rectangle(
                 rect.X + IconPadding, rect.Y + IconPadding,
                 rect.Width - IconPadding * 2, rect.Height - IconPadding * 2);
-            sb.Draw(_atlas.Texture, destRect, srcRect, Color.White);
+            sb.Draw(tex, destRect, srcRect, Color.White);
         }
 
         if (stack.Quantity > 1)
@@ -210,7 +211,7 @@ public class HotbarRenderer
         var destRect = new Rectangle(
             _dragPosition.X - drawSize / 2, _dragPosition.Y - drawSize / 2,
             drawSize, drawSize);
-        sb.Draw(_atlas.Texture, destRect, srcRect, Color.White * 0.85f);
+        sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White * 0.85f);
     }
 
     // === Layout calculation (public for InventoryScene hit-testing) ===

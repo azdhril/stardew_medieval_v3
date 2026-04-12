@@ -42,6 +42,7 @@ public class FarmScene : Scene
     private SpriteFont _font = null!;
     private GameState? _loadedState;
     private readonly Random _lootRng = new();
+    private bool _debugDraw;
 
     public FarmScene(ServiceContainer services) : base(services) { }
 
@@ -67,7 +68,6 @@ public class FarmScene : Scene
         _gridManager = new GridManager(_map);
         _gridManager.LoadContent(device);
         _cropManager = new CropManager(_gridManager, CropRegistry.GetAllCrops());
-        _toolController = new ToolController(_gridManager, _cropManager, _player, SpawnItemDrop);
 
         // Camera
         Services.Camera.Zoom = 3f;
@@ -75,10 +75,13 @@ public class FarmScene : Scene
 
         Services.Time.OnDayAdvanced += OnDayAdvanced;
 
-        // Items (must be before HUD and Combat so they can reference inventory)
+        // Items (must be before HUD, Combat, and ToolController so they can reference inventory)
         ItemRegistry.Initialize();
         _inventory = new InventoryManager();
         Services.Inventory = _inventory;
+
+        // ToolController depends on _inventory — must be created after it
+        _toolController = new ToolController(_gridManager, _cropManager, _player, _inventory, SpawnItemDrop);
 
         // Combat
         _combat = new CombatManager(_inventory);
@@ -97,6 +100,10 @@ public class FarmScene : Scene
 
         var itemSheet = LoadTexture(device, "Content/Sprites/Items/7_Pickup_Items_16x16.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
+        var toolSheet = LoadTexture(device, "Content/Sprites/Items/Tools/Tool_Icons_NO_Outline.png");
+        _spriteAtlas.RegisterTools(toolSheet);
+        var handTex = LoadTexture(device, "Content/Sprites/Items/Tools/hand.png");
+        _spriteAtlas.RegisterHand(handTex);
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, _font);
 
@@ -115,6 +122,17 @@ public class FarmScene : Scene
         else
         {
             _loadedState = new GameState();
+        }
+
+        // Seed starter tools into hotbar slots 0-2 on a fresh game
+        if (save == null)
+        {
+            _inventory.SetHotbarRef(0, "Hoe");
+            _inventory.SetHotbarRef(1, "Watering_Can");
+            _inventory.SetHotbarRef(2, "Scythe");
+            _inventory.TryAdd("Hoe");
+            _inventory.TryAdd("Watering_Can");
+            _inventory.TryAdd("Scythe");
         }
 
         // Test items (only when no save or empty inventory)
@@ -165,6 +183,14 @@ public class FarmScene : Scene
             return;
         }
 
+        // Debug draw toggle
+        if (input.IsKeyPressed(Keys.F3))
+            _debugDraw = !_debugDraw;
+
+        // Debug: grant test kit (tools + seeds + consumables)
+        if (input.IsKeyPressed(Keys.F2))
+            GrantDebugKit();
+
         // Hotbar selection (1-8)
         for (int i = 0; i < 8; i++)
         {
@@ -178,8 +204,8 @@ public class FarmScene : Scene
             float heal = _inventory.UseConsumable(0);
             if (heal > 0)
             {
-                _player.Stats.RestoreStamina(heal);
-                Console.WriteLine($"[FarmScene] Used consumable Q, restored {heal} stamina");
+                _player.HP = Math.Min(_player.MaxHP, _player.HP + heal);
+                Console.WriteLine($"[FarmScene] Used consumable Q, healed {heal} HP");
             }
         }
 
@@ -234,7 +260,7 @@ public class FarmScene : Scene
             foreach (var enemy in _enemies)
             {
                 if (!enemy.IsAlive) continue;
-                if (hitbox.Intersects(enemy.CollisionBox) && !_combat.Melee.HasHit(enemy))
+                if (hitbox.Intersects(enemy.HitBox) && !_combat.Melee.HasHit(enemy))
                 {
                     float damage = _combat.CalculateMeleeDamage();
                     enemy.TakeDamage(damage);
@@ -256,15 +282,13 @@ public class FarmScene : Scene
             var enemy = _enemies[i];
             enemy.Update(deltaTime, _player.Position, _projectiles);
 
-            // Enemy melee attack vs player
-            if (enemy.IsMeleeAttackReady && enemy.CollisionBox.Intersects(_player.CollisionBox))
+            // Enemy melee attack vs player (uses extended reach hitbox, like boss slash)
+            if (enemy.IsMeleeAttackReady)
             {
-                _combat.TryPlayerTakeDamage(_player, enemy.Data.AttackDamage);
-                enemy.ConsumeMeleeAttack();
-            }
-            else if (enemy.IsMeleeAttackReady && !enemy.CollisionBox.Intersects(_player.CollisionBox))
-            {
-                // Player moved out of range, consume the attack (miss)
+                if (enemy.GetMeleeAttackHitbox().Intersects(_player.HitBox))
+                {
+                    _combat.TryPlayerTakeDamage(_player, enemy.Data.AttackDamage);
+                }
                 enemy.ConsumeMeleeAttack();
             }
 
@@ -281,6 +305,9 @@ public class FarmScene : Scene
             }
         }
 
+        // Enemy-vs-enemy separation: push overlapping pairs apart so creatures don't stack
+        ResolveEnemySeparation();
+
         // Boss update
         if (_boss != null && _boss.IsAlive)
         {
@@ -295,7 +322,7 @@ public class FarmScene : Scene
             if (_boss.IsBossSlashReady)
             {
                 var slashHitbox = _boss.GetBossSlashHitbox();
-                if (slashHitbox.Intersects(_player.CollisionBox))
+                if (slashHitbox.Intersects(_player.HitBox))
                 {
                     _combat.TryPlayerTakeDamage(_player, _boss.Data.AttackDamage);
                     Console.WriteLine("[FarmScene] Boss slash hit player!");
@@ -306,7 +333,7 @@ public class FarmScene : Scene
             if (_combat.Melee.IsSwinging)
             {
                 var hitbox = _combat.Melee.GetHitbox(_player.Position, _player.FacingDirection);
-                if (hitbox.Intersects(_boss.CollisionBox) && !_combat.Melee.HasHit(_boss))
+                if (hitbox.Intersects(_boss.HitBox) && !_combat.Melee.HasHit(_boss))
                 {
                     float damage = _combat.CalculateMeleeDamage();
                     _boss.TakeDamage(damage);
@@ -345,7 +372,10 @@ public class FarmScene : Scene
 
         // Tools & movement
         _toolController.Update(input);
-        _player.Update(deltaTime, input.Movement, _map);
+        // Build solid entity list: enemies + boss block player movement
+        var solids = new List<Core.Entity>(_enemies);
+        if (_boss != null && _boss.IsAlive) solids.Add(_boss);
+        _player.Update(deltaTime, input.Movement, _map, solids);
         Services.Camera.Follow(_player.Position, deltaTime);
 
         // Item drops: update magnetism/pickup, remove collected
@@ -396,6 +426,43 @@ public class FarmScene : Scene
         _slash.Draw(spriteBatch, _pixel);
         _projectiles.Draw(spriteBatch, _pixel);
         DrawFarmZoneHint(spriteBatch, viewArea);
+
+        // Debug overlay: F3 toggles collision/hitbox visualization
+        if (_debugDraw)
+        {
+            // Player CollisionBox (green) — movement/terrain
+            DrawDebugRect(spriteBatch, _player.CollisionBox, Color.Lime * 0.5f);
+            // Player HitBox (yellow) — combat damage target
+            DrawDebugRect(spriteBatch, _player.HitBox, Color.Yellow * 0.5f);
+
+            // Melee hitbox (red) — active swing area
+            if (_combat.Melee.IsSwinging)
+            {
+                var meleeHitbox = _combat.Melee.GetHitbox(_player.Position, _player.FacingDirection);
+                DrawDebugRect(spriteBatch, meleeHitbox, Color.Red * 0.5f);
+            }
+
+            // Enemies
+            foreach (var enemy in _enemies)
+            {
+                DrawDebugRect(spriteBatch, enemy.CollisionBox, Color.Lime * 0.5f);
+                DrawDebugRect(spriteBatch, enemy.HitBox, Color.Yellow * 0.5f);
+            }
+
+            // Boss
+            if (_boss != null && _boss.IsAlive)
+            {
+                DrawDebugRect(spriteBatch, _boss.CollisionBox, Color.Lime * 0.5f);
+                DrawDebugRect(spriteBatch, _boss.HitBox, Color.Yellow * 0.5f);
+                if (_boss.IsBossSlashReady || _boss.IsWindingUp)
+                    DrawDebugRect(spriteBatch, _boss.GetBossSlashHitbox(), Color.Red * 0.4f);
+            }
+
+            // Projectiles
+            foreach (var proj in _projectiles.Active)
+                DrawDebugRect(spriteBatch, proj.Hitbox, Color.Cyan * 0.6f);
+        }
+
         spriteBatch.End();
 
         // Day/night overlay
@@ -426,6 +493,66 @@ public class FarmScene : Scene
         Console.WriteLine("[FarmScene] Unloaded");
     }
 
+    /// <summary>
+    /// Resolve enemy-enemy overlap by pushing overlapping pairs apart along the axis
+    /// between their centers. Single O(n^2) pass per frame — fine for small enemy counts.
+    /// Includes boss as a separation target so minions don't sit inside it.
+    /// </summary>
+    private void ResolveEnemySeparation()
+    {
+        // Build the list of solids to resolve (enemies + boss)
+        var bodies = new List<Core.Entity>(_enemies);
+        if (_boss != null && _boss.IsAlive) bodies.Add(_boss);
+
+        for (int i = 0; i < bodies.Count; i++)
+        {
+            for (int j = i + 1; j < bodies.Count; j++)
+            {
+                var a = bodies[i];
+                var b = bodies[j];
+                if (!a.IsAlive || !b.IsAlive) continue;
+
+                var ab = a.CollisionBox;
+                var bb = b.CollisionBox;
+                if (!ab.Intersects(bb)) continue;
+
+                // Separation vector: from b -> a (push a away from b)
+                Vector2 delta = a.Position - b.Position;
+                if (delta.LengthSquared() < 0.0001f)
+                    delta = new Vector2(1f, 0f); // arbitrary tiebreak when perfectly overlapping
+                delta.Normalize();
+
+                // Compute overlap on each axis; push by half the smaller axis overlap
+                int overlapX = Math.Min(ab.Right, bb.Right) - Math.Max(ab.Left, bb.Left);
+                int overlapY = Math.Min(ab.Bottom, bb.Bottom) - Math.Max(ab.Top, bb.Top);
+                float push = Math.Min(overlapX, overlapY) * 0.5f + 0.5f;
+
+                // Boss is heavy — don't move it; push minion/enemy the full distance instead
+                bool bossIsA = a is BossEntity;
+                bool bossIsB = b is BossEntity;
+                if (bossIsA && !bossIsB)
+                {
+                    b.Position -= delta * (push * 2f);
+                }
+                else if (bossIsB && !bossIsA)
+                {
+                    a.Position += delta * (push * 2f);
+                }
+                else
+                {
+                    a.Position += delta * push;
+                    b.Position -= delta * push;
+                }
+            }
+        }
+    }
+
+    /// <summary>Draw a filled debug rectangle with the given color.</summary>
+    private void DrawDebugRect(SpriteBatch sb, Rectangle rect, Color color)
+    {
+        sb.Draw(_pixel, rect, color);
+    }
+
     private void DrawFarmZoneHint(SpriteBatch sb, Rectangle viewArea)
     {
         int startX = Math.Max(0, viewArea.Left / TileMap.TileSize);
@@ -452,6 +579,41 @@ public class FarmScene : Scene
         var drop = new ItemDropEntity(itemId, quantity, worldPosition, _spriteAtlas);
         _itemDrops.Add(drop);
         Console.WriteLine($"[FarmScene] Item drop spawned: {quantity}x {itemId}");
+    }
+
+    /// <summary>
+    /// Debug: grant a starter test kit directly to the inventory.
+    /// Bound to F2. Use to populate inventory for testing hotbar/tool flow without farming.
+    /// </summary>
+    private void GrantDebugKit()
+    {
+        _inventory.ClearAll();
+        Console.WriteLine("[FarmScene] Debug kit: inventory cleared.");
+
+        (string id, int qty)[] kit = new[]
+        {
+            ("Hoe", 1),
+            ("Watering_Can", 1),
+            ("Scythe", 1),
+            ("Iron_Sword", 1),
+            ("Leather_Armor", 1),
+            ("Health_Potion", 5),
+            ("Cabbage_Seed", 10),
+            ("Carrot_Seed", 10),
+            ("Wheat_Seed", 10),
+            ("Cabbage", 5),
+        };
+
+        int granted = 0;
+        foreach (var (id, qty) in kit)
+        {
+            int leftover = _inventory.TryAdd(id, qty);
+            int added = qty - leftover;
+            if (added > 0) granted++;
+            if (leftover > 0)
+                Console.WriteLine($"[FarmScene] Debug kit: {id} partial ({added}/{qty}), inventory full");
+        }
+        Console.WriteLine($"[FarmScene] Debug kit granted ({granted}/{kit.Length} item types). F2 again to repeat.");
     }
 
     private void OnDayAdvanced()
