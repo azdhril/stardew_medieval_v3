@@ -29,6 +29,12 @@ public class TileMap
     // Collision polygons from Tiled object layer
     private readonly List<Vector2[]> _collisionPolygons = new();
 
+    // Trigger zones from Tiled "Triggers" object layer
+    private readonly List<TriggerZone> _triggers = new();
+
+    /// <summary>Named rectangular trigger zones loaded from the TMX "Triggers" object group.</summary>
+    public IReadOnlyList<TriggerZone> Triggers => _triggers;
+
     public void Load(string tmxPath, GraphicsDevice device)
     {
         _map = new TiledMap(tmxPath);
@@ -64,7 +70,42 @@ public class TileMap
         // Load collision polygons from object groups
         LoadCollisionObjects();
 
-        Console.WriteLine($"[TileMap] Loaded {Width}x{Height} map, {_map.Layers.Length} layers, {_collisionPolygons.Count} collision polygons");
+        // Load trigger zones from "Triggers" object group (optional — many maps won't have one)
+        LoadTriggerObjects();
+
+        Console.WriteLine($"[TileMap] Loaded {Width}x{Height} map, {_map.Layers.Length} layers, {_collisionPolygons.Count} collision polygons, {_triggers.Count} trigger zones");
+    }
+
+    /// <summary>
+    /// Parses any ObjectLayer named "Triggers" (case-insensitive) into <see cref="TriggerZone"/> records.
+    /// Missing layers, missing names, and missing objects are all tolerated silently.
+    /// </summary>
+    private void LoadTriggerObjects()
+    {
+        _triggers.Clear();
+
+        if (_map.Layers == null) return;
+
+        foreach (var layer in _map.Layers)
+        {
+            if (layer.type != TiledLayerType.ObjectLayer) continue;
+            if (!layer.name.Equals("Triggers", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var objects = layer.objects ?? Array.Empty<TiledObject>();
+            foreach (var obj in objects)
+            {
+                if (obj.width <= 0 || obj.height <= 0) continue;
+                var rect = new Rectangle(
+                    (int)obj.x,
+                    (int)obj.y,
+                    (int)obj.width,
+                    (int)obj.height);
+                _triggers.Add(new TriggerZone(obj.name ?? "", rect));
+            }
+        }
+
+        if (_triggers.Count > 0)
+            Console.WriteLine($"[TileMap] Loaded {_triggers.Count} trigger zones");
     }
 
     private void LoadCollisionObjects()

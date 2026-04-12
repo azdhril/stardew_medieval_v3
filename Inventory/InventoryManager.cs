@@ -29,6 +29,44 @@ public class InventoryManager
     /// <summary>Currently selected hotbar slot index (0-7).</summary>
     public int ActiveHotbarIndex { get; private set; } = 0;
 
+    /// <summary>Player's current gold balance. Mutated only via SetGold/AddGold/TrySpendGold.</summary>
+    public int Gold { get; private set; } = 0;
+
+    /// <summary>Fired whenever <see cref="Gold"/> changes.</summary>
+    public event Action? OnGoldChanged;
+
+    /// <summary>Set gold to an absolute value (clamped to >= 0). Fires OnGoldChanged.</summary>
+    public void SetGold(int value)
+    {
+        Gold = Math.Max(0, value);
+        OnGoldChanged?.Invoke();
+    }
+
+    /// <summary>Add gold. Negative amounts are rejected and logged. Fires OnGoldChanged on success.</summary>
+    public void AddGold(int amount)
+    {
+        if (amount < 0)
+        {
+            Console.WriteLine($"[InventoryManager] AddGold rejected negative {amount}");
+            return;
+        }
+        Gold += amount;
+        OnGoldChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Attempt to debit <paramref name="amount"/> from gold.
+    /// Returns false if amount is negative or exceeds current gold; true on success.
+    /// Fires OnGoldChanged only on successful debit.
+    /// </summary>
+    public bool TrySpendGold(int amount)
+    {
+        if (amount < 0 || amount > Gold) return false;
+        Gold -= amount;
+        OnGoldChanged?.Invoke();
+        return true;
+    }
+
     /// <summary>Equipment slots: maps EquipSlot to equipped ItemId.</summary>
     private readonly Dictionary<EquipSlot, string> _equipment = new();
 
@@ -398,6 +436,7 @@ public class InventoryManager
     /// <summary>Populate inventory from a saved GameState.</summary>
     public void LoadFromState(GameState state)
     {
+        Gold = Math.Max(0, state.Gold);
         for (int i = 0; i < SlotCount; i++) _slots[i] = null;
 
         for (int i = 0; i < state.Inventory.Count && i < SlotCount; i++)
@@ -442,6 +481,7 @@ public class InventoryManager
     /// <summary>Save current inventory state to a GameState.</summary>
     public void SaveToState(GameState state)
     {
+        state.Gold = Gold;
         state.Inventory.Clear();
         for (int i = 0; i < SlotCount; i++)
             if (_slots[i] != null)

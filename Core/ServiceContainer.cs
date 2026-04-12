@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Inventory;
+using stardew_medieval_v3.Quest;
 
 namespace stardew_medieval_v3.Core;
 
@@ -28,4 +29,7 @@ public class ServiceContainer
     /// Allows other scenes (e.g. InventoryScene) to access inventory via Services.
     /// </summary>
     public InventoryManager? Inventory { get; set; }
+
+    /// <summary>Main quest container. Set by FarmScene after construction.</summary>
+    public MainQuest? Quest { get; set; }
 }
