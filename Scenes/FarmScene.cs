@@ -125,6 +125,7 @@ public class FarmScene : Scene
         _font = content.Load<SpriteFont>("DefaultFont");
         _hud = new HUD(Services.Time, _player.Stats, _toolController, _player, _combat);
         _hud.LoadContent(device, _font);
+        _hud.SetQuest(_mainQuest);
 
         var itemSheet = LoadTexture(device, "Content/Sprites/Items/Pickup_Items.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);

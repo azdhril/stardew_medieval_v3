@@ -1,7 +1,9 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using stardew_medieval_v3.Core;
+using stardew_medieval_v3.Quest;
 using stardew_medieval_v3.Scenes;
 
 namespace stardew_medieval_v3;
@@ -65,6 +67,19 @@ public class Game1 : Game
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         _input.Update();
+
+#if DEBUG
+        // F9: force-advance main quest state (D-12 dev hook).
+        if (_input.IsKeyPressed(Keys.F9) && _services?.Quest != null)
+        {
+            if (_services.Quest.State == MainQuestState.NotStarted)
+                _services.Quest.Activate();
+            else if (_services.Quest.State == MainQuestState.Active)
+                _services.Quest.Complete();
+            Console.WriteLine($"[DEBUG] F9 pressed, quest state -> {_services.Quest.State}");
+        }
+#endif
+
         _sceneManager.Update(dt);
 
         base.Update(gameTime);
