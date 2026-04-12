@@ -47,8 +47,8 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 ### World & Navigation
 
-- [ ] **WLD-01**: Map transitions entre Farm <-> Village <-> Dungeon com fade to black
-- [ ] **WLD-02**: Vila minima: mapa com castelo do Rei e 1 loja
+- [x] **WLD-01**: Map transitions entre Farm <-> Village <-> Dungeon com fade to black
+- [x] **WLD-02**: Vila minima: mapa com castelo do Rei e 1 loja
 - [x] **WLD-03**: Trigger zones em bordas/portas para ativar transicoes de mapa
 - [x] **WLD-04**: Estado do player preservado entre transicoes de mapa
 
@@ -154,8 +154,8 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 | CMB-04 | Phase 3 | Satisfied |
 | CMB-05 | Phase 3 | Satisfied |
 | CMB-06 | Phase 3 | Satisfied |
-| WLD-01 | Phase 4 | Pending |
-| WLD-02 | Phase 4 | Pending |
+| WLD-01 | Phase 4 | Complete |
+| WLD-02 | Phase 4 | Complete |
 | WLD-03 | Phase 4 | Complete |
 | WLD-04 | Phase 4 | Complete |
 | NPC-01 | Phase 4 | Pending |
