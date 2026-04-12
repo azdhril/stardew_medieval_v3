@@ -56,7 +56,7 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 - [x] **NPC-01**: Sistema de dialogo com caixa de texto e retrato do NPC, avanca com botao
 - [x] **NPC-02**: Rei NPC no castelo que da a missao principal ("limpar a dungeon")
-- [ ] **NPC-03**: Shopkeeper NPC com UI de compra/venda (sementes, pocoes, equipamento basico)
+- [x] **NPC-03**: Shopkeeper NPC com UI de compra/venda (sementes, pocoes, equipamento basico)
 - [x] **NPC-04**: NPCs com estado de quest (sem missao, missao ativa, missao completa) que altera dialogo
 
 ### Progression
@@ -70,7 +70,7 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 - [ ] **HUD-01**: HUD grafica com sprites: barra de HP, barra de stamina, hotbar com icones, relogio/dia
 - [x] **HUD-02**: Inventory UI abrivel (tecla I ou similar) mostrando grid + equipment slots
-- [ ] **HUD-03**: Shop UI com lista de itens, precos, botoes comprar/vender
+- [x] **HUD-03**: Shop UI com lista de itens, precos, botoes comprar/vender
 - [ ] **HUD-04**: Quest tracker simples mostrando missao ativa e objetivo atual
 - [x] **HUD-05**: Caixa de dialogo estilizada com retrato do NPC e texto com avanco
 
@@ -160,9 +160,9 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 | WLD-04 | Phase 4 | Complete |
 | NPC-01 | Phase 4 | Complete |
 | NPC-02 | Phase 4 | Complete |
-| NPC-03 | Phase 4 | Pending |
+| NPC-03 | Phase 4 | Complete |
 | NPC-04 | Phase 4 | Complete |
-| HUD-03 | Phase 4 | Pending |
+| HUD-03 | Phase 4 | Complete |
 | HUD-05 | Phase 4 | Complete |
 | DNG-01 | Phase 5 | Pending |
 | DNG-02 | Phase 5 | Pending |

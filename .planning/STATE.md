@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-04-12T21:57:54.575Z"
+status: verifying
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-04-12T22:05:46.685Z"
 last_activity: 2026-04-12
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 17
-  completed_plans: 16
-  percent: 94
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 Phase: 04 (world-npcs) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-12
 
 Progress: [█████░░░░░] 50%
@@ -55,6 +55,7 @@ Progress: [█████░░░░░] 50%
 | Phase 04 P01 | 15min | 3 tasks | 9 files |
 | Phase 04 P02 | 30min | 3 tasks | 9 files |
 | Phase 04 P03 | 25min | 3 tasks | 10 files |
+| Phase 04 P04 | 20min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [Phase 04]: [04-02] Added Services.Player and Services.GameState slots for cross-scene state preservation (WLD-04)
 - [Phase 04]: [04-03] Promoted DrawQuestTracker to static helper so CastleScene (no HUD instance) can render the tracker
 - [Phase 04]: [04-03] ASCII fallbacks ('v') for UI-SPEC Unicode glyphs due to SpriteFont Arial CharacterRegion coverage
+- [Phase 04]: [04-04] ShopOverlayScene owns ShopPanel + Toast; dialogue onClose pushes overlay for single-press shop open
+- [Phase 04]: [04-04] ServiceContainer.Atlas slot added so overlays can render icons without rebuilding atlas
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T21:57:54.570Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-04-12T22:05:39.755Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
