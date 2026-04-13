@@ -29,6 +29,13 @@ public class InputManager
         _currentMouse.RightButton == ButtonState.Pressed &&
         _previousMouse.RightButton == ButtonState.Released;
 
+    /// <summary>
+    /// Mouse wheel delta for the current frame. Positive = wheel up, negative = wheel down.
+    /// Native MonoGame delta is typically ±120 per tick; callers should use Math.Sign to normalize.
+    /// </summary>
+    public int ScrollWheelDelta =>
+        _currentMouse.ScrollWheelValue - _previousMouse.ScrollWheelValue;
+
     public void Update()
     {
         _previousMouse = _currentMouse;

@@ -158,6 +158,25 @@ public class InventoryManager
         return stack;
     }
 
+    /// <summary>
+    /// Remove <paramref name="quantity"/> units from the stack at <paramref name="index"/>.
+    /// If quantity >= stack.Quantity, the slot is cleared (delegates to RemoveAt).
+    /// Returns the removed portion (ItemId + removed quantity), or null if the slot is empty/invalid.
+    /// </summary>
+    public ItemStack? RemoveQuantity(int index, int quantity)
+    {
+        if (index < 0 || index >= SlotCount || quantity <= 0) return null;
+        var stack = _slots[index];
+        if (stack == null) return null;
+        if (quantity >= stack.Quantity) return RemoveAt(index);
+
+        stack.Quantity -= quantity;
+        var removed = new ItemStack { ItemId = stack.ItemId, Quantity = quantity };
+        OnInventoryChanged?.Invoke();
+        Console.WriteLine($"[InventoryManager] Removed {quantity}x {stack.ItemId} from slot {index} (remaining: {stack.Quantity})");
+        return removed;
+    }
+
     /// <summary>Move/swap contents between two inventory slots.</summary>
     public void MoveItem(int fromSlot, int toSlot)
     {
