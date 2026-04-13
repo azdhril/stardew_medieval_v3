@@ -52,7 +52,15 @@ public class ShopPanel
     private readonly Rectangle[] _rowRects = new Rectangle[VisibleRows];
     private readonly Rectangle[] _actionBtnRects = new Rectangle[VisibleRows];
     private int _hoveredRow = -1; // index into the visible-row slice (0..visible-1), NOT absolute rowIndex
-    private int _scrollOffset;    // cached so Draw and hit-test agree on which absolute row each visible slot maps to
+    private int _scrollOffset;    // user-controlled (wheel), kept in range by clamp + selection-follow
+    private int _sellQty = 1;     // quantity to sell on the selected Sell row (1..stack.Quantity)
+    private Tab _lastTabForQty = Tab.Buy;
+    private int _lastSelectedIndexForQty = -1;
+    private Rectangle _scrollTrackRect;
+    private Rectangle _scrollThumbRect;
+    private Rectangle _qtyMinusRect;
+    private Rectangle _qtyLabelRect;
+    private Rectangle _qtyPlusRect;
 
     /// <summary>Outbound signal from <see cref="Update"/>: a toast the caller should show.</summary>
     public record ToastRequest(string Text, Color Color);
@@ -71,9 +79,26 @@ public class ShopPanel
     {
         toast = null;
 
+        int rows = GetRowCount();
+
+        // Reset _sellQty whenever tab or selection changes
+        if (_tab != _lastTabForQty || _selectedIndex != _lastSelectedIndexForQty)
+        {
+            _sellQty = 1;
+            _lastTabForQty = _tab;
+            _lastSelectedIndexForQty = _selectedIndex;
+        }
+
+        // Mouse wheel → scroll offset (one tick = one row)
+        int wheel = input.ScrollWheelDelta;
+        if (wheel != 0)
+        {
+            int maxScroll = Math.Max(0, rows - VisibleRows);
+            _scrollOffset = Math.Clamp(_scrollOffset - Math.Sign(wheel), 0, maxScroll);
+        }
+
         // --- Recompute cached layout (shared with Draw via cached fields) ---
         UpdateLayoutCache();
-        int rows = GetRowCount();
         int visible = Math.Min(rows, VisibleRows);
 
         // --- Mouse hit-test (BEFORE keyboard so click-outside can fire this frame) ---
@@ -104,7 +129,20 @@ public class ShopPanel
                 return false;
             }
 
-            // 4. Row body click → select; if click also lands on the row's action button AND row is enabled → fire transaction
+            // 4. Sell-quantity widget (before row hit-test so the small buttons win)
+            if (_tab == Tab.Sell)
+            {
+                if (_qtyMinusRect.Contains(mp)) { _sellQty = Math.Max(1, _sellQty - 1); return false; }
+                if (_qtyPlusRect.Contains(mp))
+                {
+                    var stack = CurrentSellStack();
+                    int max = stack?.Quantity ?? 1;
+                    _sellQty = Math.Min(max, _sellQty + 1);
+                    return false;
+                }
+            }
+
+            // 5. Row body click → select; if click also lands on the row's action button AND row is enabled → fire transaction
             if (_hoveredRow >= 0)
             {
                 int absIndex = _hoveredRow + _scrollOffset;
@@ -135,6 +173,18 @@ public class ShopPanel
         {
             if (input.IsKeyPressed(Keys.Down)) _selectedIndex = (_selectedIndex + 1) % rows;
             if (input.IsKeyPressed(Keys.Up)) _selectedIndex = (_selectedIndex - 1 + rows) % rows;
+
+            // Left/Right nudge sell quantity (Sell tab only)
+            if (_tab == Tab.Sell)
+            {
+                if (input.IsKeyPressed(Keys.Left))  _sellQty = Math.Max(1, _sellQty - 1);
+                if (input.IsKeyPressed(Keys.Right))
+                {
+                    var stack = CurrentSellStack();
+                    int max = stack?.Quantity ?? 1;
+                    _sellQty = Math.Min(max, _sellQty + 1);
+                }
+            }
         }
         else
         {
@@ -159,9 +209,18 @@ public class ShopPanel
     {
         int rows = GetRowCount();
         int visible = Math.Min(rows, VisibleRows);
-        int scroll = 0;
-        if (_selectedIndex >= VisibleRows) scroll = _selectedIndex - VisibleRows + 1;
-        _scrollOffset = scroll;
+
+        // Clamp _scrollOffset to valid range
+        int maxScroll = Math.Max(0, rows - VisibleRows);
+        if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
+        if (_scrollOffset < 0) _scrollOffset = 0;
+
+        // Follow selection: ensure selected row is visible
+        if (_selectedIndex < _scrollOffset) _scrollOffset = _selectedIndex;
+        else if (_selectedIndex >= _scrollOffset + VisibleRows) _scrollOffset = _selectedIndex - VisibleRows + 1;
+        if (_scrollOffset < 0) _scrollOffset = 0;
+
+        int scroll = _scrollOffset;
 
         _panelRect = new Rectangle(PanelX, PanelY, PanelWidth, PanelHeight);
 
@@ -192,6 +251,45 @@ public class ShopPanel
                 _actionBtnRects[i] = Rectangle.Empty;
             }
         }
+
+        // Scrollbar rects (only when list overflows)
+        int trackH = VisibleRows * RowHeight;
+        if (rows > VisibleRows)
+        {
+            _scrollTrackRect = new Rectangle(PanelX + PanelWidth - 20, listY, 8, trackH);
+            int thumbH = Math.Max(16, trackH * VisibleRows / rows);
+            int thumbY = listY + (int)((trackH - thumbH) * ((float)scroll / Math.Max(1, rows - VisibleRows)));
+            _scrollThumbRect = new Rectangle(_scrollTrackRect.X, thumbY, 8, thumbH);
+        }
+        else
+        {
+            _scrollTrackRect = Rectangle.Empty;
+            _scrollThumbRect = Rectangle.Empty;
+        }
+
+        // Sell-quantity widget rects (only on Sell tab, only on selected visible row)
+        _qtyMinusRect = Rectangle.Empty;
+        _qtyLabelRect = Rectangle.Empty;
+        _qtyPlusRect = Rectangle.Empty;
+        if (_tab == Tab.Sell && rows > 0)
+        {
+            int visibleRow = _selectedIndex - scroll;
+            if (visibleRow >= 0 && visibleRow < visible)
+            {
+                var btn = _actionBtnRects[visibleRow];
+                _qtyMinusRect = new Rectangle(btn.X - 80, btn.Y, 16, btn.Height);
+                _qtyLabelRect = new Rectangle(btn.X - 60, btn.Y, 32, btn.Height);
+                _qtyPlusRect  = new Rectangle(btn.X - 24, btn.Y, 16, btn.Height);
+            }
+        }
+    }
+
+    /// <summary>Resolve the ItemStack for the currently selected Sell row (or null).</summary>
+    private ItemStack? CurrentSellStack()
+    {
+        if (_tab != Tab.Sell) return null;
+        int slot = IndexOfNthFilledSlot(_selectedIndex);
+        return slot >= 0 ? _inv.GetSlot(slot) : null;
     }
 
     /// <summary>Row count for the active tab.</summary>
@@ -284,23 +382,26 @@ public class ShopPanel
             return;
         }
 
-        var removed = _inv.RemoveAt(slotIndex);
+        int qty = Math.Clamp(_sellQty, 1, stack.Quantity);
+        var removed = _inv.RemoveQuantity(slotIndex, qty);
         if (removed == null)
         {
-            Console.WriteLine($"[ShopPanel] Sell blocked: RemoveAt returned null");
+            Console.WriteLine($"[ShopPanel] Sell blocked: RemoveQuantity returned null");
             return;
         }
-        // Credit price per unit times quantity removed (mirrors full-stack sell)
-        int totalPrice = price * removed.Quantity;
+        int totalPrice = price * qty;
         _inv.AddGold(totalPrice);
+        _sellQty = 1;
 
-        // Keep selection valid
+        // Keep selection + scroll valid
         int remainingRows = GetRowCount();
         if (_selectedIndex >= remainingRows && remainingRows > 0) _selectedIndex = remainingRows - 1;
         if (remainingRows == 0) _selectedIndex = 0;
+        int maxScroll = Math.Max(0, remainingRows - VisibleRows);
+        if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
 
-        Console.WriteLine($"[ShopPanel] Sold {removed.ItemId} x{removed.Quantity} for {totalPrice}g");
-        toast = new ToastRequest($"Sold {def.Name} for {totalPrice}g", Color.Gold);
+        Console.WriteLine($"[ShopPanel] Sold {removed.ItemId} x{qty} for {totalPrice}g");
+        toast = new ToastRequest($"Sold {def.Name} x{qty} for {totalPrice}g", Color.Gold);
     }
 
     /// <summary>Find the <paramref name="n"/>-th non-empty inventory slot, or -1.</summary>
@@ -394,6 +495,36 @@ public class ShopPanel
             }
 
             DrawRow(sb, font, pixel, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex, selected);
+        }
+
+        // Scrollbar (track + thumb) when list overflows
+        if (_scrollTrackRect != Rectangle.Empty)
+        {
+            sb.Draw(pixel, _scrollTrackRect, Bevel * 0.5f);
+            sb.Draw(pixel, _scrollThumbRect, Color.Gold * 0.85f);
+        }
+
+        // Sell-quantity widget on selected visible Sell row
+        if (_tab == Tab.Sell && _qtyLabelRect != Rectangle.Empty)
+        {
+            sb.Draw(pixel, _qtyMinusRect, Bevel);
+            var ms = font.MeasureString("-");
+            sb.DrawString(font, "-",
+                new Vector2(_qtyMinusRect.X + (_qtyMinusRect.Width - ms.X) / 2,
+                            _qtyMinusRect.Y + (_qtyMinusRect.Height - ms.Y) / 2), Color.White);
+
+            sb.Draw(pixel, _qtyLabelRect, Bevel * 0.6f);
+            string qtyText = $"x{_sellQty}";
+            var qs = font.MeasureString(qtyText);
+            sb.DrawString(font, qtyText,
+                new Vector2(_qtyLabelRect.X + (_qtyLabelRect.Width - qs.X) / 2,
+                            _qtyLabelRect.Y + (_qtyLabelRect.Height - qs.Y) / 2), Color.White);
+
+            sb.Draw(pixel, _qtyPlusRect, Bevel);
+            var ps = font.MeasureString("+");
+            sb.DrawString(font, "+",
+                new Vector2(_qtyPlusRect.X + (_qtyPlusRect.Width - ps.X) / 2,
+                            _qtyPlusRect.Y + (_qtyPlusRect.Height - ps.Y) / 2), Color.White);
         }
 
         // Disabled reason (below list area)
