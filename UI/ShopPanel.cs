@@ -44,6 +44,16 @@ public class ShopPanel
     private Tab _tab = Tab.Buy;
     private int _selectedIndex;
 
+    // Cached layout rects (recomputed each Update via UpdateLayoutCache) — shared with Draw for hit-test consistency.
+    private Rectangle _panelRect;
+    private Rectangle _buyTabRect;
+    private Rectangle _sellTabRect;
+    private Rectangle _closeRect;
+    private readonly Rectangle[] _rowRects = new Rectangle[VisibleRows];
+    private readonly Rectangle[] _actionBtnRects = new Rectangle[VisibleRows];
+    private int _hoveredRow = -1; // index into the visible-row slice (0..visible-1), NOT absolute rowIndex
+    private int _scrollOffset;    // cached so Draw and hit-test agree on which absolute row each visible slot maps to
+
     /// <summary>Outbound signal from <see cref="Update"/>: a toast the caller should show.</summary>
     public record ToastRequest(string Text, Color Color);
 
@@ -61,6 +71,55 @@ public class ShopPanel
     {
         toast = null;
 
+        // --- Recompute cached layout (shared with Draw via cached fields) ---
+        UpdateLayoutCache();
+        int rows = GetRowCount();
+        int visible = Math.Min(rows, VisibleRows);
+
+        // --- Mouse hit-test (BEFORE keyboard so click-outside can fire this frame) ---
+        var mp = input.MousePosition;
+        _hoveredRow = -1;
+        for (int i = 0; i < visible; i++)
+        {
+            if (_rowRects[i].Contains(mp)) { _hoveredRow = i; break; }
+        }
+
+        if (input.IsLeftClickPressed)
+        {
+            // 1. Close X button
+            if (_closeRect.Contains(mp)) return true;
+
+            // 2. Click outside panel → close
+            if (!_panelRect.Contains(mp)) return true;
+
+            // 3. Tabs
+            if (_buyTabRect.Contains(mp))
+            {
+                if (_tab != Tab.Buy) { _tab = Tab.Buy; _selectedIndex = 0; }
+                return false;
+            }
+            if (_sellTabRect.Contains(mp))
+            {
+                if (_tab != Tab.Sell) { _tab = Tab.Sell; _selectedIndex = 0; }
+                return false;
+            }
+
+            // 4. Row body click → select; if click also lands on the row's action button AND row is enabled → fire transaction
+            if (_hoveredRow >= 0)
+            {
+                int absIndex = _hoveredRow + _scrollOffset;
+                _selectedIndex = absIndex;
+
+                if (_actionBtnRects[_hoveredRow].Contains(mp) && IsActionEnabled(absIndex))
+                {
+                    if (_tab == Tab.Buy) TryBuy(out toast);
+                    else TrySell(out toast);
+                }
+                return false;
+            }
+        }
+
+        // --- Keyboard block (regression-safe; unchanged behavior) ---
         if (input.IsKeyPressed(Keys.Escape))
             return true;
 
@@ -72,7 +131,6 @@ public class ShopPanel
             return false;
         }
 
-        int rows = GetRowCount();
         if (rows > 0)
         {
             if (input.IsKeyPressed(Keys.Down)) _selectedIndex = (_selectedIndex + 1) % rows;
@@ -90,6 +148,50 @@ public class ShopPanel
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Recomputes panel/tab/row/action-button/close rects into the cached fields. Called from Update
+    /// (so hit-test reflects current state) and defensively from Draw (in case Draw is invoked
+    /// without a preceding Update). Pure layout — no input or rendering side effects.
+    /// </summary>
+    private void UpdateLayoutCache()
+    {
+        int rows = GetRowCount();
+        int visible = Math.Min(rows, VisibleRows);
+        int scroll = 0;
+        if (_selectedIndex >= VisibleRows) scroll = _selectedIndex - VisibleRows + 1;
+        _scrollOffset = scroll;
+
+        _panelRect = new Rectangle(PanelX, PanelY, PanelWidth, PanelHeight);
+
+        int tabY = PanelY + 40;
+        _buyTabRect  = new Rectangle(PanelX + 16,      tabY, 80, 32);
+        _sellTabRect = new Rectangle(PanelX + 16 + 88, tabY, 80, 32);
+
+        // Close X button — 20x20 at top-right of header
+        _closeRect = new Rectangle(PanelX + PanelWidth - 28, PanelY + 8, 20, 20);
+
+        // Row + action-button rects
+        int listX = PanelX + 16;
+        int listY = tabY + 48;
+        int width = PanelWidth - 32;
+        for (int i = 0; i < VisibleRows; i++)
+        {
+            int rowIndex = i + scroll;
+            if (i < visible && rowIndex < rows)
+            {
+                int y = listY + i * RowHeight;
+                _rowRects[i] = new Rectangle(listX, y, width, RowHeight - 2);
+                int actionX = listX + width - 72;
+                _actionBtnRects[i] = new Rectangle(actionX, y + 8, 60, 24);
+            }
+            else
+            {
+                _rowRects[i] = Rectangle.Empty;
+                _actionBtnRects[i] = Rectangle.Empty;
+            }
+        }
     }
 
     /// <summary>Row count for the active tab.</summary>
@@ -219,12 +321,15 @@ public class ShopPanel
     /// <summary>Render panel + rows + header + disabled reason.</summary>
     public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel)
     {
+        // Defensive: ensure cached layout matches current state even if Draw runs without a preceding Update.
+        UpdateLayoutCache();
+
         // Full-screen dim
         sb.Draw(pixel, new Rectangle(0, 0, 960, 540), Dim);
 
         // Outline + fill
         sb.Draw(pixel, new Rectangle(PanelX - 1, PanelY - 1, PanelWidth + 2, PanelHeight + 2), Color.Black);
-        sb.Draw(pixel, new Rectangle(PanelX, PanelY, PanelWidth, PanelHeight), PanelFill);
+        sb.Draw(pixel, _panelRect, PanelFill);
 
         // Header strip (40px tall inside panel)
         int headerY = PanelY + 8;
@@ -232,25 +337,34 @@ public class ShopPanel
 
         string goldText = $"Gold: {_inv.Gold}";
         var goldSize = font.MeasureString(goldText);
+        // Shifted left to leave room for the close X button at the top-right
         sb.DrawString(font, goldText,
-            new Vector2(PanelX + PanelWidth - 16 - goldSize.X, headerY), Color.Gold);
+            new Vector2(PanelX + PanelWidth - 40 - goldSize.X, headerY), Color.Gold);
 
-        string escHint = "Esc to close";
+        // Close X button (top-right of header)
+        sb.Draw(pixel, new Rectangle(_closeRect.X - 1, _closeRect.Y - 1, _closeRect.Width + 2, _closeRect.Height + 2), Color.Black);
+        sb.Draw(pixel, _closeRect, Bevel);
+        var xSz = font.MeasureString("X");
+        sb.DrawString(font, "X",
+            new Vector2(_closeRect.X + (_closeRect.Width - xSz.X) / 2,
+                        _closeRect.Y + (_closeRect.Height - xSz.Y) / 2),
+            Color.White);
+
+        string escHint = "Esc or click outside to close";
         var escSize = font.MeasureString(escHint);
         sb.DrawString(font, escHint,
             new Vector2(PanelX + PanelWidth - 16 - escSize.X, PanelY + PanelHeight - 8 - escSize.Y),
             Color.Gray * 0.7f);
 
-        // Tab strip — 2 x (80x32), row at panelY + 40
-        int tabY = PanelY + 40;
-        DrawTab(sb, font, pixel, PanelX + 16, tabY, "Buy", _tab == Tab.Buy);
-        DrawTab(sb, font, pixel, PanelX + 16 + 88, tabY, "Sell", _tab == Tab.Sell);
+        // Tab strip — driven by cached rects
+        int tabY = _buyTabRect.Y;
+        DrawTab(sb, font, pixel, _buyTabRect.X,  _buyTabRect.Y,  "Buy",  _tab == Tab.Buy);
+        DrawTab(sb, font, pixel, _sellTabRect.X, _sellTabRect.Y, "Sell", _tab == Tab.Sell);
 
         // Divider below tabs
         sb.Draw(pixel, new Rectangle(PanelX + 8, tabY + 40, PanelWidth - 16, 1), Bevel);
 
         // Item list region
-        int listX = PanelX + 16;
         int listY = tabY + 48;
 
         int rows = GetRowCount();
@@ -266,16 +380,20 @@ public class ShopPanel
         }
 
         int visible = Math.Min(rows, VisibleRows);
-        int scroll = 0;
-        if (_selectedIndex >= VisibleRows) scroll = _selectedIndex - VisibleRows + 1;
 
         for (int i = 0; i < visible; i++)
         {
-            int rowIndex = i + scroll;
+            int rowIndex = i + _scrollOffset;
             if (rowIndex >= rows) break;
-            int y = listY + i * RowHeight;
             bool selected = rowIndex == _selectedIndex;
-            DrawRow(sb, font, pixel, listX, y, PanelWidth - 32, rowIndex, selected);
+
+            // Hover tint (only if hovered AND not selected — selection takes precedence)
+            if (i == _hoveredRow && !selected)
+            {
+                sb.Draw(pixel, _rowRects[i], Color.White * 0.1f);
+            }
+
+            DrawRow(sb, font, pixel, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex, selected);
         }
 
         // Disabled reason (below list area)
