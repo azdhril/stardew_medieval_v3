@@ -1,57 +1,41 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-12T02:30:00.000Z",
-  "phase": "03",
-  "phase_name": "combat",
-  "phase_dir": ".planning/phases/03-combat",
-  "plan": 3,
-  "task": 3,
-  "total_tasks": 3,
-  "status": "paused",
-  "summary": "Phase 03 technically done; paused mid-item-registry-overhaul (user-requested polish pass). Awaiting playtest of sprite fixes + staff combat + seed planting.",
+  "timestamp": "2026-04-14T00:54:39.180Z",
+  "context": "quick",
+  "quick_id": "260413-ueq",
+  "quick_dir": ".planning/quick/260413-ueq-fix-mouse-wheel-scroll-in-shoppanel-buy-",
+  "description": "Fix mouse wheel scroll in ShopPanel (Buy/Sell): follow-selection was resetting _scrollOffset each frame",
+  "status": "paused_before_planner",
+  "summary": "Quick task initialized (dir created) but planner/executor agents NOT spawned yet — paused due to context pressure at 78%. Bug diagnosed, fix is ~5 lines in ShopPanel.cs.",
   "completed_tasks": [
-    {"id": "03-01", "name": "Combat core", "status": "done"},
-    {"id": "03-02", "name": "Enemy types + loot", "status": "done"},
-    {"id": "03-03", "name": "Skeleton King boss", "status": "done"},
-    {"id": "post-merge-ergonomics", "name": "HitBox/CollisionBox split, F3 debug, collision overhaul, tools-as-hotbar refactor", "status": "done"},
-    {"id": "item-registry-overhaul", "name": "Pickup_Items grid rewrite (14 cols, pairs crop+rotten), Food_Icons seed registration, 15 rotten item defs, Magic_Staff weapon, Leather_Boots sprite fix, ItemDrop multi-texture, brown tint removed, wilted-harvest drops rotten", "status": "done"},
-    {"id": "combat-weapon-switch", "name": "CombatManager branches by active hotbar weapon: sword=LMB melee, staff=LMB fireball with per-weapon cooldown (1s staff). RMB fireball removed. HUD fireball indicator hidden when not cooling down.", "status": "done"},
-    {"id": "plant-per-seed-fix", "name": "CropManager.TryPlant accepts cropName; ToolController derives from active seed, consumes 1 on plant, clears hotbar ref when empty. InventoryManager.TryConsume added.", "status": "done"},
-    {"id": "boot-staff-row-fix", "name": "Pickup_Items has vertical gaps between bands: boot/staff moved from row 4 to row 5.", "status": "done"},
-    {"id": "debug-kit-update", "name": "F2 grants Magic_Staff + Leather_Boots + Tomato_Seed alongside existing kit.", "status": "done"}
+    {"id": "init", "name": "gsd-tools init quick — task dir created", "status": "done"},
+    {"id": "diagnosis", "name": "Root cause identified in ShopPanel.UpdateLayoutCache lines 218-220", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": "playtest-sprites", "name": "Verify Pickup_Items crops (rows 0-2) render correctly (user stated these 3 rows are contiguous); verify boot/staff on row 5", "status": "not_started"},
-    {"id": "playtest-seeds", "name": "Put 3 different seeds in hotbar slots, plant each, confirm 3 distinct crops grow", "status": "not_started"},
-    {"id": "playtest-staff", "name": "Sword equipped: LMB melee; swap to Magic_Staff: LMB fireball 1s cooldown; HUD F indicator shows only during cooldown", "status": "not_started"},
-    {"id": "playtest-wilted", "name": "Let crop wilt; harvest drops 1x {Crop}_Rotten and picks up to inventory", "status": "not_started"},
-    {"id": "commit-item-overhaul", "name": "Commit the batch after playtest passes", "status": "not_started"},
-    {"id": "playtest-combat", "name": "Full CMB-01..CMB-06 playtest (carried from prior session)", "status": "not_started"},
-    {"id": "phase-verify", "name": "/gsd-verify-phase 3", "status": "not_started"}
+    {"id": "plan", "name": "Spawn gsd-planner to write PLAN.md", "status": "not_started"},
+    {"id": "execute", "name": "Spawn gsd-executor to apply fix + build + commit", "status": "not_started"},
+    {"id": "state-update", "name": "Update STATE.md Quick Tasks Completed table", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [
-    {"action": "Playtest all item/combat changes", "context": "Sprite grid rewrite, weapon-switch combat, per-seed planting, rotten drops — all land together, untested", "blocking": true}
+    {"action": "After resume: playtest scroll wheel on Sell tab (9+ items in inventory). Confirm thumb moves with wheel.", "context": "User reported wheel did nothing while arrows worked — confirmed bug via code read, not yet verified post-fix.", "blocking": false}
   ],
   "decisions": [
-    {"decision": "Pickup_Items.png has 1-row vertical gaps between content bands (rows 3, 6 are empty)", "rationale": "User corrected mid-session: sheet is not densely packed. Rows 0-2 contiguous crops, row 4 tree fruits, row 5 fish/boot/staff, row 7 wood/stars.", "phase": "03"},
-    {"decision": "Active hotbar weapon chooses action type (Stardew-style)", "rationale": "User: so pode atacar com 1 arma de cada vez. Flag spell in items.json Stats distinguishes staff from sword. Cooldown per-weapon via Stats.cooldown.", "phase": "03"},
-    {"decision": "Wilted harvest drops {Crop}_Rotten if rotten variant exists in registry", "rationale": "User wants rotten crops to yield low-value item. Convention: YieldItemName + _Rotten.", "phase": "03"},
-    {"decision": "Seed slot directly plants its crop (no more Tab cycling required)", "rationale": "Pre-existing bug: Tab-cycled selection ignored active seed. Fix derives crop name from seed id and consumes 1 unit on plant.", "phase": "03"}
+    {"decision": "Scope this quick task to ScrollWheelDelta consumption only — NOT bundled with Buy qty widget, full mouse navigation (Test 10), or save persistence BLOCKER (Test 13)", "rationale": "Keep quick task atomic. Other gaps tracked in 04-UAT.md for a separate gap-closure plan.", "phase": "quick"},
+    {"decision": "Fix approach: when wheel != 0, also pull _selectedIndex into the new viewport window so follow-selection logic in UpdateLayoutCache does not override the scroll", "rationale": "Minimal 3-line addition, preserves arrow-key navigation semantics, avoids redesigning follow-selection behavior.", "phase": "quick"}
   ],
+  "bug_details": {
+    "file": "src/UI/ShopPanel.cs",
+    "lines_with_bug": "218-220 (UpdateLayoutCache follow-selection block)",
+    "lines_to_fix": "93-98 (Update wheel consumption)",
+    "root_cause": "Wheel handler sets _scrollOffset, but UpdateLayoutCache runs same frame and executes: if (_selectedIndex < _scrollOffset) _scrollOffset = _selectedIndex. Since _selectedIndex is 0 initially, scroll is reset to 0 every frame. Arrow keys work because they change _selectedIndex first, so follow-selection carries scroll along.",
+    "proposed_fix": "In Update wheel block, after clamping _scrollOffset, add: if (_selectedIndex < _scrollOffset) _selectedIndex = _scrollOffset; else if (_selectedIndex >= _scrollOffset + VisibleRows) _selectedIndex = _scrollOffset + VisibleRows - 1;",
+    "verification_required": "Sell tab with 9+ filled inventory slots: wheel up/down moves thumb + visible rows. Selection stays within viewport. Arrow keys still work as before.",
+    "buy_tab_note": "Buy will only visibly scroll if ShopStock.Items > 8 (currently exactly 8). Not part of this fix — separate scope."
+  },
   "uncommitted_files": [
-    "src/Combat/CombatManager.cs",
-    "src/Data/SpriteAtlas.cs",
-    "src/Data/items.json",
-    "src/Entities/ItemDropEntity.cs",
-    "src/Farming/CropManager.cs",
-    "src/Farming/GridManager.cs",
-    "src/Farming/ToolController.cs",
-    "src/Inventory/InventoryManager.cs",
-    "src/Scenes/FarmScene.cs",
-    "src/UI/HUD.cs",
     ".planning/HANDOFF.json"
   ],
-  "next_action": "User runs game, presses F2, playtests: (1) sprite correctness rows 0-2 + boot/staff row 5, (2) different seeds plant different crops, (3) sword vs staff LMB, (4) wilted drops rotten. Then commit.",
-  "context_notes": "Build clean (0 errors). Two mid-session bugs fixed: all seeds planted same crop (used Tab-cycled index), and F2 missed Magic_Staff. Then user reported Magic_Staff=banana sprite and Leather_Boots=fruit sprite — diagnosed as row miscount (gaps in sheet between content bands). Boot/staff moved row 4 -> row 5. Crops rows 0-2 assumed contiguous per user statement; if playtest shows crops shifted too, the gap theory extends further."
+  "next_action": "On resume: read .planning/quick/260413-ueq-fix-mouse-wheel-scroll-in-shoppanel-buy-/.continue-here.md for full context, then either (a) spawn gsd-planner + gsd-executor per /gsd-quick, or (b) apply the 5-line fix directly via Edit + dotnet build + git commit (recommended — task too small for subagent overhead).",
+  "context_notes": "User ran /gsd-quick with default flags. Workflow was in Step 2 (post-init, pre-planner-spawn) when context hit 78%. Diagnosis already done from reading ShopPanel.cs + InputManager.cs + ShopOverlayScene.cs + Game1.cs. Other Phase 04 gaps still open: UAT Test 10 (mouse nav) major, Test 13 (save persistence) BLOCKER, Buy qty widget user-requested. STATE.md still claims Phase 04 executing — stale."
 }
