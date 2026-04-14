@@ -111,6 +111,12 @@ public abstract class GameplayScene : Scene
 
         // --- Global input (works in every gameplay scene) ---
 
+        if (input.IsKeyPressed(Keys.F5))
+        {
+            GameStateSnapshot.SaveNow(Services);
+            Console.WriteLine($"[{SceneName}Scene] F5 manual save");
+        }
+
         if (input.IsKeyPressed(Keys.Escape))
         {
             Services.Hotbar?.CancelDrag();

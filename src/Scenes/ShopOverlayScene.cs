@@ -41,7 +41,8 @@ public class ShopOverlayScene : Scene
     {
         if (_panel.Update(deltaTime, Services.Input, out var toastReq))
         {
-            Console.WriteLine("[ShopOverlayScene] Closed");
+            Console.WriteLine("[ShopOverlayScene] Closed -> SaveNow");
+            GameStateSnapshot.SaveNow(Services);
             Services.SceneManager.PopImmediate();
             return;
         }

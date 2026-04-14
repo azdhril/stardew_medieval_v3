@@ -565,21 +565,13 @@ public class FarmScene : GameplayScene
 
         _boss = _spawner.SpawnBoss();
 
-        var state = new GameState
+        // Keep Services.GameState authoritative for cross-scene fields (CurrentScene, BossKilled).
+        if (Services.GameState != null)
         {
-            DayNumber = Services.Time.DayNumber,
-            Season = Services.Time.Season,
-            StaminaCurrent = Player.Stats.CurrentStamina,
-            PlayerX = Player.Position.X,
-            PlayerY = Player.Position.Y,
-            GameTime = Services.Time.GameTime,
-            FarmCells = _gridManager.GetSaveData(),
-            CurrentScene = "Farm",
-            BossKilled = _loadedState?.BossKilled ?? false
-        };
-        _inventory.SaveToState(state);
-        _mainQuest.SaveToState(state);
-        SaveManager.Save(state);
+            Services.GameState.CurrentScene = "Farm";
+            Services.GameState.BossKilled = _loadedState?.BossKilled ?? Services.GameState.BossKilled;
+        }
+        GameStateSnapshot.SaveNow(Services, _gridManager.GetSaveData());
     }
 
     private static Texture2D LoadTexture(GraphicsDevice device, string path)
