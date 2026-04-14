@@ -151,6 +151,11 @@ public class SpriteAtlas
         RegisterOn(foodSheet, "seed_radish",       3, 8);
         RegisterOn(foodSheet, "seed_onion",        3, 9);
         RegisterOn(foodSheet, "seed_strawberry",   1, 11);
+
+        // Sample edible foods used by the stamina-recovery system.
+        RegisterOn(foodSheet, "food_smoked_meat",  0, 0);
+        RegisterOn(foodSheet, "food_steak",        1, 0);
+        RegisterOn(foodSheet, "food_melon_slice",  2, 0);
     }
 
     /// <summary>

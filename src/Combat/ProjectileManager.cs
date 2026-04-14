@@ -25,6 +25,12 @@ public class ProjectileManager
     public Action<float>? OnPlayerHit;
 
     /// <summary>
+    /// Callback invoked when a player-owned projectile hits an enemy.
+    /// Used to consume stamina on successful ranged hits.
+    /// </summary>
+    public Action? OnEnemyHit;
+
+    /// <summary>
     /// Spawn a player fireball in the facing direction.
     /// Per D-07: 200px/s speed, 300px max range.
     /// Per D-11: 15 fixed damage.
@@ -89,6 +95,7 @@ public class ProjectileManager
                     if (proj.Hitbox.Intersects(enemy.HitBox))
                     {
                         enemy.TakeDamage(proj.Damage);
+                        OnEnemyHit?.Invoke();
                         // Knockback away from projectile origin
                         var knockDir = enemy.Position - proj.Position;
                         if (knockDir != Vector2.Zero)

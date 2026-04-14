@@ -111,6 +111,7 @@ public class FarmScene : GameplayScene
         _combat = new CombatManager(_inventory);
         _projectiles = new ProjectileManager();
         _projectiles.OnPlayerHit = (damage) => _combat.TryPlayerTakeDamage(pl, damage);
+        _projectiles.OnEnemyHit = () => _combat.OnPlayerSpellHit(pl);
 
         // Enemies
         _spawner = new EnemySpawner();
@@ -173,6 +174,15 @@ public class FarmScene : GameplayScene
         Services.GameState = _loadedState;
         _loadedState.CurrentScene = "Farm";
 
+        // Ensure a stamina food is available for testing on the first Farm entry,
+        // including existing saves created before the eating system existed.
+        if (firstEntry && !_inventory.HasItem("Smoked_Meat"))
+        {
+            _inventory.TryAdd("Smoked_Meat", 3);
+            if (_inventory.GetConsumableRef(0) == null)
+                _inventory.SetConsumableRef(0, "Smoked_Meat");
+        }
+
         // Seed starter tools on fresh game (first entry only — prevents re-seeding on Farm re-entry)
         if (firstEntry && save == null)
         {
@@ -194,6 +204,8 @@ public class FarmScene : GameplayScene
             _inventory.TryAdd("Flame_Blade");
             _inventory.TryAdd("Leather_Armor");
             _inventory.TryAdd("Health_Potion", 10);
+            _inventory.TryAdd("Smoked_Meat", 5);
+            _inventory.TryAdd("Steak", 2);
             _inventory.TryAdd("Bread", 5);
             _inventory.TryAdd("Leather_Helmet");
             _inventory.TryAdd("Iron_Legs");
@@ -206,7 +218,7 @@ public class FarmScene : GameplayScene
             _inventory.SetHotbarRef(1, "Flame_Blade");
             _inventory.SetHotbarRef(2, "Cabbage");
 
-            _inventory.SetConsumableRef(0, "Health_Potion");
+            _inventory.SetConsumableRef(0, "Smoked_Meat");
         }
 
         Console.WriteLine("[FarmScene] Loaded");
@@ -260,6 +272,7 @@ public class FarmScene : GameplayScene
                 {
                     float damage = _combat.CalculateMeleeDamage();
                     enemy.TakeDamage(damage);
+                    _combat.OnPlayerMeleeHit(Player);
                     _combat.Melee.RecordHit(enemy);
 
                     var knockDir = enemy.Position - Player.Position;
@@ -324,6 +337,7 @@ public class FarmScene : GameplayScene
                 {
                     float damage = _combat.CalculateMeleeDamage();
                     _boss.TakeDamage(damage);
+                    _combat.OnPlayerMeleeHit(Player);
                     _combat.Melee.RecordHit(_boss);
 
                     var knockDir = _boss.Position - Player.Position;

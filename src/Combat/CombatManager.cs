@@ -13,6 +13,9 @@ namespace stardew_medieval_v3.Combat;
 /// </summary>
 public class CombatManager
 {
+    private const float MeleeHitStaminaCost = 4f;
+    private const float SpellHitStaminaCost = 6f;
+
     private readonly InventoryManager _inventory;
     private readonly MeleeAttack _melee = new();
 
@@ -125,6 +128,18 @@ public class CombatManager
 
         var (attack, _) = EquipmentData.GetEquipmentStats(_inventory.GetAllEquipment());
         return weaponDamage + attack;
+    }
+
+    /// <summary>Consumes stamina when a melee hit actually connects.</summary>
+    public void OnPlayerMeleeHit(PlayerEntity player)
+    {
+        player.Stats.SpendStamina(MeleeHitStaminaCost);
+    }
+
+    /// <summary>Consumes stamina when a player spell projectile connects.</summary>
+    public void OnPlayerSpellHit(PlayerEntity player)
+    {
+        player.Stats.SpendStamina(SpellHitStaminaCost);
     }
 
     /// <summary>
