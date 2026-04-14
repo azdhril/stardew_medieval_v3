@@ -120,10 +120,12 @@ Plans:
 **Goal:** Close three outstanding gaps from 04-UAT: save persistence blocker (Gold, quest state, and inventory must round-trip through SaveManager); full mouse navigation of the shop (tabs, list hover/click, buttons, close); and the scroll-wheel regression in ShopPanel where follow-selection resets `_scrollOffset` every frame.
 **Requirements**: HUD-05 (save round-trip), NPC-03/NPC-04 (shop UX completeness)
 **Depends on:** Phase 4
-**Plans:** 0 plans (to be planned)
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 04.1 to break down)
+- [ ] 04.1-01-PLAN.md -- ShopPanel scroll-wheel regression fix (gate follow-selection on selection-changed) (Wave 1)
+- [ ] 04.1-02-PLAN.md -- Shop mouse navigation hardening (tabs, rows, close X, click-outside, action button, qty widget) (Wave 2)
+- [ ] 04.1-03-PLAN.md -- GameStateSnapshot + SaveNow on shop close + F5 manual save (Wave 1)
 
 ### Phase 5: Dungeon
 **Goal**: Players can enter and progress through a complete dungeon experience from entrance to boss room
