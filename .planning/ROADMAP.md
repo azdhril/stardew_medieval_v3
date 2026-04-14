@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Combat** - Melee and magic attacks, HP system, enemy AI, boss encounter
 - [x] **Phase 3.1: Verification Backfill & Metadata Sync** - INSERTED. Produce 02/03-VERIFICATION.md, sync STATE/ROADMAP/REQUIREMENTS drift
 - [ ] **Phase 4: World & NPCs** - Map transitions, village with shop and King, dialogue system, quest
-- [ ] **Phase 4.1: Shop UX & Save Gap Closure** - INSERTED. Save persistence blocker + shop mouse nav + scroll-wheel regression fix
+- [x] **Phase 4.1: Shop UX & Save Gap Closure** - INSERTED. Save persistence blocker + shop mouse nav + scroll-wheel regression fix
 - [ ] **Phase 5: Dungeon** - Multi-room dungeon with progression, treasure, and boss room
 - [ ] **Phase 6: Progression & Polish** - XP/leveling, gold economy, graphical HUD, save system, death penalty
 
