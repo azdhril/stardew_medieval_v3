@@ -33,13 +33,15 @@ public class ChestInstance : Entity
     public bool IsAnimating => _opening || _closing;
 
     /// <summary>
-    /// Chest blocks movement on its base footprint near the floor.
+    /// Chest blocks movement on its visible body, not just the bottom edge.
+    /// Keeping the box a bit taller avoids the player "entering" the upper half
+    /// when approaching from top to bottom.
     /// </summary>
     public override Rectangle CollisionBox => new(
-        (int)WorldAnchor.X - 6,
-        (int)WorldAnchor.Y - 8,
-        12,
-        8);
+        (int)WorldAnchor.X - 7,
+        (int)WorldAnchor.Y - 12,
+        14,
+        12);
 
     public ChestInstance(string instanceId, string variantId, Point tile, int capacity = DefaultCapacity)
     {
