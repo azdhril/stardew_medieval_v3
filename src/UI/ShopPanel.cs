@@ -52,15 +52,20 @@ public class ShopPanel
     private readonly Rectangle[] _rowRects = new Rectangle[VisibleRows];
     private readonly Rectangle[] _actionBtnRects = new Rectangle[VisibleRows];
     private int _hoveredRow = -1; // index into the visible-row slice (0..visible-1), NOT absolute rowIndex
-    private int _scrollOffset;    // user-controlled (wheel), kept in range by clamp + selection-follow
-    private int _sellQty = 1;     // quantity to sell on the selected Sell row (1..stack.Quantity)
-    private Tab _lastTabForQty = Tab.Buy;
-    private int _lastSelectedIndexForQty = -1;
+    private int _scrollOffset;    // user-controlled (wheel), kept in range by clamp
+
+    // Per-row quantity state (Stardew-style; D-04). Index is ABSOLUTE row index into the current tab.
+    private int[] _rowQty = Array.Empty<int>();
+    private Tab _rowQtyTab = Tab.Buy;
+    private int _rowQtyRowCount = 0;
+
+    // Per-visible-row qty widget rects (mirror _rowRects / _actionBtnRects).
+    private readonly Rectangle[] _qtyMinusRects = new Rectangle[VisibleRows];
+    private readonly Rectangle[] _qtyLabelRects = new Rectangle[VisibleRows];
+    private readonly Rectangle[] _qtyPlusRects  = new Rectangle[VisibleRows];
+
     private Rectangle _scrollTrackRect;
     private Rectangle _scrollThumbRect;
-    private Rectangle _qtyMinusRect;
-    private Rectangle _qtyLabelRect;
-    private Rectangle _qtyPlusRect;
 
     /// <summary>Outbound signal from <see cref="Update"/>: a toast the caller should show.</summary>
     public record ToastRequest(string Text, Color Color);
@@ -81,13 +86,7 @@ public class ShopPanel
 
         int rows = GetRowCount();
 
-        // Reset _sellQty whenever tab or selection changes
-        if (_tab != _lastTabForQty || _selectedIndex != _lastSelectedIndexForQty)
-        {
-            _sellQty = 1;
-            _lastTabForQty = _tab;
-            _lastSelectedIndexForQty = _selectedIndex;
-        }
+        EnsureRowQtySized(rows);
 
         // Mouse wheel → scroll offset (one tick = one row)
         int wheel = input.ScrollWheelDelta;
@@ -129,20 +128,7 @@ public class ShopPanel
                 return false;
             }
 
-            // 4. Sell-quantity widget (before row hit-test so the small buttons win)
-            if (_tab == Tab.Sell)
-            {
-                if (_qtyMinusRect.Contains(mp)) { _sellQty = Math.Max(1, _sellQty - 1); return false; }
-                if (_qtyPlusRect.Contains(mp))
-                {
-                    var stack = CurrentSellStack();
-                    int max = stack?.Quantity ?? 1;
-                    _sellQty = Math.Min(max, _sellQty + 1);
-                    return false;
-                }
-            }
-
-            // 5. Row body click → select; if click also lands on the row's action button AND row is enabled → fire transaction
+            // 4. Row body click → select; if click also lands on the row's action button AND row is enabled → fire transaction
             if (_hoveredRow >= 0)
             {
                 int absIndex = _hoveredRow + _scrollOffset;
@@ -150,8 +136,9 @@ public class ShopPanel
 
                 if (_actionBtnRects[_hoveredRow].Contains(mp) && IsActionEnabled(absIndex))
                 {
-                    if (_tab == Tab.Buy) TryBuy(out toast);
-                    else TrySell(out toast);
+                    int q = absIndex < _rowQty.Length ? Math.Max(1, _rowQty[absIndex]) : 1;
+                    if (_tab == Tab.Buy) TryBuy(absIndex, q, out toast);
+                    else TrySell(absIndex, q, out toast);
                 }
                 return false;
             }
@@ -174,15 +161,14 @@ public class ShopPanel
             if (input.IsKeyPressed(Keys.Down)) _selectedIndex = (_selectedIndex + 1) % rows;
             if (input.IsKeyPressed(Keys.Up)) _selectedIndex = (_selectedIndex - 1 + rows) % rows;
 
-            // Left/Right nudge sell quantity (Sell tab only)
-            if (_tab == Tab.Sell)
+            // Left/Right nudge sell quantity on the selected row (legacy; removed in Task 2)
+            if (_selectedIndex < _rowQty.Length)
             {
-                if (input.IsKeyPressed(Keys.Left))  _sellQty = Math.Max(1, _sellQty - 1);
+                if (input.IsKeyPressed(Keys.Left))  _rowQty[_selectedIndex] = Math.Max(1, _rowQty[_selectedIndex] - 1);
                 if (input.IsKeyPressed(Keys.Right))
                 {
-                    var stack = CurrentSellStack();
-                    int max = stack?.Quantity ?? 1;
-                    _sellQty = Math.Min(max, _sellQty + 1);
+                    int cap = GetMaxQty(_selectedIndex);
+                    _rowQty[_selectedIndex] = Math.Min(Math.Max(1, cap), _rowQty[_selectedIndex] + 1);
                 }
             }
         }
@@ -193,8 +179,9 @@ public class ShopPanel
 
         if (input.IsKeyPressed(Keys.Enter))
         {
-            if (_tab == Tab.Buy) TryBuy(out toast);
-            else TrySell(out toast);
+            int q = (_selectedIndex < _rowQty.Length) ? Math.Max(1, _rowQty[_selectedIndex]) : 1;
+            if (_tab == Tab.Buy) TryBuy(_selectedIndex, q, out toast);
+            else TrySell(_selectedIndex, q, out toast);
         }
 
         return false;
@@ -242,11 +229,18 @@ public class ShopPanel
                 _rowRects[i] = new Rectangle(listX, y, width, RowHeight - 2);
                 int actionX = listX + width - 72;
                 _actionBtnRects[i] = new Rectangle(actionX, y + 8, 60, 24);
+                // Per-row qty stepper: [-][qty][+] immediately left of the action button (D-04).
+                _qtyMinusRects[i] = new Rectangle(actionX - 80, y + 8, 16, 24);
+                _qtyLabelRects[i] = new Rectangle(actionX - 60, y + 8, 32, 24);
+                _qtyPlusRects[i]  = new Rectangle(actionX - 24, y + 8, 16, 24);
             }
             else
             {
                 _rowRects[i] = Rectangle.Empty;
                 _actionBtnRects[i] = Rectangle.Empty;
+                _qtyMinusRects[i] = Rectangle.Empty;
+                _qtyLabelRects[i] = Rectangle.Empty;
+                _qtyPlusRects[i]  = Rectangle.Empty;
             }
         }
 
@@ -265,21 +259,6 @@ public class ShopPanel
             _scrollThumbRect = Rectangle.Empty;
         }
 
-        // Sell-quantity widget rects (only on Sell tab, only on selected visible row)
-        _qtyMinusRect = Rectangle.Empty;
-        _qtyLabelRect = Rectangle.Empty;
-        _qtyPlusRect = Rectangle.Empty;
-        if (_tab == Tab.Sell && rows > 0)
-        {
-            int visibleRow = _selectedIndex - scroll;
-            if (visibleRow >= 0 && visibleRow < visible)
-            {
-                var btn = _actionBtnRects[visibleRow];
-                _qtyMinusRect = new Rectangle(btn.X - 80, btn.Y, 16, btn.Height);
-                _qtyLabelRect = new Rectangle(btn.X - 60, btn.Y, 32, btn.Height);
-                _qtyPlusRect  = new Rectangle(btn.X - 24, btn.Y, 16, btn.Height);
-            }
-        }
     }
 
     /// <summary>Resolve the ItemStack for the currently selected Sell row (or null).</summary>
@@ -316,12 +295,61 @@ public class ShopPanel
         return false;
     }
 
+    /// <summary>Resize _rowQty to rowCount and reset all entries to 1. Runs on tab switch or row-count change.</summary>
+    private void EnsureRowQtySized(int rowCount)
+    {
+        if (_rowQty.Length == rowCount && _rowQtyTab == _tab && _rowQtyRowCount == rowCount) return;
+        _rowQty = new int[rowCount];
+        for (int i = 0; i < rowCount; i++) _rowQty[i] = 1;
+        _rowQtyTab = _tab;
+        _rowQtyRowCount = rowCount;
+    }
+
+    /// <summary>Max qty allowed on row. Buy: limited by gold and stack headroom. Sell: limited by stack.Quantity.</summary>
+    private int GetMaxQty(int rowIndex)
+    {
+        if (_tab == Tab.Buy)
+        {
+            if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return 0;
+            var e = ShopStock.Items[rowIndex];
+            var def = ItemRegistry.Get(e.ItemId);
+            if (def == null || e.Price <= 0) return 0;
+            int affordable = _inv.Gold / e.Price;
+            int headroom = ComputeStackHeadroom(e.ItemId, def.StackLimit);
+            return Math.Max(0, Math.Min(affordable, headroom));
+        }
+        else
+        {
+            int slot = IndexOfNthFilledSlot(rowIndex);
+            if (slot < 0) return 0;
+            var stack = _inv.GetSlot(slot);
+            if (stack == null) return 0;
+            var def = ItemRegistry.Get(stack.ItemId);
+            if (ShopStock.GetSellPrice(def) <= 0) return 0;
+            return stack.Quantity;
+        }
+    }
+
+    /// <summary>Total additional units of itemId the inventory can still accept given stackLimit.</summary>
+    private int ComputeStackHeadroom(string itemId, int stackLimit)
+    {
+        int headroom = 0;
+        for (int i = 0; i < InventoryManager.SlotCount; i++)
+        {
+            var s = _inv.GetSlot(i);
+            if (s == null) headroom += stackLimit;
+            else if (s.ItemId == itemId) headroom += Math.Max(0, stackLimit - s.Quantity);
+        }
+        return headroom;
+    }
+
     /// <summary>Buy flow: check gold → check space → debit → add. Strict order (T-04-14/T-04-15).</summary>
-    private void TryBuy(out ToastRequest? toast)
+    private void TryBuy(int rowIndex, int qty, out ToastRequest? toast)
     {
         toast = null;
-        if (_selectedIndex < 0 || _selectedIndex >= ShopStock.Items.Count) return;
-        var entry = ShopStock.Items[_selectedIndex];
+        if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return;
+        if (qty <= 0) return;
+        var entry = ShopStock.Items[rowIndex];
         var def = ItemRegistry.Get(entry.ItemId);
         if (def == null)
         {
@@ -329,41 +357,48 @@ public class ShopPanel
             return;
         }
 
-        if (_inv.Gold < entry.Price)
+        int totalPrice = entry.Price * qty;
+        if (_inv.Gold < totalPrice)
         {
-            Console.WriteLine($"[ShopPanel] Buy blocked: {ReasonNotEnoughGold} ({_inv.Gold} < {entry.Price})");
+            Console.WriteLine($"[ShopPanel] Buy blocked: not enough gold ({_inv.Gold} < {totalPrice})");
             return;
         }
-        if (!CanAddOne(entry.ItemId))
+        int headroom = ComputeStackHeadroom(entry.ItemId, def.StackLimit);
+        if (headroom < qty)
         {
-            Console.WriteLine($"[ShopPanel] Buy blocked: {ReasonInventoryFull}");
+            Console.WriteLine($"[ShopPanel] Buy blocked: inventory full (headroom {headroom} < qty {qty})");
             return;
         }
-        if (!_inv.TrySpendGold(entry.Price))
+        if (!_inv.TrySpendGold(totalPrice))
         {
             Console.WriteLine($"[ShopPanel] Buy blocked: TrySpendGold returned false");
             return;
         }
-        int leftover = _inv.TryAdd(entry.ItemId, 1);
+        int leftover = _inv.TryAdd(entry.ItemId, qty);
         if (leftover > 0)
         {
-            // Safety: CanAddOne said yes but TryAdd failed — refund to prevent silent loss.
-            _inv.AddGold(entry.Price);
-            Console.WriteLine($"[ShopPanel] Buy refunded: TryAdd failed after CanAddOne=true");
-            return;
+            // Safety: headroom said yes but TryAdd left some — refund the leftover portion.
+            int refund = entry.Price * leftover;
+            _inv.AddGold(refund);
+            Console.WriteLine($"[ShopPanel] Buy partial: {qty - leftover}/{qty} added, refunded {refund}g for {leftover} leftover");
         }
-        Console.WriteLine($"[ShopPanel] Bought {entry.ItemId} for {entry.Price}g");
-        toast = new ToastRequest($"Purchased {def.Name}", Color.LimeGreen);
+        int delivered = qty - leftover;
+        Console.WriteLine($"[ShopPanel] Bought {entry.ItemId} x{delivered} for {entry.Price * delivered}g");
+        toast = new ToastRequest($"Purchased {def.Name} x{delivered}", Color.LimeGreen);
+
+        // Row count for Buy doesn't change, but headroom/affordability does — reset qty to 1.
+        EnsureRowQtySized(GetRowCount());
     }
 
     /// <summary>Sell flow: look up Nth non-empty slot → null-check → remove → credit (T-04-16).</summary>
-    private void TrySell(out ToastRequest? toast)
+    private void TrySell(int rowIndex, int qty, out ToastRequest? toast)
     {
         toast = null;
-        int slotIndex = IndexOfNthFilledSlot(_selectedIndex);
+        if (qty <= 0) return;
+        int slotIndex = IndexOfNthFilledSlot(rowIndex);
         if (slotIndex < 0)
         {
-            Console.WriteLine($"[ShopPanel] Sell blocked: {ReasonSelectToSell}");
+            Console.WriteLine($"[ShopPanel] Sell blocked: no stack at row {rowIndex}");
             return;
         }
         var stack = _inv.GetSlot(slotIndex);
@@ -376,30 +411,32 @@ public class ShopPanel
         int price = ShopStock.GetSellPrice(def);
         if (def == null || price <= 0)
         {
-            Console.WriteLine($"[ShopPanel] Sell blocked: {ReasonCannotSell} ({stack.ItemId})");
+            Console.WriteLine($"[ShopPanel] Sell blocked: item not sellable ({stack.ItemId})");
             return;
         }
 
-        int qty = Math.Clamp(_sellQty, 1, stack.Quantity);
-        var removed = _inv.RemoveQuantity(slotIndex, qty);
+        int clamped = Math.Clamp(qty, 1, stack.Quantity);
+        var removed = _inv.RemoveQuantity(slotIndex, clamped);
         if (removed == null)
         {
             Console.WriteLine($"[ShopPanel] Sell blocked: RemoveQuantity returned null");
             return;
         }
-        int totalPrice = price * qty;
+        int totalPrice = price * clamped;
         _inv.AddGold(totalPrice);
-        _sellQty = 1;
 
-        // Keep selection + scroll valid
+        // Keep scroll + (legacy) selection valid; row count may have shrunk.
         int remainingRows = GetRowCount();
         if (_selectedIndex >= remainingRows && remainingRows > 0) _selectedIndex = remainingRows - 1;
         if (remainingRows == 0) _selectedIndex = 0;
         int maxScroll = Math.Max(0, remainingRows - VisibleRows);
         if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
 
-        Console.WriteLine($"[ShopPanel] Sold {removed.ItemId} x{qty} for {totalPrice}g");
-        toast = new ToastRequest($"Sold {def.Name} x{qty} for {totalPrice}g", Color.Gold);
+        // Resize per-row qty arrays for the new row count.
+        EnsureRowQtySized(remainingRows);
+
+        Console.WriteLine($"[ShopPanel] Sold {removed.ItemId} x{clamped} for {totalPrice}g");
+        toast = new ToastRequest($"Sold {def.Name} x{clamped} for {totalPrice}g", Color.Gold);
     }
 
     /// <summary>Find the <paramref name="n"/>-th non-empty inventory slot, or -1.</summary>
@@ -502,29 +539,6 @@ public class ShopPanel
             sb.Draw(pixel, _scrollThumbRect, Color.Gold * 0.85f);
         }
 
-        // Sell-quantity widget on selected visible Sell row
-        if (_tab == Tab.Sell && _qtyLabelRect != Rectangle.Empty)
-        {
-            sb.Draw(pixel, _qtyMinusRect, Bevel);
-            var ms = font.MeasureString("-");
-            sb.DrawString(font, "-",
-                new Vector2(_qtyMinusRect.X + (_qtyMinusRect.Width - ms.X) / 2,
-                            _qtyMinusRect.Y + (_qtyMinusRect.Height - ms.Y) / 2), Color.White);
-
-            sb.Draw(pixel, _qtyLabelRect, Bevel * 0.6f);
-            string qtyText = $"x{_sellQty}";
-            var qs = font.MeasureString(qtyText);
-            sb.DrawString(font, qtyText,
-                new Vector2(_qtyLabelRect.X + (_qtyLabelRect.Width - qs.X) / 2,
-                            _qtyLabelRect.Y + (_qtyLabelRect.Height - qs.Y) / 2), Color.White);
-
-            sb.Draw(pixel, _qtyPlusRect, Bevel);
-            var ps = font.MeasureString("+");
-            sb.DrawString(font, "+",
-                new Vector2(_qtyPlusRect.X + (_qtyPlusRect.Width - ps.X) / 2,
-                            _qtyPlusRect.Y + (_qtyPlusRect.Height - ps.Y) / 2), Color.White);
-        }
-
         // Disabled reason (below list area)
         string? reason = ComputeDisabledReason();
         if (reason != null) DrawDisabledReason(sb, font, reason);
@@ -589,17 +603,46 @@ public class ShopPanel
         sb.DrawString(font, label, new Vector2(iconX + 24, y + (RowHeight - font.MeasureString(label).Y) / 2),
             Color.White);
 
-        // Price (right-aligned before action button area)
+        // Price (left of the per-row stepper)
         string priceText = $"{price}g";
         var priceSz = font.MeasureString(priceText);
         int actionX = x + width - 72;
         sb.DrawString(font, priceText,
-            new Vector2(actionX - priceSz.X - 12, y + (RowHeight - priceSz.Y) / 2),
+            new Vector2(actionX - 80 - priceSz.X - 12, y + (RowHeight - priceSz.Y) / 2),
             priceColor);
+
+        // Per-row qty stepper: [-][qty][+] (D-04).
+        int visibleSlot = rowIndex - _scrollOffset;
+        if (visibleSlot >= 0 && visibleSlot < VisibleRows && _qtyLabelRects[visibleSlot] != Rectangle.Empty)
+        {
+            var minus = _qtyMinusRects[visibleSlot];
+            var qtyLabel = _qtyLabelRects[visibleSlot];
+            var plus  = _qtyPlusRects[visibleSlot];
+
+            sb.Draw(pixel, minus, Bevel);
+            var ms = font.MeasureString("-");
+            sb.DrawString(font, "-",
+                new Vector2(minus.X + (minus.Width - ms.X) / 2, minus.Y + (minus.Height - ms.Y) / 2),
+                Color.White);
+
+            sb.Draw(pixel, qtyLabel, Bevel * 0.6f);
+            int qtyVal = rowIndex < _rowQty.Length ? _rowQty[rowIndex] : 1;
+            string qtyText = $"x{qtyVal}";
+            var qs = font.MeasureString(qtyText);
+            sb.DrawString(font, qtyText,
+                new Vector2(qtyLabel.X + (qtyLabel.Width - qs.X) / 2, qtyLabel.Y + (qtyLabel.Height - qs.Y) / 2),
+                Color.White);
+
+            sb.Draw(pixel, plus, Bevel);
+            var ps = font.MeasureString("+");
+            sb.DrawString(font, "+",
+                new Vector2(plus.X + (plus.Width - ps.X) / 2, plus.Y + (plus.Height - ps.Y) / 2),
+                Color.White);
+        }
 
         // Action button (60x24) on the right
         string action = _tab == Tab.Buy ? "Buy" : "Sell";
-        bool enabled = selected && IsActionEnabled(rowIndex);
+        bool enabled = IsActionEnabled(rowIndex);
         var btnFill = enabled ? Color.Gold : Bevel;
         sb.Draw(pixel, new Rectangle(actionX - 1, y + 7, 62, 26), Color.Black);
         sb.Draw(pixel, new Rectangle(actionX, y + 8, 60, 24), btnFill);
