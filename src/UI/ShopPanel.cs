@@ -30,19 +30,11 @@ public class ShopPanel
     private static readonly Color Dim = Color.Black * 0.55f;
     private static readonly Color PanelFill = new Color(60, 40, 30);
     private static readonly Color Bevel = new Color(90, 60, 45);
-    private static readonly Color SelectBg = Color.Gold * 0.4f;
-
-    // Disabled-reason copy (UI-SPEC §Copywriting — MUST match exactly)
-    private const string ReasonNotEnoughGold = "Not enough gold";
-    private const string ReasonInventoryFull = "Inventory full";
-    private const string ReasonSelectToSell = "Select an item to sell";
-    private const string ReasonCannotSell = "Cannot sell this item";
 
     private readonly InventoryManager _inv;
     private readonly SpriteAtlas _atlas;
 
     private Tab _tab = Tab.Buy;
-    private int _selectedIndex;
 
     // Cached layout rects (recomputed each Update via UpdateLayoutCache) — shared with Draw for hit-test consistency.
     private Rectangle _panelRect;
@@ -85,10 +77,9 @@ public class ShopPanel
         toast = null;
 
         int rows = GetRowCount();
-
         EnsureRowQtySized(rows);
 
-        // Mouse wheel → scroll offset (one tick = one row)
+        // Mouse wheel → scroll offset (one tick = one row). D-02: pure wheel, no follow-selection.
         int wheel = input.ScrollWheelDelta;
         if (wheel != 0)
         {
@@ -96,11 +87,9 @@ public class ShopPanel
             _scrollOffset = Math.Clamp(_scrollOffset - Math.Sign(wheel), 0, maxScroll);
         }
 
-        // --- Recompute cached layout (shared with Draw via cached fields) ---
         UpdateLayoutCache();
         int visible = Math.Min(rows, VisibleRows);
 
-        // --- Mouse hit-test (BEFORE keyboard so click-outside can fire this frame) ---
         var mp = input.MousePosition;
         _hoveredRow = -1;
         for (int i = 0; i < visible; i++)
@@ -110,78 +99,87 @@ public class ShopPanel
 
         if (input.IsLeftClickPressed)
         {
-            // 1. Close X button
-            if (_closeRect.Contains(mp)) return true;
-
-            // 2. Click outside panel → close
-            if (!_panelRect.Contains(mp)) return true;
-
-            // 3. Tabs
+            if (_closeRect.Contains(mp))
+            {
+                Console.WriteLine("[ShopPanel] Close X clicked");
+                return true;
+            }
+            if (!_panelRect.Contains(mp))
+            {
+                Console.WriteLine("[ShopPanel] Click outside panel -> close");
+                return true;
+            }
             if (_buyTabRect.Contains(mp))
             {
-                if (_tab != Tab.Buy) { _tab = Tab.Buy; _selectedIndex = 0; }
+                if (_tab != Tab.Buy)
+                {
+                    _tab = Tab.Buy;
+                    EnsureRowQtySized(GetRowCount());
+                    Console.WriteLine("[ShopPanel] Tab -> Buy");
+                }
                 return false;
             }
             if (_sellTabRect.Contains(mp))
             {
-                if (_tab != Tab.Sell) { _tab = Tab.Sell; _selectedIndex = 0; }
-                return false;
-            }
-
-            // 4. Row body click → select; if click also lands on the row's action button AND row is enabled → fire transaction
-            if (_hoveredRow >= 0)
-            {
-                int absIndex = _hoveredRow + _scrollOffset;
-                _selectedIndex = absIndex;
-
-                if (_actionBtnRects[_hoveredRow].Contains(mp) && IsActionEnabled(absIndex))
+                if (_tab != Tab.Sell)
                 {
-                    int q = absIndex < _rowQty.Length ? Math.Max(1, _rowQty[absIndex]) : 1;
-                    if (_tab == Tab.Buy) TryBuy(absIndex, q, out toast);
-                    else TrySell(absIndex, q, out toast);
+                    _tab = Tab.Sell;
+                    EnsureRowQtySized(GetRowCount());
+                    Console.WriteLine("[ShopPanel] Tab -> Sell");
                 }
                 return false;
             }
+
+            // Per-visible-row hit-test: qty-/qty+/action, in that priority (D-04, D-05).
+            for (int k = 0; k < visible; k++)
+            {
+                int abs = k + _scrollOffset;
+                if (abs < 0 || abs >= _rowQty.Length) continue;
+
+                if (_qtyMinusRects[k].Contains(mp))
+                {
+                    _rowQty[abs] = Math.Max(1, _rowQty[abs] - 1);
+                    Console.WriteLine($"[ShopPanel] qty- row={abs} qty={_rowQty[abs]}");
+                    return false;
+                }
+                if (_qtyPlusRects[k].Contains(mp))
+                {
+                    int cap = GetMaxQty(abs);
+                    _rowQty[abs] = Math.Min(Math.Max(1, cap), _rowQty[abs] + 1);
+                    if (cap <= 0) _rowQty[abs] = 1;
+                    Console.WriteLine($"[ShopPanel] qty+ row={abs} qty={_rowQty[abs]} cap={cap}");
+                    return false;
+                }
+                if (_actionBtnRects[k].Contains(mp))
+                {
+                    if (!IsActionEnabled(abs))
+                    {
+                        Console.WriteLine($"[ShopPanel] action-click row={abs} disabled");
+                        return false;
+                    }
+                    int q = Math.Clamp(_rowQty[abs], 1, Math.Max(1, GetMaxQty(abs)));
+                    if (_tab == Tab.Buy)
+                    {
+                        Console.WriteLine($"[ShopPanel] Buy-click row={abs} qty={q}");
+                        TryBuy(abs, q, out toast);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[ShopPanel] Sell-click row={abs} qty={q}");
+                        TrySell(abs, q, out toast);
+                    }
+                    // Row may have shrunk (Sell) or price/headroom changed (Buy) — reset qty to 1.
+                    if (abs < _rowQty.Length) _rowQty[abs] = 1;
+                    return false;
+                }
+            }
         }
 
-        // --- Keyboard block (regression-safe; unchanged behavior) ---
+        // Keyboard: only Escape closes (D-03). All other keys ignored inside the panel.
         if (input.IsKeyPressed(Keys.Escape))
+        {
+            Console.WriteLine("[ShopPanel] Escape pressed -> close");
             return true;
-
-        // Tab toggle
-        if (input.IsKeyPressed(Keys.Tab))
-        {
-            _tab = _tab == Tab.Buy ? Tab.Sell : Tab.Buy;
-            _selectedIndex = 0;
-            return false;
-        }
-
-        if (rows > 0)
-        {
-            if (input.IsKeyPressed(Keys.Down)) _selectedIndex = (_selectedIndex + 1) % rows;
-            if (input.IsKeyPressed(Keys.Up)) _selectedIndex = (_selectedIndex - 1 + rows) % rows;
-
-            // Left/Right nudge sell quantity on the selected row (legacy; removed in Task 2)
-            if (_selectedIndex < _rowQty.Length)
-            {
-                if (input.IsKeyPressed(Keys.Left))  _rowQty[_selectedIndex] = Math.Max(1, _rowQty[_selectedIndex] - 1);
-                if (input.IsKeyPressed(Keys.Right))
-                {
-                    int cap = GetMaxQty(_selectedIndex);
-                    _rowQty[_selectedIndex] = Math.Min(Math.Max(1, cap), _rowQty[_selectedIndex] + 1);
-                }
-            }
-        }
-        else
-        {
-            _selectedIndex = 0;
-        }
-
-        if (input.IsKeyPressed(Keys.Enter))
-        {
-            int q = (_selectedIndex < _rowQty.Length) ? Math.Max(1, _rowQty[_selectedIndex]) : 1;
-            if (_tab == Tab.Buy) TryBuy(_selectedIndex, q, out toast);
-            else TrySell(_selectedIndex, q, out toast);
         }
 
         return false;
@@ -259,14 +257,6 @@ public class ShopPanel
             _scrollThumbRect = Rectangle.Empty;
         }
 
-    }
-
-    /// <summary>Resolve the ItemStack for the currently selected Sell row (or null).</summary>
-    private ItemStack? CurrentSellStack()
-    {
-        if (_tab != Tab.Sell) return null;
-        int slot = IndexOfNthFilledSlot(_selectedIndex);
-        return slot >= 0 ? _inv.GetSlot(slot) : null;
     }
 
     /// <summary>Row count for the active tab.</summary>
@@ -425,10 +415,8 @@ public class ShopPanel
         int totalPrice = price * clamped;
         _inv.AddGold(totalPrice);
 
-        // Keep scroll + (legacy) selection valid; row count may have shrunk.
+        // Keep scroll valid; row count may have shrunk.
         int remainingRows = GetRowCount();
-        if (_selectedIndex >= remainingRows && remainingRows > 0) _selectedIndex = remainingRows - 1;
-        if (remainingRows == 0) _selectedIndex = 0;
         int maxScroll = Math.Max(0, remainingRows - VisibleRows);
         if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
 
@@ -511,7 +499,6 @@ public class ShopPanel
             sb.DrawString(font, empty,
                 new Vector2(PanelX + (PanelWidth - sz.X) / 2, listY + 80),
                 Color.Gray * 0.7f);
-            DrawDisabledReason(sb, font, _tab == Tab.Sell ? ReasonSelectToSell : ReasonNotEnoughGold);
             return;
         }
 
@@ -521,15 +508,14 @@ public class ShopPanel
         {
             int rowIndex = i + _scrollOffset;
             if (rowIndex >= rows) break;
-            bool selected = rowIndex == _selectedIndex;
 
-            // Hover tint (only if hovered AND not selected — selection takes precedence)
-            if (i == _hoveredRow && !selected)
+            // Hover tint (hover is still a valid UX cue; no persistent selection per D-01).
+            if (i == _hoveredRow)
             {
                 sb.Draw(pixel, _rowRects[i], Color.White * 0.1f);
             }
 
-            DrawRow(sb, font, pixel, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex, selected);
+            DrawRow(sb, font, pixel, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex);
         }
 
         // Scrollbar (track + thumb) when list overflows
@@ -539,9 +525,6 @@ public class ShopPanel
             sb.Draw(pixel, _scrollThumbRect, Color.Gold * 0.85f);
         }
 
-        // Disabled reason (below list area)
-        string? reason = ComputeDisabledReason();
-        if (reason != null) DrawDisabledReason(sb, font, reason);
     }
 
     private void DrawTab(SpriteBatch sb, SpriteFont font, Texture2D pixel, int x, int y, string label, bool active)
@@ -555,11 +538,8 @@ public class ShopPanel
             active ? Color.Black : Color.White);
     }
 
-    private void DrawRow(SpriteBatch sb, SpriteFont font, Texture2D pixel, int x, int y, int width, int rowIndex, bool selected)
+    private void DrawRow(SpriteBatch sb, SpriteFont font, Texture2D pixel, int x, int y, int width, int rowIndex)
     {
-        if (selected)
-            sb.Draw(pixel, new Rectangle(x, y, width, RowHeight - 2), SelectBg);
-
         // Icon cell (16x16 centered vertically in 40px row)
         int iconX = x + 8;
         int iconY = y + (RowHeight - 16) / 2;
@@ -673,36 +653,4 @@ public class ShopPanel
         }
     }
 
-    private string? ComputeDisabledReason()
-    {
-        int rows = GetRowCount();
-        if (rows == 0) return _tab == Tab.Sell ? ReasonSelectToSell : null;
-        if (_selectedIndex < 0 || _selectedIndex >= rows) return null;
-
-        if (_tab == Tab.Buy)
-        {
-            var e = ShopStock.Items[_selectedIndex];
-            if (_inv.Gold < e.Price) return ReasonNotEnoughGold;
-            if (!CanAddOne(e.ItemId)) return ReasonInventoryFull;
-            return null;
-        }
-        else
-        {
-            int slot = IndexOfNthFilledSlot(_selectedIndex);
-            if (slot < 0) return ReasonSelectToSell;
-            var stack = _inv.GetSlot(slot);
-            if (stack == null) return ReasonSelectToSell;
-            var def = ItemRegistry.Get(stack.ItemId);
-            if (def == null || ShopStock.GetSellPrice(def) <= 0) return ReasonCannotSell;
-            return null;
-        }
-    }
-
-    private void DrawDisabledReason(SpriteBatch sb, SpriteFont font, string reason)
-    {
-        var sz = font.MeasureString(reason);
-        sb.DrawString(font, reason,
-            new Vector2(PanelX + (PanelWidth - sz.X) / 2, PanelY + PanelHeight - 28),
-            Color.Red);
-    }
 }
