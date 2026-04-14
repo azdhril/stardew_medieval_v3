@@ -276,6 +276,21 @@ public class InventoryManager
         ActiveHotbarIndex = Math.Clamp(index, 0, HotbarSize - 1);
     }
 
+    /// <summary>
+    /// Move the active hotbar selection by the given step count with wrap-around.
+    /// Positive values move right; negative values move left.
+    /// </summary>
+    public void CycleActiveHotbar(int step)
+    {
+        if (HotbarSize <= 0 || step == 0) return;
+
+        int next = (ActiveHotbarIndex + step) % HotbarSize;
+        if (next < 0)
+            next += HotbarSize;
+
+        ActiveHotbarIndex = next;
+    }
+
     /// <summary>Get the item stack for the currently active hotbar slot.</summary>
     public ItemStack? GetActiveHotbarItem() => GetHotbarStack(ActiveHotbarIndex);
 
@@ -323,23 +338,27 @@ public class InventoryManager
     }
 
     /// <summary>
-    /// Use a consumable from a quick-slot. Decrements quantity in inventory.
-    /// Returns the heal/effect value, or 0 if nothing to use.
+    /// Use a consumable from a quick-slot. Decrements quantity in inventory and
+    /// returns the effect payload for the caller to apply.
     /// </summary>
-    public float UseConsumable(int index)
+    public ConsumableUseResult UseConsumable(int index)
     {
         var itemId = GetConsumableRef(index);
-        if (itemId == null) return 0;
+        if (itemId == null) return ConsumableUseResult.None;
 
         int slot = FindSlot(itemId);
-        if (slot < 0) return 0;
+        if (slot < 0) return ConsumableUseResult.None;
 
         var def = ItemRegistry.Get(itemId);
-        if (def == null) return 0;
+        if (def == null) return ConsumableUseResult.None;
 
-        float value = 0;
+        float healAmount = 0f;
         if (def.Stats.TryGetValue("heal", out float heal))
-            value = heal;
+            healAmount = heal;
+
+        float staminaRestorePct = 0f;
+        if (def.Stats.TryGetValue("stamina_restore_pct", out float rawPct))
+            staminaRestorePct = rawPct > 1f ? rawPct / 100f : rawPct;
 
         _slots[slot]!.Quantity--;
         if (_slots[slot]!.Quantity <= 0)
@@ -350,7 +369,7 @@ public class InventoryManager
             _consumableRefs[index] = null;
 
         OnInventoryChanged?.Invoke();
-        return value;
+        return new ConsumableUseResult(true, itemId, healAmount, staminaRestorePct);
     }
 
     /// <summary>Debug: wipe all slots, hotbar refs, consumable refs, and equipment.</summary>

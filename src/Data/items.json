@@ -85,7 +85,9 @@
     { "Id": "Iron_Necklace", "Name": "Iron Necklace", "Type": "Armor", "Rarity": "Common", "StackLimit": 1, "BasePrice": 120, "SpriteId": "armor_iron", "EquipSlot": "Necklace", "Stats": { "defense": 2 } },
 
     { "Id": "Health_Potion", "Name": "Health Potion", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "BasePrice": 75, "SpriteId": "consumable_health_potion", "Stats": { "heal": 30 } },
-    { "Id": "Bread", "Name": "Bread", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "BasePrice": 20, "SpriteId": "consumable_health_potion", "Stats": { "heal": 10 } },
+    { "Id": "Bread", "Name": "Bread", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "BasePrice": 20, "SpriteId": "food_melon_slice", "Stats": { "stamina_restore_pct": 10 } },
+    { "Id": "Smoked_Meat", "Name": "Smoked Meat", "Type": "Consumable", "Rarity": "Common", "StackLimit": 20, "BasePrice": 35, "SpriteId": "food_smoked_meat", "Stats": { "stamina_restore_pct": 18 } },
+    { "Id": "Steak", "Name": "Steak", "Type": "Consumable", "Rarity": "Uncommon", "StackLimit": 20, "BasePrice": 55, "SpriteId": "food_steak", "Stats": { "stamina_restore_pct": 30 } },
 
     { "Id": "Cabbage_Rotten", "Name": "Rotten Cabbage", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "BasePrice": 0, "SpriteId": "crop_cabbage_rotten", "Stats": {} },
     { "Id": "Carrot_Rotten", "Name": "Rotten Carrot", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "BasePrice": 0, "SpriteId": "crop_carrot_rotten", "Stats": {} },

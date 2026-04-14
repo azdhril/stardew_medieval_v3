@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Scenes;
 using stardew_medieval_v3.World;
@@ -135,13 +136,27 @@ public abstract class GameplayScene : Scene
                 Services.Inventory?.SetActiveHotbar(i);
         }
 
+        int wheel = Math.Sign(input.ScrollWheelDelta);
+        if (wheel != 0)
+            Services.Inventory?.CycleActiveHotbar(-wheel);
+
         if (input.IsKeyPressed(Keys.Q))
         {
-            float heal = Services.Inventory?.UseConsumable(0) ?? 0f;
-            if (heal > 0 && Player != null)
+            var use = Services.Inventory?.UseConsumable(0) ?? ConsumableUseResult.None;
+            if (use.Consumed && Player != null)
             {
-                Player.HP = Math.Min(Player.MaxHP, Player.HP + heal);
-                Console.WriteLine($"[{SceneName}Scene] Used consumable Q, healed {heal} HP");
+                if (use.HealAmount > 0f)
+                    Player.HP = Math.Min(Player.MaxHP, Player.HP + use.HealAmount);
+
+                if (use.StaminaRestorePct > 0f)
+                {
+                    float staminaAmount = Player.Stats.MaxStamina * use.StaminaRestorePct;
+                    Player.Stats.RestoreStamina(staminaAmount);
+                }
+
+                Console.WriteLine(
+                    $"[{SceneName}Scene] Used consumable Q: {use.ItemId} " +
+                    $"(heal={use.HealAmount:F0}, stamina={use.StaminaRestorePct * 100f:F0}%)");
             }
         }
 
@@ -153,7 +168,7 @@ public abstract class GameplayScene : Scene
         if (OnPreUpdate(deltaTime, input)) return;
 
         // --- Player movement ---
-        Player.Update(deltaTime, input.Movement, Map, GetSolids());
+        Player.Update(deltaTime, input.Movement, input.IsRunHeld, Map, GetSolids());
         Services.Camera.Follow(Player.Position, deltaTime);
 
         // --- Trigger dispatch ---
@@ -267,6 +282,7 @@ public abstract class GameplayScene : Scene
             ("Leather_Armor", 1),
             ("Leather_Boots", 1),
             ("Health_Potion", 5),
+            ("Smoked_Meat", 3),
             ("Cabbage_Seed", 10),
             ("Carrot_Seed", 10),
             ("Wheat_Seed", 10),

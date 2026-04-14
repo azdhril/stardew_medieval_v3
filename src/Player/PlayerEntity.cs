@@ -15,7 +15,8 @@ public class PlayerEntity : Entity
 {
     public PlayerStats Stats { get; } = new();
 
-    private const float Speed = 80f; // pixels per second (5 tiles/s at 16px)
+    private const float WalkSpeed = 80f; // pixels per second (5 tiles/s at 16px)
+    private const float RunMultiplier = 1.65f;
 
     private bool _isMoving;
 
@@ -33,7 +34,7 @@ public class PlayerEntity : Entity
         FrameHeight = spriteSheet.Height / 4;
     }
 
-    public void Update(float deltaTime, Vector2 input, TileMap map, IEnumerable<Entity>? solids = null)
+    public void Update(float deltaTime, Vector2 input, bool isRunning, TileMap map, IEnumerable<Entity>? solids = null)
     {
         // Update combat timers (knockback, flash)
         UpdateKnockback(deltaTime);
@@ -43,6 +44,7 @@ public class PlayerEntity : Entity
             IFrameTimer -= deltaTime;
 
         _isMoving = input != Vector2.Zero;
+        float moveSpeed = isRunning ? WalkSpeed * RunMultiplier : WalkSpeed;
 
         if (_isMoving)
         {
@@ -53,7 +55,7 @@ public class PlayerEntity : Entity
                 FacingDirection = input.Y > 0 ? Direction.Down : Direction.Up;
 
             // Try to move with collision
-            var delta = input * Speed * deltaTime;
+            var delta = input * moveSpeed * deltaTime;
             TryMove(delta, map, solids);
 
             // Animate

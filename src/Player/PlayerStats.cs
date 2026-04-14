@@ -22,6 +22,16 @@ public class PlayerStats
         return true;
     }
 
+    /// <summary>Spend stamina clamped to zero, even if the full amount is unavailable.</summary>
+    public void SpendStamina(float amount)
+    {
+        if (amount <= 0f)
+            return;
+
+        CurrentStamina = Math.Max(0f, CurrentStamina - amount);
+        OnStaminaChanged?.Invoke(CurrentStamina, MaxStamina);
+    }
+
     public void RestoreStamina()
     {
         CurrentStamina = MaxStamina;
