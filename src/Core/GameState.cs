@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using stardew_medieval_v3.Data;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Core;
 
@@ -9,7 +10,7 @@ namespace stardew_medieval_v3.Core;
 public class GameState
 {
     // === Existing base save data ===
-    public int SaveVersion { get; set; } = 7;
+    public int SaveVersion { get; set; } = 8;
     public int DayNumber { get; set; } = 1;
     public int Season { get; set; } // 0=Spring
     public float StaminaCurrent { get; set; } = 100f;
@@ -39,6 +40,9 @@ public class GameState
 
     // === New (v7): dynamic harvestable resources ===
     public List<ResourceSaveData> Resources { get; set; } = new();
+
+    // === New (v8): dungeon run state ===
+    public DungeonStateSnapshot Dungeon { get; set; } = new();
 }
 
 public class FarmCellSaveData

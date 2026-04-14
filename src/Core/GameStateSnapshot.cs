@@ -31,7 +31,13 @@ public static class GameStateSnapshot
             PlayerY = services.Player?.Position.Y ?? (prior?.PlayerY ?? 0f),
             FarmCells = farmCells ?? prior?.FarmCells ?? new List<FarmCellSaveData>(),
             CurrentScene = prior?.CurrentScene ?? "Farm",
-            BossKilled = prior?.BossKilled ?? false
+            BossKilled = prior?.BossKilled ?? false,
+            // Pitfall 1 fix: previously SaveNow silently dropped Chests/Resources
+            // (and never wrote DungeonState at all). Pull live snapshots from the
+            // active scene's managers, falling back to prior persisted lists.
+            Chests = services.ChestManager?.GetSaveData() ?? prior?.Chests ?? new List<ChestSaveData>(),
+            Resources = services.ResourceManager?.GetSaveData() ?? prior?.Resources ?? new List<ResourceSaveData>(),
+            Dungeon = services.Dungeon?.ToSnapshot() ?? prior?.Dungeon ?? new World.DungeonStateSnapshot(),
         };
 
         services.Inventory?.SaveToState(state);
@@ -39,7 +45,9 @@ public static class GameStateSnapshot
 
         Console.WriteLine(
             $"[GameStateSnapshot] SaveNow: day={state.DayNumber} gold={state.Gold} " +
-            $"quest={state.QuestState} items={state.Inventory.Count} scene={state.CurrentScene}");
+            $"quest={state.QuestState} items={state.Inventory.Count} scene={state.CurrentScene} " +
+            $"chests={state.Chests.Count} resources={state.Resources.Count} " +
+            $"dungeonRooms={state.Dungeon.ClearedRooms.Count}");
 
         SaveManager.Save(state);
     }

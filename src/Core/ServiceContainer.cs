@@ -6,6 +6,7 @@ using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Quest;
 using stardew_medieval_v3.UI;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Core;
 
@@ -71,4 +72,24 @@ public class ServiceContainer
     /// Shared hotbar renderer. Set by FarmScene so hub scenes can draw it.
     /// </summary>
     public HotbarRenderer? Hotbar { get; set; }
+
+    /// <summary>
+    /// Per-scene chest manager. Owned by whichever scene currently renders chests
+    /// (FarmScene, DungeonScene). Read by GameStateSnapshot.SaveNow so manual
+    /// saves capture chest contents from any scene.
+    /// </summary>
+    public ChestManager? ChestManager { get; set; }
+
+    /// <summary>
+    /// Per-scene resource manager. Same lifecycle as ChestManager — owned by the
+    /// currently active world scene; read by SaveNow.
+    /// </summary>
+    public ResourceManager? ResourceManager { get; set; }
+
+    /// <summary>
+    /// Run-scoped dungeon state singleton. Persists across DungeonScene transitions
+    /// so room-cleared / chest-opened flags survive door traversal. Reset on death
+    /// or fresh dungeon entry via <see cref="DungeonState.BeginRun"/>.
+    /// </summary>
+    public DungeonState? Dungeon { get; set; }
 }

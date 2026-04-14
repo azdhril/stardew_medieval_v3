@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public static class SaveManager
 {
-    private const int CURRENT_SAVE_VERSION = 7;
+    private const int CURRENT_SAVE_VERSION = 8;
 
     private static string SavePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -119,6 +119,14 @@ public static class SaveManager
             state.Resources ??= new();
             state.SaveVersion = 7;
             Console.WriteLine("[SaveManager] Migrated save from v6 to v7 (dynamic resources)");
+        }
+
+        if (state.SaveVersion < 8)
+        {
+            // v7 -> v8: dungeon run state default
+            state.Dungeon ??= new World.DungeonStateSnapshot();
+            state.SaveVersion = 8;
+            Console.WriteLine("[SaveManager] Migrated v7->v8 (Dungeon defaults)");
         }
     }
 }
