@@ -8,8 +8,8 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public class GameState
 {
-    // === Existing (v2) ===
-    public int SaveVersion { get; set; } = 3;
+    // === Existing base save data ===
+    public int SaveVersion { get; set; } = 7;
     public int DayNumber { get; set; } = 1;
     public int Season { get; set; } // 0=Spring
     public float StaminaCurrent { get; set; } = 100f;
@@ -33,6 +33,12 @@ public class GameState
 
     // === New (v4) per D-23: Boss tracking ===
     public bool BossKilled { get; set; } = false;
+
+    // === New (v6): dynamic world containers ===
+    public List<ChestSaveData> Chests { get; set; } = new();
+
+    // === New (v7): dynamic harvestable resources ===
+    public List<ResourceSaveData> Resources { get; set; } = new();
 }
 
 public class FarmCellSaveData
@@ -45,4 +51,23 @@ public class FarmCellSaveData
     public string CropDataName { get; set; } = "";
     public int CropDayCount { get; set; }
     public bool IsWilted { get; set; }
+}
+
+public class ChestSaveData
+{
+    public string InstanceId { get; set; } = "";
+    public string VariantId { get; set; } = "";
+    public int TileX { get; set; }
+    public int TileY { get; set; }
+    public int Capacity { get; set; } = 12;
+    public List<ItemStack?> Contents { get; set; } = new();
+}
+
+public class ResourceSaveData
+{
+    public string InstanceId { get; set; } = "";
+    public string NodeId { get; set; } = "";
+    public int TileX { get; set; }
+    public int TileY { get; set; }
+    public int HitsRemaining { get; set; }
 }

@@ -8,7 +8,7 @@ using stardew_medieval_v3.Player;
 
 namespace stardew_medieval_v3.Farming;
 
-public enum ToolType { Hands, Hoe, WateringCan, Seeds, Scythe }
+public enum ToolType { Hands, Hoe, WateringCan, Seeds, Scythe, Axe, Pickaxe }
 
 /// <summary>
 /// Dispatches farming actions based on whatever is in the player's active hotbar slot.
@@ -27,15 +27,18 @@ public class ToolController
     private readonly PlayerEntity _player;
     private readonly InventoryManager _inventory;
     private readonly Action<string, int, Vector2> _spawnDrop;
+    private readonly Func<ToolType, Point, bool>? _handleWorldToolAction;
 
     public ToolController(GridManager grid, CropManager cropManager, PlayerEntity player,
-        InventoryManager inventory, Action<string, int, Vector2> spawnDrop)
+        InventoryManager inventory, Action<string, int, Vector2> spawnDrop,
+        Func<ToolType, Point, bool>? handleWorldToolAction = null)
     {
         _grid = grid;
         _cropManager = cropManager;
         _player = player;
         _inventory = inventory;
         _spawnDrop = spawnDrop;
+        _handleWorldToolAction = handleWorldToolAction;
     }
 
     private ToolType DeriveEquippedTool()
@@ -45,8 +48,10 @@ public class ToolController
         switch (id)
         {
             case "Hoe": return ToolType.Hoe;
+            case "Axe": return ToolType.Axe;
             case "Watering_Can": return ToolType.WateringCan;
             case "Scythe": return ToolType.Scythe;
+            case "Pickaxe": return ToolType.Pickaxe;
         }
         var def = ItemRegistry.Get(id);
         if (def != null && def.Type == ItemType.Seed) return ToolType.Seeds;
@@ -101,6 +106,10 @@ public class ToolController
                 break;
             case ToolType.Seeds:
                 TryPlantActiveSeed(tile);
+                break;
+            case ToolType.Axe:
+            case ToolType.Pickaxe:
+                _handleWorldToolAction?.Invoke(EquippedTool, tile);
                 break;
             case ToolType.Hands:
             case ToolType.Scythe:

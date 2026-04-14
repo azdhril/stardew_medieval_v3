@@ -24,6 +24,9 @@ namespace stardew_medieval_v3.Scenes;
 /// </summary>
 public class FarmScene : GameplayScene
 {
+    private static readonly Point StarterChestTile = new(8, 10);
+    private static readonly Point StarterTreeTile = new(11, 10);
+
     private GridManager _gridManager = null!;
     private CropManager _cropManager = null!;
     private ToolController _toolController = null!;
@@ -36,11 +39,16 @@ public class FarmScene : GameplayScene
     private HotbarRenderer _hotbar = null!;
     private HUD _hud = null!;
     private MinimapRenderer _minimap = null!;
+    private ChestManager _chestManager = null!;
+    private ResourceManager _resourceManager = null!;
+    private InteractionPrompt _chestPrompt = null!;
     private readonly List<ItemDropEntity> _itemDrops = new();
     private readonly List<EnemyEntity> _enemies = new();
     private EnemySpawner _spawner = null!;
     private BossEntity? _boss;
     private GameState? _loadedState;
+    private ChestInstance? _promptChest;
+    private ChestInstance? _pendingChestOpen;
     private readonly Random _lootRng = new();
     private bool _debugDraw;
 
@@ -75,9 +83,13 @@ public class FarmScene : GameplayScene
         // Crops
         CropRegistry.Initialize(device);
         ChestRegistry.Initialize(device);
+        ResourceRegistry.Initialize(device);
         _gridManager = new GridManager(Map);
         _gridManager.LoadContent(device);
         _cropManager = new CropManager(_gridManager, CropRegistry.GetAllCrops());
+        _chestManager = new ChestManager();
+        _resourceManager = new ResourceManager();
+        _chestPrompt = new InteractionPrompt();
 
         Services.Time.OnDayAdvanced += OnDayAdvanced;
 
@@ -106,7 +118,7 @@ public class FarmScene : GameplayScene
             _mainQuest = Services.Quest!;
         }
 
-        _toolController = new ToolController(_gridManager, _cropManager, pl, _inventory, SpawnItemDrop);
+        _toolController = new ToolController(_gridManager, _cropManager, pl, _inventory, SpawnItemDrop, TryUseWorldTool);
 
         // Combat
         _combat = new CombatManager(_inventory);
@@ -114,7 +126,9 @@ public class FarmScene : GameplayScene
         _projectiles.OnPlayerHit = (damage) => _combat.TryPlayerTakeDamage(pl, damage);
         _projectiles.OnEnemyHit = () => _combat.OnPlayerSpellHit(pl);
 
-        // Enemies
+        // Spawn the scene's initial enemy population from the shared data-driven spawner.
+        // FarmScene keeps the live list so combat, drawing, drops, and daily respawns
+        // all operate on the same enemy instances.
         _spawner = new EnemySpawner();
         _enemies.AddRange(_spawner.SpawnAll());
         _boss = _spawner.SpawnBoss();
@@ -174,6 +188,8 @@ public class FarmScene : GameplayScene
 
         Services.GameState = _loadedState;
         _loadedState.CurrentScene = "Farm";
+        InitializeChests(_loadedState);
+        InitializeResources(_loadedState);
 
         // Ensure a stamina food is available for testing on the first Farm entry,
         // including existing saves created before the eating system existed.
@@ -184,13 +200,22 @@ public class FarmScene : GameplayScene
                 _inventory.SetConsumableRef(0, "Smoked_Meat");
         }
 
+        if (firstEntry && !_inventory.HasItem("Axe"))
+        {
+            _inventory.TryAdd("Axe");
+            if (_inventory.GetHotbarRef(3) == null)
+                _inventory.SetHotbarRef(3, "Axe");
+        }
+
         // Seed starter tools on fresh game (first entry only — prevents re-seeding on Farm re-entry)
         if (firstEntry && save == null)
         {
             _inventory.SetHotbarRef(0, "Hoe");
             _inventory.SetHotbarRef(1, "Watering_Can");
             _inventory.SetHotbarRef(2, "Scythe");
+            _inventory.SetHotbarRef(3, "Axe");
             _inventory.TryAdd("Hoe");
+            _inventory.TryAdd("Axe");
             _inventory.TryAdd("Watering_Can");
             _inventory.TryAdd("Scythe");
         }
@@ -227,6 +252,37 @@ public class FarmScene : GameplayScene
 
     protected override bool OnPreUpdate(float deltaTime, InputManager input)
     {
+        _chestManager.Update(deltaTime);
+        _resourceManager.Update(deltaTime);
+        _promptChest = _chestManager.GetChestAtFacingTile(Player.GetFacingTile());
+
+        if (_pendingChestOpen != null)
+        {
+            if (_pendingChestOpen.IsOpen)
+            {
+                var chest = _pendingChestOpen;
+                _pendingChestOpen = null;
+                Services.SceneManager.PushImmediate(new ChestScene(
+                    Services,
+                    _inventory,
+                    chest,
+                    _spriteAtlas,
+                    () =>
+                    {
+                        chest.BeginClose();
+                        SaveCurrentState();
+                    }));
+            }
+            return true;
+        }
+
+        if (_promptChest != null && input.InteractPressed)
+        {
+            _promptChest.BeginOpen();
+            _pendingChestOpen = _promptChest;
+            return true;
+        }
+
         // Sleep
         if (input.IsKeyPressed(Keys.P))
         {
@@ -244,6 +300,12 @@ public class FarmScene : GameplayScene
         // Debug draw toggle
         if (input.IsKeyPressed(Keys.F3))
             _debugDraw = !_debugDraw;
+
+        if (input.IsKeyPressed(Keys.F6))
+        {
+            ResetResourcesForDebug();
+            return false;
+        }
 
         // Combat input and update
         _combat.HandleInput(input, Player);
@@ -379,6 +441,10 @@ public class FarmScene : GameplayScene
     {
         var solids = new List<Entity>(_enemies);
         if (_boss != null && _boss.IsAlive) solids.Add(_boss);
+        foreach (var chest in _chestManager.All)
+            solids.Add(chest);
+        foreach (var resource in _resourceManager.All)
+            solids.Add(resource);
         return solids;
     }
 
@@ -409,6 +475,8 @@ public class FarmScene : GameplayScene
     {
         _gridManager.DrawOverlays(sb, viewArea);
         _gridManager.DrawCrops(sb, viewArea);
+        _resourceManager.Draw(sb);
+        _chestManager.Draw(sb);
         foreach (var drop in _itemDrops)
             drop.Draw(sb);
         foreach (var enemy in _enemies)
@@ -456,11 +524,23 @@ public class FarmScene : GameplayScene
 
             foreach (var proj in _projectiles.Active)
                 DrawDebugRect(sb, proj.Hitbox, Color.Cyan * 0.6f);
+
+            foreach (var resource in _resourceManager.All)
+            {
+                if (!resource.CollisionBox.IsEmpty)
+                    DrawDebugRect(sb, resource.CollisionBox, Color.SaddleBrown * 0.5f);
+            }
         }
     }
 
     protected override void OnDrawScreen(SpriteBatch sb, int viewportWidth, int viewportHeight)
     {
+        if (_promptChest != null && _pendingChestOpen == null)
+        {
+            var screenPos = Vector2.Transform(_promptChest.WorldAnchor, Services.Camera.GetTransformMatrix());
+            _chestPrompt.Draw(sb, Font, Pixel, screenPos, "Press E to open chest");
+        }
+
         _minimap.Draw(
             sb,
             new Rectangle(viewportWidth - 174, 38, 160, 160),
@@ -564,14 +644,118 @@ public class FarmScene : GameplayScene
         _spawner.Respawn(_enemies);
 
         _boss = _spawner.SpawnBoss();
+        SaveCurrentState();
+    }
 
-        // Keep Services.GameState authoritative for cross-scene fields (CurrentScene, BossKilled).
-        if (Services.GameState != null)
+    private void InitializeChests(GameState state)
+    {
+        if (state.Chests != null && state.Chests.Count > 0)
         {
-            Services.GameState.CurrentScene = "Farm";
-            Services.GameState.BossKilled = _loadedState?.BossKilled ?? Services.GameState.BossKilled;
+            NormalizeChestSaves(state.Chests);
+            _chestManager.LoadFrom(state.Chests);
+            return;
         }
-        GameStateSnapshot.SaveNow(Services, _gridManager.GetSaveData());
+
+        var starterChest = new ChestInstance("farm_starter_chest", "chest_wood", StarterChestTile);
+        starterChest.Container.TryAdd("Health_Potion", 2);
+        starterChest.Container.TryAdd("Smoked_Meat", 2);
+        starterChest.Container.TryAdd("Iron_Sword", 1);
+        _chestManager.Add(starterChest);
+    }
+
+    private void InitializeResources(GameState state)
+    {
+        if (state.Resources != null && state.Resources.Count > 0)
+        {
+            NormalizeResourceSaves(state.Resources);
+            _resourceManager.LoadFrom(state.Resources);
+            return;
+        }
+
+        _resourceManager.Add(new ResourceNode("farm_starter_tree", "tree_broadleaf_large", StarterTreeTile));
+    }
+
+    private void ResetResourcesForDebug()
+    {
+        _resourceManager.Clear();
+        _resourceManager.Add(new ResourceNode("farm_starter_tree", "tree_broadleaf_large", StarterTreeTile));
+        Console.WriteLine("[FarmScene] Resources reset with F6");
+        SaveCurrentState();
+    }
+
+    private static void NormalizeChestSaves(List<ChestSaveData> chests)
+    {
+        foreach (var chest in chests)
+        {
+            if (chest.InstanceId != "farm_starter_chest")
+                continue;
+
+            chest.TileX = StarterChestTile.X;
+            chest.TileY = StarterChestTile.Y;
+        }
+    }
+
+    private static void NormalizeResourceSaves(List<ResourceSaveData> resources)
+    {
+        foreach (var resource in resources)
+        {
+            if (resource.InstanceId != "farm_starter_tree")
+                continue;
+
+            resource.TileX = StarterTreeTile.X;
+            resource.TileY = StarterTreeTile.Y;
+        }
+    }
+
+    private void SaveCurrentState()
+    {
+        var state = BuildCurrentStateSnapshot();
+        SaveManager.Save(state);
+        _loadedState = state;
+        Services.GameState = state;
+    }
+
+    private GameState BuildCurrentStateSnapshot()
+    {
+        var state = _loadedState ?? new GameState();
+        state.DayNumber = Services.Time.DayNumber;
+        state.Season = Services.Time.Season;
+        state.StaminaCurrent = Player.Stats.CurrentStamina;
+        state.PlayerX = Player.Position.X;
+        state.PlayerY = Player.Position.Y;
+        state.GameTime = Services.Time.GameTime;
+        state.FarmCells = _gridManager.GetSaveData();
+        state.CurrentScene = "Farm";
+        state.BossKilled = _loadedState?.BossKilled ?? false;
+        state.Chests = _chestManager.GetSaveData();
+        state.Resources = _resourceManager.GetSaveData();
+
+        _inventory.SaveToState(state);
+        _mainQuest.SaveToState(state);
+        return state;
+    }
+
+    private bool TryUseWorldTool(ToolType tool, Point tile)
+    {
+        var resource = _resourceManager.GetNodeAtTile(tile);
+        if (resource == null)
+            return false;
+
+        ResourceToolKind toolKind = tool switch
+        {
+            ToolType.Axe => ResourceToolKind.Axe,
+            ToolType.Pickaxe => ResourceToolKind.Pickaxe,
+            _ => ResourceToolKind.None
+        };
+
+        bool gathered = resource.TryGather(toolKind, SpawnItemDrop);
+        if (gathered)
+        {
+            Console.WriteLine($"[FarmScene] Gathered {resource.Data.DisplayName} ({resource.HitsRemaining}/{resource.Data.MaxHits})");
+            SaveCurrentState();
+        }
+
+        return gathered;
     }
 
     private static Texture2D LoadTexture(GraphicsDevice device, string path)

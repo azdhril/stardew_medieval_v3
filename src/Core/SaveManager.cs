@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public static class SaveManager
 {
-    private const int CURRENT_SAVE_VERSION = 5;
+    private const int CURRENT_SAVE_VERSION = 7;
 
     private static string SavePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -105,6 +105,20 @@ public static class SaveManager
             if (state.QuestState < 0 || state.QuestState > 2) state.QuestState = 0;
             state.SaveVersion = 5;
             Console.WriteLine("[SaveManager] Migrated save from v4 to v5 (MainQuestState normalization)");
+        }
+
+        if (state.SaveVersion < 6)
+        {
+            state.Chests ??= new();
+            state.SaveVersion = 6;
+            Console.WriteLine("[SaveManager] Migrated save from v5 to v6 (dynamic chests)");
+        }
+
+        if (state.SaveVersion < 7)
+        {
+            state.Resources ??= new();
+            state.SaveVersion = 7;
+            Console.WriteLine("[SaveManager] Migrated save from v6 to v7 (dynamic resources)");
         }
     }
 }
