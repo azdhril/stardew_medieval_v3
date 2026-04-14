@@ -5,24 +5,12 @@ using Microsoft.Xna.Framework;
 namespace stardew_medieval_v3.Combat;
 
 /// <summary>
-/// Manages enemy spawn positions and day-advance respawning.
-/// Per D-20: enemies respawn when a new day starts.
-/// Spawn positions are hardcoded away from the farm zone (top-left area).
+/// Data-driven enemy spawner. Accepts an injected spawn list (enemyId, position)
+/// instead of hardcoding world coordinates, so DungeonScene can drive its own
+/// per-room spawn config from <see cref="stardew_medieval_v3.Data.DungeonRegistry"/>.
 /// </summary>
 public class EnemySpawner
 {
-    /// <summary>
-    /// Predefined spawn points: (EnemyId, Position).
-    /// Placed in the open area away from the farm zone.
-    /// </summary>
-    private static readonly (string enemyId, Vector2 position)[] SpawnPoints = new[]
-    {
-        ("Skeleton", new Vector2(400, 200)),
-        ("Skeleton", new Vector2(500, 350)),
-        ("DarkMage", new Vector2(600, 250)),
-        ("Golem", new Vector2(450, 400))
-    };
-
     private readonly Dictionary<string, EnemyData> _enemyTypes;
 
     /// <summary>
@@ -38,19 +26,19 @@ public class EnemySpawner
     }
 
     /// <summary>
-    /// Spawn all enemies at their predefined positions.
+    /// Spawn enemies at the supplied points and append them to <paramref name="target"/>.
+    /// Unknown enemy ids are logged and skipped.
     /// </summary>
-    /// <returns>List of newly created enemy entities.</returns>
-    public List<EnemyEntity> SpawnAll()
+    /// <param name="points">Spawn entries (enemyId, world position).</param>
+    /// <param name="target">List that will receive the new enemy entities.</param>
+    public void SpawnAll(IEnumerable<(string id, Vector2 pos)> points, List<EnemyEntity> target)
     {
-        var enemies = new List<EnemyEntity>();
-
-        foreach (var (enemyId, position) in SpawnPoints)
+        foreach (var (enemyId, position) in points)
         {
             if (_enemyTypes.TryGetValue(enemyId, out var data))
             {
                 var enemy = new EnemyEntity(data, position);
-                enemies.Add(enemy);
+                target.Add(enemy);
                 Console.WriteLine($"[EnemySpawner] Spawned {data.Name} at ({position.X}, {position.Y})");
             }
             else
@@ -58,32 +46,30 @@ public class EnemySpawner
                 Console.WriteLine($"[EnemySpawner] WARNING: Unknown enemy type '{enemyId}'");
             }
         }
-
-        return enemies;
     }
 
     /// <summary>
-    /// Clear existing enemies and spawn fresh ones. Called on day advance.
-    /// Per D-20: enemies respawn when a new day starts.
+    /// Clear the supplied enemy list and respawn fresh ones from the supplied points.
+    /// Used for FarmScene's day-advance respawn.
     /// </summary>
+    /// <param name="points">Spawn entries to repopulate from.</param>
     /// <param name="enemies">Enemy list to clear and refill.</param>
-    public void Respawn(List<EnemyEntity> enemies)
+    public void Respawn(IEnumerable<(string id, Vector2 pos)> points, List<EnemyEntity> enemies)
     {
         enemies.Clear();
-        enemies.AddRange(SpawnAll());
-        Console.WriteLine($"[EnemySpawner] Respawned {enemies.Count} enemies for new day");
+        SpawnAll(points, enemies);
+        Console.WriteLine($"[EnemySpawner] Respawned {enemies.Count} enemies");
     }
 
     /// <summary>
-    /// Spawn the Skeleton King boss at a fixed position on the farm.
-    /// Per D-21: boss spawns as a large red rectangle away from regular enemies.
+    /// Spawn the Skeleton King boss at the supplied position.
     /// </summary>
-    /// <returns>New BossEntity at the hardcoded boss spawn position.</returns>
-    public BossEntity SpawnBoss()
+    /// <param name="position">World position for the boss spawn.</param>
+    /// <returns>New BossEntity at the given position.</returns>
+    public BossEntity SpawnBoss(Vector2 position)
     {
-        var bossPosition = new Vector2(600, 400);
-        var boss = new BossEntity(bossPosition);
-        Console.WriteLine($"[EnemySpawner] Spawned Skeleton King boss at ({bossPosition.X}, {bossPosition.Y})");
+        var boss = new BossEntity(position);
+        Console.WriteLine($"[EnemySpawner] Spawned Skeleton King boss at ({position.X}, {position.Y})");
         return boss;
     }
 }

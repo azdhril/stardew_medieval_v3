@@ -27,6 +27,20 @@ public class FarmScene : GameplayScene
     private static readonly Point StarterChestTile = new(8, 10);
     private static readonly Point StarterTreeTile = new(11, 10);
 
+    /// <summary>
+    /// Hardcoded farm enemy spawn points. Owned by FarmScene now (was previously
+    /// inside EnemySpawner). DungeonScene supplies its own list from DungeonRegistry.
+    /// </summary>
+    private static readonly (string id, Vector2 pos)[] FarmSpawnPoints = new[]
+    {
+        ("Skeleton", new Vector2(400, 200)),
+        ("Skeleton", new Vector2(500, 350)),
+        ("DarkMage", new Vector2(600, 250)),
+        ("Golem", new Vector2(450, 400))
+    };
+
+    private static readonly Vector2 FarmBossSpawn = new(600, 400);
+
     private GridManager _gridManager = null!;
     private CropManager _cropManager = null!;
     private ToolController _toolController = null!;
@@ -91,6 +105,15 @@ public class FarmScene : GameplayScene
         _resourceManager = new ResourceManager();
         _chestPrompt = new InteractionPrompt();
 
+        // Publish to Services so GameStateSnapshot.SaveNow can read live state.
+        Services.ChestManager = _chestManager;
+        Services.ResourceManager = _resourceManager;
+
+        // Singleton DungeonState lives on Services so dungeon flags survive
+        // FarmScene <-> DungeonScene transitions. Created lazily on first farm entry.
+        if (Services.Dungeon == null)
+            Services.Dungeon = new DungeonState();
+
         Services.Time.OnDayAdvanced += OnDayAdvanced;
 
         // Items (before HUD, Combat, ToolController)
@@ -130,8 +153,8 @@ public class FarmScene : GameplayScene
         // FarmScene keeps the live list so combat, drawing, drops, and daily respawns
         // all operate on the same enemy instances.
         _spawner = new EnemySpawner();
-        _enemies.AddRange(_spawner.SpawnAll());
-        _boss = _spawner.SpawnBoss();
+        _spawner.SpawnAll(FarmSpawnPoints, _enemies);
+        _boss = _spawner.SpawnBoss(FarmBossSpawn);
 
         // HUD
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat);
@@ -318,119 +341,43 @@ public class FarmScene : GameplayScene
             _slash.Trigger(Player.Position, Player.FacingDirection);
         _slash.Update(deltaTime);
 
-        // Projectiles with enemy list (include boss)
-        var enemiesAsEntities = new List<Entity>(_enemies);
-        if (_boss != null && _boss.IsAlive)
-            enemiesAsEntities.Add(_boss);
-        _projectiles.Update(deltaTime, enemiesAsEntities, Player);
-
-        // Player melee hitbox vs enemies
-        if (_combat.Melee.IsSwinging)
+        // Shared combat tick (enemies, melee, projectiles, boss, drops).
+        // BossFirstKill semantics: GetBossLoot wants `bossAlreadyKilled` -- the
+        // helper inverts so callers pass "first kill = true" intuitively.
+        var combatCtx = new CombatLoopContext
         {
-            var hitbox = _combat.Melee.GetHitbox(Player.Position, Player.FacingDirection);
-            foreach (var enemy in _enemies)
+            Player = Player,
+            Enemies = _enemies,
+            Boss = _boss,
+            Projectiles = _projectiles,
+            Combat = _combat,
+            LootRng = _lootRng,
+            SpawnItemDrop = SpawnItemDrop,
+            BossFirstKill = !(_loadedState?.BossKilled ?? false),
+            OnBossDefeated = _ =>
             {
-                if (!enemy.IsAlive) continue;
-                if (hitbox.Intersects(enemy.HitBox) && !_combat.Melee.HasHit(enemy))
-                {
-                    float damage = _combat.CalculateMeleeDamage();
-                    enemy.TakeDamage(damage);
-                    _combat.OnPlayerMeleeHit(Player);
-                    _combat.Melee.RecordHit(enemy);
-
-                    var knockDir = enemy.Position - Player.Position;
-                    if (knockDir != Vector2.Zero) knockDir.Normalize();
-                    enemy.ApplyKnockbackWithResistance(knockDir, 32f);
-
-                    Console.WriteLine($"[FarmScene] Melee hit {enemy.Data.Name} for {damage:F0} damage");
-                }
-            }
-        }
-
-        // Enemy AI/attacks/death
-        for (int i = _enemies.Count - 1; i >= 0; i--)
-        {
-            var enemy = _enemies[i];
-            enemy.Update(deltaTime, Player.Position, _projectiles);
-
-            if (enemy.IsMeleeAttackReady)
-            {
-                if (enemy.GetMeleeAttackHitbox().Intersects(Player.HitBox))
-                    _combat.TryPlayerTakeDamage(Player, enemy.Data.AttackDamage);
-                enemy.ConsumeMeleeAttack();
-            }
-
-            if (!enemy.IsAlive)
-            {
-                var drops = enemy.Data.Loot.Roll(_lootRng);
-                foreach (var (itemId, quantity) in drops)
-                {
-                    SpawnItemDrop(itemId, quantity, enemy.Position);
-                    Console.WriteLine($"[FarmScene] {enemy.Data.Name} dropped {quantity}x {itemId}");
-                }
-                _enemies.RemoveAt(i);
-            }
-        }
+                if (_loadedState != null) _loadedState.BossKilled = true;
+            },
+        };
+        CombatLoop.Update(deltaTime, combatCtx);
+        _boss = combatCtx.Boss;
 
         ResolveEnemySeparation();
 
-        // Boss
-        if (_boss != null && _boss.IsAlive)
-        {
-            _boss.Update(deltaTime, Player.Position, _projectiles);
-
-            var minions = _boss.CheckSummonPhase();
-            if (minions != null)
-                _enemies.AddRange(minions);
-
-            if (_boss.IsBossSlashReady)
-            {
-                var slashHitbox = _boss.GetBossSlashHitbox();
-                if (slashHitbox.Intersects(Player.HitBox))
-                {
-                    _combat.TryPlayerTakeDamage(Player, _boss.Data.AttackDamage);
-                    Console.WriteLine("[FarmScene] Boss slash hit player!");
-                }
-            }
-
-            if (_combat.Melee.IsSwinging)
-            {
-                var hitbox = _combat.Melee.GetHitbox(Player.Position, Player.FacingDirection);
-                if (hitbox.Intersects(_boss.HitBox) && !_combat.Melee.HasHit(_boss))
-                {
-                    float damage = _combat.CalculateMeleeDamage();
-                    _boss.TakeDamage(damage);
-                    _combat.OnPlayerMeleeHit(Player);
-                    _combat.Melee.RecordHit(_boss);
-
-                    var knockDir = _boss.Position - Player.Position;
-                    if (knockDir != Vector2.Zero) knockDir.Normalize();
-                    _boss.ApplyKnockbackWithResistance(knockDir, 32f);
-
-                    Console.WriteLine($"[FarmScene] Melee hit Skeleton King for {damage:F0} damage");
-                }
-            }
-
-            if (!_boss.IsAlive)
-            {
-                var bossLoot = _boss.GetBossLoot(_loadedState!.BossKilled);
-                foreach (var (itemId, quantity) in bossLoot)
-                {
-                    SpawnItemDrop(itemId, quantity, _boss.Position);
-                    Console.WriteLine($"[FarmScene] Skeleton King dropped {quantity}x {itemId}");
-                }
-                _loadedState!.BossKilled = true;
-                _boss = null;
-                Console.WriteLine("[FarmScene] Skeleton King defeated!");
-            }
-        }
-
-        // Player death respawn
+        // Player death respawn (Farm-local: heal + recenter).
         if (!Player.IsAlive)
         {
             Player.HP = Player.MaxHP;
+            string from = FromScene;
+            if (from == "DungeonDeath")
+            {
+                Console.WriteLine("[FarmScene] Respawned from dungeon death");
+            }
+            else
+            {
+                Console.WriteLine("[FarmScene] Player died! Respawning at farm center.");
+            }
             Player.Position = TileMap.TileCenterWorld(10, 10);
-            Console.WriteLine("[FarmScene] Player died! Respawning at farm center.");
         }
 
         _toolController.Update(input);
@@ -650,9 +597,9 @@ public class FarmScene : GameplayScene
         _cropManager.OnDayAdvanced();
         _gridManager.OnDayAdvanced();
         Player.Stats.RestoreStamina();
-        _spawner.Respawn(_enemies);
+        _spawner.Respawn(FarmSpawnPoints, _enemies);
 
-        _boss = _spawner.SpawnBoss();
+        _boss = _spawner.SpawnBoss(FarmBossSpawn);
         SaveCurrentState();
     }
 
