@@ -21,5 +21,7 @@ public class ResourceNodeData
     public Point CollisionOffset { get; init; } = new(0, -5);
     public Point DepletedCollisionSize { get; init; } = new(12, 8);
     public Point DepletedCollisionOffset { get; init; } = new(0, -3);
+    public int OcclusionStartY { get; init; }
+    public float OverlayFadeAlpha { get; init; } = 0.55f;
     public List<ResourceDropData> Drops { get; init; } = new();
 }

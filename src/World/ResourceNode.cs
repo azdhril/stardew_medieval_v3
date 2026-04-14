@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
+using stardew_medieval_v3.Player;
 
 namespace stardew_medieval_v3.World;
 
@@ -74,17 +75,48 @@ public class ResourceNode : Entity
 
     public override void Draw(SpriteBatch spriteBatch)
     {
+        DrawBeforePlayer(spriteBatch, null);
+    }
+
+    public void DrawBeforePlayer(SpriteBatch spriteBatch, PlayerEntity? player)
+    {
         if (Data.Sheet == null)
             return;
 
-        var src = IsDepleted ? Data.DepletedSourceRect : Data.SourceRect;
-        var dest = new Rectangle(
-            (int)(WorldAnchor.X - src.Width / 2f),
-            (int)(WorldAnchor.Y - src.Height),
-            src.Width,
-            src.Height);
+        Rectangle src = IsDepleted ? Data.DepletedSourceRect : Data.SourceRect;
+        Rectangle dest = GetWorldDrawRect(src);
+        Color tint = IsFlashing ? Color.IndianRed : Color.White;
 
-        spriteBatch.Draw(Data.Sheet, dest, src, IsFlashing ? Color.IndianRed : Color.White);
+        if (IsDepleted || player == null || !ShouldUseFrontOccluder(player))
+        {
+            spriteBatch.Draw(Data.Sheet, dest, src, tint);
+            return;
+        }
+
+        int occlusionY = Math.Clamp(Data.OcclusionStartY, 0, src.Height - 1);
+        if (occlusionY > 0)
+        {
+            Rectangle backSrc = new(src.X, src.Y, src.Width, occlusionY);
+            Rectangle backDest = new(dest.X, dest.Y, dest.Width, occlusionY);
+            spriteBatch.Draw(Data.Sheet, backDest, backSrc, tint);
+        }
+    }
+
+    public void DrawAfterPlayer(SpriteBatch spriteBatch, PlayerEntity player)
+    {
+        if (Data.Sheet == null || IsDepleted || !ShouldUseFrontOccluder(player))
+            return;
+
+        Rectangle src = Data.SourceRect;
+        Rectangle dest = GetWorldDrawRect(src);
+        int occlusionY = Math.Clamp(Data.OcclusionStartY, 0, src.Height - 1);
+        Rectangle frontSrc = new(src.X, src.Y + occlusionY, src.Width, src.Height - occlusionY);
+        Rectangle frontDest = new(dest.X, dest.Y + occlusionY, dest.Width, dest.Height - occlusionY);
+
+        Color tint = IsFlashing ? Color.IndianRed : Color.White;
+        tint *= Data.OverlayFadeAlpha;
+
+        spriteBatch.Draw(Data.Sheet, frontDest, frontSrc, tint);
     }
 
     public ResourceSaveData ToSaveData() => new()
@@ -104,5 +136,23 @@ public class ResourceNode : Entity
             if (qty > 0)
                 spawnDrop(drop.ItemId, qty, WorldAnchor);
         }
+    }
+
+    private Rectangle GetWorldDrawRect(Rectangle src) => new(
+        (int)(WorldAnchor.X - src.Width / 2f),
+        (int)(WorldAnchor.Y - src.Height),
+        src.Width,
+        src.Height);
+
+    private bool ShouldUseFrontOccluder(PlayerEntity player)
+    {
+        Rectangle treeRect = GetWorldDrawRect(Data.SourceRect);
+        Rectangle playerBox = player.CollisionBox;
+
+        bool overlapsHorizontally = playerBox.Right > treeRect.Left + 8 && playerBox.Left < treeRect.Right - 8;
+        bool overlapsVertically = playerBox.Bottom > treeRect.Top + Data.OcclusionStartY && playerBox.Top < treeRect.Bottom - 6;
+        bool feetAreBehindSortLine = player.GetFootPosition().Y < WorldAnchor.Y - 1f;
+
+        return overlapsHorizontally && overlapsVertically && feetAreBehindSortLine;
     }
 }

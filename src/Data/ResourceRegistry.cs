@@ -37,6 +37,8 @@ public static class ResourceRegistry
             CollisionOffset = new Point(0, -4),
             DepletedCollisionSize = new Point(18, 10),
             DepletedCollisionOffset = new Point(0, -2),
+            OcclusionStartY = 0,
+            OverlayFadeAlpha = 0.45f,
             Drops = new List<ResourceDropData>
             {
                 new() { ItemId = "Wood", MinQuantity = 3, MaxQuantity = 5 }
