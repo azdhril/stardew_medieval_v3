@@ -215,10 +215,8 @@ public class ShopPanel
         if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
         if (_scrollOffset < 0) _scrollOffset = 0;
 
-        // Follow selection: ensure selected row is visible
-        if (_selectedIndex < _scrollOffset) _scrollOffset = _selectedIndex;
-        else if (_selectedIndex >= _scrollOffset + VisibleRows) _scrollOffset = _selectedIndex - VisibleRows + 1;
-        if (_scrollOffset < 0) _scrollOffset = 0;
+        // Wheel-driven only (CONTEXT D-01/D-02): no follow-selection, no re-centering on _selectedIndex.
+        // _scrollOffset is mutated only by the wheel handler in Update() and the range-clamp above.
 
         int scroll = _scrollOffset;
 
