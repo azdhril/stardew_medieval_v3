@@ -503,6 +503,11 @@ public class FarmScene : GameplayScene
 
         if (_debugDraw)
         {
+            Map.DrawCollisionDebug(sb, Pixel, Color.Magenta);
+
+            foreach (var chest in _chestManager.All)
+                DrawDebugRect(sb, chest.CollisionBox, Color.Orange * 0.5f);
+
             DrawDebugRect(sb, Player.CollisionBox, Color.Lime * 0.5f);
             DrawDebugRect(sb, Player.HitBox, Color.Yellow * 0.5f);
 

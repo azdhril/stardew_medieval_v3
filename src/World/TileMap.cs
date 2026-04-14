@@ -286,6 +286,28 @@ public class TileMap
     public Rectangle GetWorldBounds() =>
         new(0, 0, Width * TileSize, Height * TileSize);
 
+    /// <summary>
+    /// Draws collision polygons as outlined edges for F3 debug overlay.
+    /// </summary>
+    public void DrawCollisionDebug(SpriteBatch spriteBatch, Texture2D pixel, Color color)
+    {
+        foreach (var polygon in _collisionPolygons)
+        {
+            int n = polygon.Length;
+            for (int i = 0, j = n - 1; i < n; j = i++)
+                DrawDebugLine(spriteBatch, pixel, polygon[j], polygon[i], color);
+        }
+    }
+
+    private static void DrawDebugLine(SpriteBatch sb, Texture2D pixel, Vector2 a, Vector2 b, Color color)
+    {
+        Vector2 delta = b - a;
+        float length = delta.Length();
+        if (length < 0.0001f) return;
+        float angle = (float)Math.Atan2(delta.Y, delta.X);
+        sb.Draw(pixel, a, null, color, angle, Vector2.Zero, new Vector2(length, 1f), SpriteEffects.None, 0f);
+    }
+
     public void Draw(SpriteBatch spriteBatch, Rectangle viewArea)
     {
         if (_groundLayer != null)
