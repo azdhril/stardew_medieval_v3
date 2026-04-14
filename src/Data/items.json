@@ -65,6 +65,7 @@
     { "Id": "Prickly_Pear", "Name": "Prickly Pear", "Type": "Crop", "Rarity": "Uncommon", "StackLimit": 99, "BasePrice": 140, "SpriteId": "crop_prickly_pear", "Stats": {} },
 
     { "Id": "Hoe", "Name": "Hoe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_hoe", "Stats": {} },
+    { "Id": "Axe", "Name": "Axe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_axe", "Stats": {} },
     { "Id": "Watering_Can", "Name": "Watering Can", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_watering_can", "Stats": {} },
     { "Id": "Scythe", "Name": "Scythe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_scythe", "Stats": {} },
 
@@ -107,6 +108,7 @@
 
     { "Id": "Bones", "Name": "Bones", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 10, "SpriteId": "loot_bones", "Stats": {} },
     { "Id": "Mana_Crystal", "Name": "Mana Crystal", "Type": "Loot", "Rarity": "Uncommon", "StackLimit": 99, "BasePrice": 50, "SpriteId": "loot_mana_crystal", "Stats": {} },
-    { "Id": "Stone_Chunk", "Name": "Stone Chunk", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 5, "SpriteId": "loot_stone", "Stats": {} }
+    { "Id": "Stone_Chunk", "Name": "Stone Chunk", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 5, "SpriteId": "loot_stone", "Stats": {} },
+    { "Id": "Wood", "Name": "Wood", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 8, "SpriteId": "loot_wood", "Stats": {} }
   ]
 }

@@ -41,6 +41,12 @@ public class SpriteAtlas
         _regions[spriteId] = new Region(sheet, new Rectangle(col * width, row * height, width, height));
     }
 
+    /// <summary>Register a sprite region using an explicit rectangle on any texture.</summary>
+    public void RegisterRect(Texture2D sheet, string spriteId, Rectangle rect)
+    {
+        _regions[spriteId] = new Region(sheet, rect);
+    }
+
     /// <summary>Get the source rectangle for a sprite identifier.</summary>
     public Rectangle GetRect(string spriteId)
     {
@@ -115,9 +121,13 @@ public class SpriteAtlas
         // --- Row 3: gap ---
         // --- Row 4: tree fruits (apple / orange / banana / lime) — not implemented ---
         // --- Row 5: gap ---
-        // --- Row 6: equipment (row 3 gap, row 4 tree fruits) ---
+        // --- Row 6: equipment / loot ---
         atlas.Register("armor_leather_boots",     4, 6);
         atlas.Register("weapon_magic_staff",      5, 6);
+        atlas.Register("loot_bones",              3, 6);
+        atlas.Register("loot_stone",              2, 8);
+        atlas.Register("loot_mana_crystal",       4, 8);
+        atlas.Register("loot_wood",               0, 8);
 
         return atlas;
     }

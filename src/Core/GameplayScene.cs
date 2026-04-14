@@ -275,6 +275,7 @@ public abstract class GameplayScene : Scene
         (string id, int qty)[] kit = new[]
         {
             ("Hoe", 1),
+            ("Axe", 1),
             ("Watering_Can", 1),
             ("Scythe", 1),
             ("Iron_Sword", 1),

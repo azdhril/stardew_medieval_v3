@@ -53,7 +53,7 @@ public class ChestInstance : Entity
         Position = WorldAnchor;
     }
 
-    public void Update(float deltaTime)
+    public override void Update(float deltaTime)
     {
         if (!_opening && !_closing)
             return;
