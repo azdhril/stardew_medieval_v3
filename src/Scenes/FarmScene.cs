@@ -74,6 +74,7 @@ public class FarmScene : GameplayScene
 
         // Crops
         CropRegistry.Initialize(device);
+        ChestRegistry.Initialize(device);
         _gridManager = new GridManager(Map);
         _gridManager.LoadContent(device);
         _cropManager = new CropManager(_gridManager, CropRegistry.GetAllCrops());
