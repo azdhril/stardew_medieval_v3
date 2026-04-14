@@ -48,6 +48,24 @@ public class DungeonRegistryTests
 
     [Fact]
     [Trait("Category", "quick")]
+    public void BossRoom_RequiresAllMainRoomsCleared()
+    {
+        // DungeonScene.HandleTrigger enforces an additional check when the
+        // target room is "boss": every main room r1..r4 must be cleared.
+        // Locks both halves of that contract at the registry level: r4 has a
+        // RequiresCleared gated exit to boss, and all four main rooms are
+        // registered so the foreach loop can find them.
+        var r4 = DungeonRegistry.Get("r4");
+        Assert.True(r4.Exits.ContainsKey("exit_r4_to_boss"));
+        Assert.True(r4.Exits["exit_r4_to_boss"].RequiresCleared);
+        Assert.Equal("boss", r4.Exits["exit_r4_to_boss"].RoomId);
+
+        foreach (var id in new[] { "r1", "r2", "r3", "r4" })
+            Assert.True(DungeonRegistry.Rooms.ContainsKey(id), $"Main room {id} missing");
+    }
+
+    [Fact]
+    [Trait("Category", "quick")]
     public void NoOrphanTriggerNames()
     {
         foreach (var room in DungeonRegistry.GetAll())
@@ -81,9 +99,8 @@ public class DungeonRegistryTests
 
         foreach (var room in DungeonRegistry.GetAll())
         {
-            // Boss TMX is authored in Plan 03; skip until that lands.
-            if (room.Id == "boss") continue;
-
+            // Plan 03 authors dungeon_boss.tmx so the boss room is now included
+            // in the cross-check along with the other six rooms.
             string tmxPath = Path.Combine(repoRoot, room.TmxPath);
             Assert.True(File.Exists(tmxPath), $"TMX missing for {room.Id}: {tmxPath}");
 
