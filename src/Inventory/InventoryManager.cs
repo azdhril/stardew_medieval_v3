@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Inventory;
 /// point to items in the inventory grid. References break when the item leaves inventory
 /// (dropped, stored in chest) but persist when items are rearranged within inventory.
 /// </summary>
-public class InventoryManager
+public class InventoryManager : IItemSlotCollection
 {
     /// <summary>Total number of inventory slots.</summary>
     public const int SlotCount = 20;
@@ -25,6 +25,8 @@ public class InventoryManager
     private readonly ItemStack?[] _slots = new ItemStack?[SlotCount];
     private readonly string?[] _hotbarRefs = new string?[HotbarSize];
     private readonly string?[] _consumableRefs = new string?[ConsumableSlotCount];
+
+    public int Capacity => SlotCount;
 
     /// <summary>Currently selected hotbar slot index (0-7).</summary>
     public int ActiveHotbarIndex { get; private set; } = 0;
@@ -80,6 +82,13 @@ public class InventoryManager
     {
         if (index < 0 || index >= SlotCount) return null;
         return _slots[index];
+    }
+
+    public void SetSlot(int index, ItemStack? stack)
+    {
+        if (index < 0 || index >= SlotCount) return;
+        _slots[index] = stack == null ? null : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity };
+        OnInventoryChanged?.Invoke();
     }
 
     /// <summary>Try to add items to inventory. Returns remaining that couldn't fit.</summary>
@@ -231,6 +240,38 @@ public class InventoryManager
             if (_slots[i] != null && _slots[i]!.ItemId == itemId)
                 return i;
         return -1;
+    }
+
+    /// <summary>
+    /// Clears hotbar and consumable refs that point to items no longer present.
+    /// Useful after moving the last stack of an item into a chest or other container.
+    /// </summary>
+    public void PruneBrokenReferences()
+    {
+        bool changed = false;
+
+        for (int i = 0; i < _hotbarRefs.Length; i++)
+        {
+            var itemId = _hotbarRefs[i];
+            if (itemId != null && !HasItem(itemId))
+            {
+                _hotbarRefs[i] = null;
+                changed = true;
+            }
+        }
+
+        for (int i = 0; i < _consumableRefs.Length; i++)
+        {
+            var itemId = _consumableRefs[i];
+            if (itemId != null && !HasItem(itemId))
+            {
+                _consumableRefs[i] = null;
+                changed = true;
+            }
+        }
+
+        if (changed)
+            OnInventoryChanged?.Invoke();
     }
 
     // === Hotbar references ===

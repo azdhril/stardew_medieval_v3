@@ -33,6 +33,9 @@ public class GameState
 
     // === New (v4) per D-23: Boss tracking ===
     public bool BossKilled { get; set; } = false;
+
+    // === New (v6): dynamic world containers ===
+    public List<ChestSaveData> Chests { get; set; } = new();
 }
 
 public class FarmCellSaveData
@@ -45,4 +48,14 @@ public class FarmCellSaveData
     public string CropDataName { get; set; } = "";
     public int CropDayCount { get; set; }
     public bool IsWilted { get; set; }
+}
+
+public class ChestSaveData
+{
+    public string InstanceId { get; set; } = "";
+    public string VariantId { get; set; } = "";
+    public int TileX { get; set; }
+    public int TileY { get; set; }
+    public int Capacity { get; set; } = 12;
+    public List<ItemStack?> Contents { get; set; } = new();
 }
