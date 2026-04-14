@@ -276,6 +276,21 @@ public class InventoryManager
         ActiveHotbarIndex = Math.Clamp(index, 0, HotbarSize - 1);
     }
 
+    /// <summary>
+    /// Move the active hotbar selection by the given step count with wrap-around.
+    /// Positive values move right; negative values move left.
+    /// </summary>
+    public void CycleActiveHotbar(int step)
+    {
+        if (HotbarSize <= 0 || step == 0) return;
+
+        int next = (ActiveHotbarIndex + step) % HotbarSize;
+        if (next < 0)
+            next += HotbarSize;
+
+        ActiveHotbarIndex = next;
+    }
+
     /// <summary>Get the item stack for the currently active hotbar slot.</summary>
     public ItemStack? GetActiveHotbarItem() => GetHotbarStack(ActiveHotbarIndex);
 

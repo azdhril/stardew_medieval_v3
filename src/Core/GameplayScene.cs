@@ -135,6 +135,10 @@ public abstract class GameplayScene : Scene
                 Services.Inventory?.SetActiveHotbar(i);
         }
 
+        int wheel = Math.Sign(input.ScrollWheelDelta);
+        if (wheel != 0)
+            Services.Inventory?.CycleActiveHotbar(-wheel);
+
         if (input.IsKeyPressed(Keys.Q))
         {
             float heal = Services.Inventory?.UseConsumable(0) ?? 0f;
