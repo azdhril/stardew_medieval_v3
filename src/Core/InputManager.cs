@@ -15,6 +15,7 @@ public class InputManager
 
     public Vector2 Movement { get; private set; }
     public bool InteractPressed { get; private set; }
+    public bool IsRunHeld { get; private set; }
 
     /// <summary>Current mouse position in screen coordinates.</summary>
     public Point MousePosition => _currentMouse.Position;
@@ -56,6 +57,7 @@ public class InputManager
 
         Movement = move;
         InteractPressed = IsKeyPressed(Keys.E);
+        IsRunHeld = _currentKeys.IsKeyDown(Keys.LeftShift) || _currentKeys.IsKeyDown(Keys.RightShift);
     }
 
     public bool IsKeyPressed(Keys key) =>

@@ -11,6 +11,7 @@ public class Camera
     public Vector2 Position { get; private set; }
     public float Zoom { get; set; } = 3f;
     public Rectangle? Bounds { get; set; }
+    public GraphicsDevice GraphicsDevice => _graphics;
 
     private readonly GraphicsDevice _graphics;
     private readonly float _smoothSpeed = 8f;

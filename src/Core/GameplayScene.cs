@@ -153,7 +153,7 @@ public abstract class GameplayScene : Scene
         if (OnPreUpdate(deltaTime, input)) return;
 
         // --- Player movement ---
-        Player.Update(deltaTime, input.Movement, Map, GetSolids());
+        Player.Update(deltaTime, input.Movement, input.IsRunHeld, Map, GetSolids());
         Services.Camera.Follow(Player.Position, deltaTime);
 
         // --- Trigger dispatch ---

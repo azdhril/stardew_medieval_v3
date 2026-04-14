@@ -35,6 +35,7 @@ public class FarmScene : GameplayScene
     private SpriteAtlas _spriteAtlas = null!;
     private HotbarRenderer _hotbar = null!;
     private HUD _hud = null!;
+    private MinimapRenderer _minimap = null!;
     private readonly List<ItemDropEntity> _itemDrops = new();
     private readonly List<EnemyEntity> _enemies = new();
     private EnemySpawner _spawner = null!;
@@ -120,6 +121,10 @@ public class FarmScene : GameplayScene
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat);
         _hud.LoadContent(device, Font);
         _hud.SetQuest(_mainQuest);
+
+        _minimap = new MinimapRenderer();
+        _minimap.LoadContent(device);
+        _minimap.Rebuild(Map, device);
 
         var itemSheet = LoadTexture(device, "assets/Sprites/Items/Pickup_Items.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
@@ -441,6 +446,16 @@ public class FarmScene : GameplayScene
 
     protected override void OnDrawScreen(SpriteBatch sb, int viewportWidth, int viewportHeight)
     {
+        _minimap.Draw(
+            sb,
+            new Rectangle(viewportWidth - 174, 38, 160, 160),
+            Map,
+            Services.Camera,
+            Player,
+            _enemies,
+            _boss,
+            _gridManager);
+
         if (_boss != null && _boss.IsAlive)
         {
             BossHealthBar.Draw(sb, Pixel, Font,
@@ -451,6 +466,7 @@ public class FarmScene : GameplayScene
     protected override void OnUnload()
     {
         Services.Time.OnDayAdvanced -= OnDayAdvanced;
+        _minimap.Dispose();
     }
 
     private void ResolveEnemySeparation()
