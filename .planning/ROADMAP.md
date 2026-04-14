@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Combat** - Melee and magic attacks, HP system, enemy AI, boss encounter
 - [x] **Phase 3.1: Verification Backfill & Metadata Sync** - INSERTED. Produce 02/03-VERIFICATION.md, sync STATE/ROADMAP/REQUIREMENTS drift
 - [ ] **Phase 4: World & NPCs** - Map transitions, village with shop and King, dialogue system, quest
-- [ ] **Phase 4.1: Shop UX & Save Gap Closure** - INSERTED. Save persistence blocker + shop mouse nav + scroll-wheel regression fix
+- [x] **Phase 4.1: Shop UX & Save Gap Closure** - INSERTED. Save persistence blocker + shop mouse nav + scroll-wheel regression fix
 - [ ] **Phase 5: Dungeon** - Multi-room dungeon with progression, treasure, and boss room
 - [ ] **Phase 6: Progression & Polish** - XP/leveling, gold economy, graphical HUD, save system, death penalty
 
@@ -120,12 +120,12 @@ Plans:
 **Goal:** Close three outstanding gaps from 04-UAT: save persistence blocker (Gold, quest state, and inventory must round-trip through SaveManager); full mouse navigation of the shop (tabs, list hover/click, buttons, close); and the scroll-wheel regression in ShopPanel where follow-selection resets `_scrollOffset` every frame.
 **Requirements**: HUD-05 (save round-trip), NPC-03/NPC-04 (shop UX completeness)
 **Depends on:** Phase 4
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 04.1-01-PLAN.md -- ShopPanel scroll-wheel regression fix (gate follow-selection on selection-changed) (Wave 1)
-- [ ] 04.1-02-PLAN.md -- Shop mouse navigation hardening (tabs, rows, close X, click-outside, action button, qty widget) (Wave 2)
-- [ ] 04.1-03-PLAN.md -- GameStateSnapshot + SaveNow on shop close + F5 manual save (Wave 1)
+- [x] 04.1-01-PLAN.md -- ShopPanel scroll-wheel regression fix (gate follow-selection on selection-changed) (Wave 1)
+- [x] 04.1-02-PLAN.md -- Shop mouse navigation hardening (tabs, rows, close X, click-outside, action button, qty widget) (Wave 2)
+- [x] 04.1-03-PLAN.md -- GameStateSnapshot + SaveNow on shop close + F5 manual save (Wave 1)
 
 ### Phase 5: Dungeon
 **Goal**: Players can enter and progress through a complete dungeon experience from entrance to boss room

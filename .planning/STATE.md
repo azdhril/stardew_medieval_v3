@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-04-13T21:30:19.630Z"
-last_activity: 2026-04-13 -- Phase 04 execution started
+last_updated: "2026-04-14T01:56:01.915Z"
+last_activity: 2026-04-14 -- Phase 04.1 execution started
 progress:
-  total_phases: 7
-  completed_phases: 4
-  total_plans: 20
-  completed_plans: 17
-  percent: 85
+  total_phases: 8
+  completed_phases: 5
+  total_plans: 23
+  completed_plans: 20
+  percent: 87
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** O loop central deve ser satisfatorio: cuidar da fazenda -> explorar/lutar -> voltar com loot -> evoluir -> desbloquear mais conteudo.
-**Current focus:** Phase 04 — world-npcs
+**Current focus:** Phase 04.1 — shop-save-gap-closure
 
 ## Current Position
 
-Phase: 04 (world-npcs) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 04
-Last activity: 2026-04-13 -- Phase 04 execution started
+Phase: 04.1 (shop-save-gap-closure) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 04.1
+Last activity: 2026-04-14 -- Phase 04.1 execution started
 
 Progress: [█████░░░░░] 50%
 

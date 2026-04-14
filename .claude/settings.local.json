@@ -18,7 +18,10 @@
       "Bash(rm .planning/HANDOFF.json)",
       "Bash(rm -rf .planning/quick/260413-ueq-fix-mouse-wheel-scroll-in-shoppanel-buy-)",
       "Skill(gsd-insert-phase)",
-      "Bash(powershell -Command 'Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\('\\\\''c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Containers\\\\chests.png'\\\\''\\); Write-Host \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\)')"
+      "Bash(powershell -Command 'Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\('\\\\''c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Containers\\\\chests.png'\\\\''\\); Write-Host \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\)')",
+      "Bash(ls src/)",
+      "Bash(ls src/World)",
+      "Bash(ls assets/Maps)"
     ]
   }
 }
