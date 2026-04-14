@@ -14,7 +14,10 @@
       "Skill(gsd-discuss-phase)",
       "Skill(gsd-verify-work)",
       "Skill(gsd-next)",
-      "Skill(gsd-execute-phase)"
+      "Skill(gsd-execute-phase)",
+      "Bash(rm .planning/HANDOFF.json)",
+      "Bash(rm -rf .planning/quick/260413-ueq-fix-mouse-wheel-scroll-in-shoppanel-buy-)",
+      "Skill(gsd-insert-phase)"
     ]
   }
 }

@@ -59,6 +59,10 @@ Progress: [█████░░░░░] 50%
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 04.1 inserted after Phase 4: Shop UX & Save Gap Closure — save persistence BLOCKER + shop mouse nav + scroll-wheel regression fix (URGENT, absorbs stale quick-task 260413-ueq handoff)
+
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
