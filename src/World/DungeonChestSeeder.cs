@@ -28,7 +28,17 @@ public static class DungeonChestSeeder
     {
         var dungeon = svc.Dungeon
             ?? throw new InvalidOperationException("[DungeonChestSeeder] ServiceContainer.Dungeon is null");
+        Seed(dungeon);
+    }
 
+    /// <summary>
+    /// Test-friendly overload that works directly on a <see cref="DungeonState"/>
+    /// without requiring a full <see cref="ServiceContainer"/> (MonoGame
+    /// GraphicsDevice, etc.). Behavior is identical to the ServiceContainer
+    /// overload.
+    /// </summary>
+    public static void Seed(DungeonState dungeon)
+    {
         var rng = new Random(dungeon.RunSeed);
         var table = new LootTable(new List<LootDrop>
         {

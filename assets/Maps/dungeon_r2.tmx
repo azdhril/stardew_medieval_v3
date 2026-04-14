@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="17" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="20">
+ <tileset firstgid="1" source="dungeon_tileset.tsx"/>
+ <layer id="1" name="Ground" width="30" height="17">
+  <data encoding="csv">
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+</data>
+ </layer>
+ <objectgroup id="2" name="Collision">
+  <object id="1" x="0" y="0" width="480" height="16"/>
+  <object id="2" x="0" y="256" width="480" height="16"/>
+  <object id="3" x="0" y="0" width="16" height="272"/>
+  <object id="4" x="464" y="0" width="16" height="272"/>
+ </objectgroup>
+ <objectgroup id="3" name="Triggers">
+  <object id="5" name="exit_r2_to_r3" type="transition" x="208" y="16" width="64" height="32"/>
+  <object id="6" name="exit_r2_to_r1" type="transition" x="208" y="224" width="64" height="32"/>
+ </objectgroup>
+ <objectgroup id="4" name="Doors">
+  <object id="7" name="door" x="208" y="48" width="64" height="16">
+   <properties>
+    <property name="doorId" value="door_r2_to_r3"/>
+    <property name="targetRoomId" value="r3"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="5" name="EnemySpawns">
+  <object id="8" x="128" y="128" width="16" height="16">
+   <properties><property name="enemyId" value="Skeleton"/></properties>
+  </object>
+  <object id="9" x="232" y="160" width="16" height="16">
+   <properties><property name="enemyId" value="Skeleton"/></properties>
+  </object>
+  <object id="10" x="336" y="128" width="16" height="16">
+   <properties><property name="enemyId" value="Skeleton"/></properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="6" name="Spawn">
+  <object id="11" name="from_r1" x="232" y="200" width="16" height="16"/>
+  <object id="12" name="from_r3" x="232" y="72" width="16" height="16"/>
+ </objectgroup>
+</map>

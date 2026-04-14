@@ -23,7 +23,7 @@ public class DungeonState
     public bool BossDefeated { get; set; }
 
     /// <summary>Deterministic seed for this run's loot rolls.</summary>
-    public int RunSeed { get; private set; }
+    public int RunSeed { get; set; }
 
     /// <summary>True between BeginRun and EndRun. False at boot and after death/clear.</summary>
     public bool IsRunActive { get; private set; }

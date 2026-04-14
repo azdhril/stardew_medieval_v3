@@ -108,6 +108,61 @@ public class TileMap
             Console.WriteLine($"[TileMap] Loaded {_triggers.Count} trigger zones");
     }
 
+    /// <summary>
+    /// A single TMX object parsed from an object group: name, AABB (world px),
+    /// an optional Point (object center), and its custom properties map.
+    /// </summary>
+    public record TmxObject(
+        string Name,
+        Rectangle Bounds,
+        Vector2 Point,
+        Dictionary<string, string> Properties);
+
+    /// <summary>
+    /// Return all TMX objects in the object group with the given name
+    /// (case-insensitive). Empty list if the group is missing — callers
+    /// must tolerate absence (Pitfall 7: DungeonScene falls back to
+    /// DungeonRegistry.Spawns when "EnemySpawns" is empty).
+    /// </summary>
+    public List<TmxObject> GetObjectGroup(string groupName)
+    {
+        var results = new List<TmxObject>();
+        if (_map?.Layers == null) return results;
+
+        foreach (var layer in _map.Layers)
+        {
+            if (layer.type != TiledLayerType.ObjectLayer) continue;
+            if (!string.Equals(layer.name, groupName, StringComparison.OrdinalIgnoreCase)) continue;
+
+            var objects = layer.objects ?? Array.Empty<TiledObject>();
+            foreach (var obj in objects)
+            {
+                var bounds = new Rectangle(
+                    (int)obj.x,
+                    (int)obj.y,
+                    (int)obj.width,
+                    (int)obj.height);
+                var point = new Vector2(
+                    obj.x + obj.width / 2f,
+                    obj.y + obj.height / 2f);
+
+                var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (obj.properties != null)
+                {
+                    foreach (var p in obj.properties)
+                    {
+                        if (p.name == null) continue;
+                        props[p.name] = p.value ?? "";
+                    }
+                }
+
+                results.Add(new TmxObject(obj.name ?? "", bounds, point, props));
+            }
+        }
+
+        return results;
+    }
+
     private void LoadCollisionObjects()
     {
         _collisionPolygons.Clear();

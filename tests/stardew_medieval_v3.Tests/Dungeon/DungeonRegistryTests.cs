@@ -1,10 +1,16 @@
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using stardew_medieval_v3.Data;
 
 namespace StardewMedieval.Tests.Dungeon;
 
 /// <summary>
-/// Tests for DungeonRegistry static config integrity: room count, exits, gating.
+/// Tests for <see cref="DungeonRegistry"/> static config integrity: room count,
+/// exits, gating. Plan 02 adds a TMX cross-check proving every intra-dungeon
+/// exit name declared in the registry exists as a Trigger object in the target
+/// room's TMX file (no orphan trigger names).
 /// </summary>
 public class DungeonRegistryTests
 {
@@ -25,12 +31,10 @@ public class DungeonRegistryTests
     [Trait("Category", "quick")]
     public void BossExit_RequiresAllMainRoomsCleared()
     {
-        // The route into the boss room (exit_r4_to_boss in r4) must require clearing.
         var r4 = DungeonRegistry.Get("r4");
         Assert.True(r4.Exits.ContainsKey("exit_r4_to_boss"));
         Assert.True(r4.Exits["exit_r4_to_boss"].RequiresCleared);
 
-        // And every main room (r1, r2, r3, r4) must gate its forward exit.
         var r1 = DungeonRegistry.Get("r1");
         Assert.True(r1.Exits["exit_r1_to_r2"].RequiresCleared);
         var r2 = DungeonRegistry.Get("r2");
@@ -38,7 +42,6 @@ public class DungeonRegistryTests
         var r3 = DungeonRegistry.Get("r3");
         Assert.True(r3.Exits["exit_r3_to_r4"].RequiresCleared);
 
-        // Boss room itself is the boss arena.
         var boss = DungeonRegistry.Get("boss");
         Assert.True(boss.IsBossRoom);
     }
@@ -47,7 +50,6 @@ public class DungeonRegistryTests
     [Trait("Category", "quick")]
     public void NoOrphanTriggerNames()
     {
-        // Every intra-dungeon Exit.RoomId must reference an existing registry room.
         foreach (var room in DungeonRegistry.GetAll())
         {
             foreach (var (triggerName, exit) in room.Exits)
@@ -65,5 +67,58 @@ public class DungeonRegistryTests
                     $"Exit {triggerName} in {room.Id} points at unknown room '{exit.RoomId}'");
             }
         }
+    }
+
+    [Fact]
+    [Trait("Category", "quick")]
+    public void EveryExit_HasMatchingTriggerInSourceTmx()
+    {
+        // Contract: for each room R, every key in R.Exits must be the `name`
+        // attribute of some <object> inside an <objectgroup name="Triggers"> in
+        // R's TMX file. Proves Plan 02 authored triggers that actually match
+        // the registry.
+        string repoRoot = FindRepoRoot();
+
+        foreach (var room in DungeonRegistry.GetAll())
+        {
+            // Boss TMX is authored in Plan 03; skip until that lands.
+            if (room.Id == "boss") continue;
+
+            string tmxPath = Path.Combine(repoRoot, room.TmxPath);
+            Assert.True(File.Exists(tmxPath), $"TMX missing for {room.Id}: {tmxPath}");
+
+            var doc = XDocument.Load(tmxPath);
+            var triggerNames = doc
+                .Descendants("objectgroup")
+                .Where(g => string.Equals((string?)g.Attribute("name"), "Triggers",
+                    System.StringComparison.OrdinalIgnoreCase))
+                .Descendants("object")
+                .Select(o => (string?)o.Attribute("name") ?? "")
+                .ToHashSet();
+
+            foreach (var triggerName in room.Exits.Keys)
+            {
+                Assert.True(triggerNames.Contains(triggerName),
+                    $"Room {room.Id} TMX is missing Trigger '{triggerName}' (declared in registry)");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Walk up from the test assembly location until we find the repo root
+    /// (the directory that contains `assets/Maps`). Tests run from
+    /// tests/.../bin/Debug/net8.0, so we may need to climb several levels.
+    /// </summary>
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(System.AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            if (Directory.Exists(Path.Combine(dir.FullName, "assets", "Maps")))
+                return dir.FullName;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException(
+            "Could not locate repo root (no ancestor contains assets/Maps).");
     }
 }
