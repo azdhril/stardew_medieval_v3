@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Combat;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
+using stardew_medieval_v3.Entities;
 using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Scenes;
@@ -30,7 +31,9 @@ public class DungeonScene : GameplayScene
     private ChestManager _chestManager = null!;
     private readonly List<EnemyEntity> _enemies = new();
     private readonly List<DungeonDoor> _doors = new();
+    private readonly List<ItemDropEntity> _itemDrops = new();
     private BossEntity? _boss;
+    private bool _bossVictoryHandled;
     private ChestInstance? _promptChest;
     private ChestInstance? _pendingChestOpen;
     private readonly Random _lootRng;
@@ -156,9 +159,54 @@ public class DungeonScene : GameplayScene
             _chestManager.Add(chest);
         }
 
+        // Boss room branch (Plan 03). On first entry per milestone, spawn the
+        // BossEntity at the BossSpawn TMX point (fallback: map center). On
+        // re-entry after victory, skip spawn and leave the exit door open.
+        if (_room.IsBossRoom)
+        {
+            if (BossSpawnGate.ShouldSpawn(Services.Dungeon))
+            {
+                Vector2 bossPos = ReadBossSpawn();
+                _boss = _spawner.SpawnBoss(bossPos);
+                Console.WriteLine($"[DungeonScene:boss] Boss spawned at ({bossPos.X},{bossPos.Y})");
+            }
+            else
+            {
+                // Re-entry after victory — open exit door immediately, no boss.
+                foreach (var d in _doors) d.Open();
+                _bossVictoryHandled = true; // suppress re-fire of victory handler
+                Console.WriteLine("[DungeonScene:boss] Re-entry — boss already defeated");
+            }
+        }
+
         Console.WriteLine(
             $"[DungeonScene:{_room.Id}] Loaded ({_enemies.Count} enemies, {_doors.Count} doors, " +
-            $"{_chestManager.All.Count} chests, gated={_room.HasGatedExit})");
+            $"{_chestManager.All.Count} chests, gated={_room.HasGatedExit}, boss={_boss != null})");
+    }
+
+    /// <summary>
+    /// Resolve the boss spawn position from the TMX "BossSpawn" object group.
+    /// Fallback (T-05-10 mitigation) is the horizontal center of the map at a
+    /// safe vertical midpoint so the boss remains reachable if the group is
+    /// missing or malformed.
+    /// </summary>
+    private Vector2 ReadBossSpawn()
+    {
+        if (Map != null)
+        {
+            var group = Map.GetObjectGroup("BossSpawn");
+            foreach (var obj in group)
+            {
+                // Prefer Point objects; fall back to rectangle center.
+                if (obj.Point != Vector2.Zero) return obj.Point;
+                return new Vector2(
+                    obj.Bounds.X + obj.Bounds.Width / 2f,
+                    obj.Bounds.Y + obj.Bounds.Height / 2f);
+            }
+            Console.WriteLine("[DungeonScene:boss] Warning: BossSpawn missing, using map center");
+        }
+        // Map center fallback (30x20 tiles * 16px / 2)
+        return new Vector2(240, 160);
     }
 
     protected override bool OnPreUpdate(float deltaTime, InputManager input)
@@ -210,12 +258,7 @@ public class DungeonScene : GameplayScene
             Projectiles = _projectiles,
             Combat = _combat,
             LootRng = _lootRng,
-            SpawnItemDrop = (id, qty, pos) =>
-            {
-                // Item drop entities for dungeon kills are a later-plan concern;
-                // for now we log and skip (Plan 02 scope is rooms + chests).
-                Console.WriteLine($"[DungeonScene:{_room.Id}] Drop pending: {qty}x {id} at {pos}");
-            },
+            SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(Services.Dungeon?.BossDefeated ?? false),
             OnBossDefeated = _ =>
             {
@@ -224,6 +267,29 @@ public class DungeonScene : GameplayScene
         };
         CombatLoop.Update(deltaTime, ctx);
         _boss = ctx.Boss;
+
+        // Boss victory handler (Plan 03). Fires once per boss kill: drops loot,
+        // flips MainQuest to Complete, opens the exit door, and persists the
+        // milestone to disk so the save reflects quest-complete even if the
+        // player quits before leaving the dungeon.
+        if (_room.IsBossRoom && !_bossVictoryHandled && _boss != null && !_boss.IsAlive)
+        {
+            _bossVictoryHandled = true;
+            Console.WriteLine("[DungeonScene:boss] Boss defeated!");
+
+            bool firstKill = !(Services.Dungeon?.BossDefeated ?? false);
+            var loot = _boss.GetBossLoot(bossAlreadyKilled: !firstKill);
+            foreach (var (id, qty) in loot)
+                SpawnItemDrop(id, qty, _boss.Position);
+
+            if (Services.Dungeon != null) Services.Dungeon.BossDefeated = true;
+            Services.Quest?.Complete();
+
+            foreach (var door in _doors) door.Open();
+
+            GameStateSnapshot.SaveNow(Services);
+            _boss = null;
+        }
 
         // Death -> reset run + transition back to farm.
         if (!Player.IsAlive)
@@ -265,11 +331,40 @@ public class DungeonScene : GameplayScene
         return solids;
     }
 
+    protected override void OnPostUpdate(float deltaTime, InputManager input)
+    {
+        // Drive item drop physics/pickup (mirrors FarmScene pattern).
+        for (int i = _itemDrops.Count - 1; i >= 0; i--)
+        {
+            _itemDrops[i].UpdateWithPlayer(deltaTime, Player.GetFootPosition(), Services.Inventory!);
+            if (_itemDrops[i].IsCollected)
+            {
+                Console.WriteLine($"[DungeonScene:{_room.Id}] Picked up: {_itemDrops[i].ItemId}");
+                _itemDrops.RemoveAt(i);
+            }
+        }
+    }
+
     protected override void OnDrawWorld(SpriteBatch sb, Rectangle viewArea)
     {
         _chestManager.Draw(sb);
         foreach (var door in _doors)
             door.DrawFallback(sb, Pixel);
+        foreach (var drop in _itemDrops)
+            drop.Draw(sb);
+    }
+
+    /// <summary>Spawn an item drop entity at the given world position.</summary>
+    public void SpawnItemDrop(string itemId, int quantity, Vector2 worldPosition)
+    {
+        if (Services.Atlas == null)
+        {
+            Console.WriteLine($"[DungeonScene:{_room.Id}] Warning: no SpriteAtlas; dropping {quantity}x {itemId} skipped");
+            return;
+        }
+        var drop = new ItemDropEntity(itemId, quantity, worldPosition, Services.Atlas);
+        _itemDrops.Add(drop);
+        Console.WriteLine($"[DungeonScene:{_room.Id}] Item drop spawned: {quantity}x {itemId}");
     }
 
     protected override bool HandleTrigger(string triggerName)

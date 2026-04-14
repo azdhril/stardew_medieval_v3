@@ -31,13 +31,21 @@ public class DungeonState
     /// <summary>
     /// Reset all per-run flags and assign a new RunSeed. Called on dungeon entry,
     /// on death, and defensively if DungeonScene loads with no active run.
+    ///
+    /// NOTE: <see cref="BossDefeated"/> is intentionally NOT cleared here. Per
+    /// decision D-14 (Phase 5 context) "derrotar o boss = dungeon completa" — the
+    /// boss-kill is a terminal milestone of the dungeon arc, not a per-run flag.
+    /// D-13 specifies which flags reset on death (rooms, chests, doors, loot) and
+    /// does not include the boss. <see cref="BossSpawnGate"/> relies on this
+    /// persistence so re-entering the dungeon after victory never respawns the
+    /// boss.
     /// </summary>
     public void BeginRun()
     {
         ClearedRooms.Clear();
         OpenedChestIds.Clear();
         ChestContents.Clear();
-        BossDefeated = false;
+        // BossDefeated intentionally NOT reset (see xmldoc above).
         RunSeed = new Random().Next();
         IsRunActive = true;
         Console.WriteLine($"[DungeonState] Run started seed={RunSeed}");

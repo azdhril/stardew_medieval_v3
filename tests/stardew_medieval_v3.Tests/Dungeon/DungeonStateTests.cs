@@ -9,8 +9,12 @@ public class DungeonStateTests
 {
     [Fact]
     [Trait("Category", "quick")]
-    public void BeginRun_ClearsAllFlags()
+    public void BeginRun_ClearsRunFlags_ButPreservesBossDefeatedMilestone()
     {
+        // Per Plan 03 Task 2 decision (D-14 locked in Phase 5 CONTEXT):
+        // BossDefeated is a persistent milestone, NOT a per-run flag. BeginRun
+        // must clear rooms/chests/loot (D-13) but leave BossDefeated alone so
+        // re-entering the dungeon after victory does not respawn the boss.
         var state = new DungeonState();
         state.MarkCleared("r1");
         state.MarkChestOpened("chest_a");
@@ -22,7 +26,7 @@ public class DungeonStateTests
         Assert.Empty(state.ClearedRooms);
         Assert.Empty(state.OpenedChestIds);
         Assert.Empty(state.ChestContents);
-        Assert.False(state.BossDefeated);
+        Assert.True(state.BossDefeated); // milestone persists
         Assert.True(state.IsRunActive);
         Assert.NotEqual(0, state.RunSeed);
     }

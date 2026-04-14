@@ -23,6 +23,10 @@ public class VillageScene : GameplayScene
         // in village.tmx minus a few px so they don't immediately re-trigger.
         ["Dungeon"]           = new Vector2(864, 280),
         ["dungeon_entrance"]  = new Vector2(864, 280),
+        // Plan 05-03 D-14: returning from the boss room drops the player at
+        // the castle door so the King quest-complete dialogue (NPC-04) is the
+        // natural next beat. Reuses the existing Castle-return position.
+        ["castle_door"]       = new Vector2(208, 128),
     };
 
     public VillageScene(ServiceContainer services, string fromScene) : base(services, fromScene) { }
