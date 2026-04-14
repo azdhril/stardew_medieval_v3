@@ -24,9 +24,9 @@ tech-stack:
 
 key-files:
   created:
-    - Entities/DummyNpc.cs
+    - src/Entities/DummyNpc.cs
   modified:
-    - Scenes/TestScene.cs
+    - src/Scenes/TestScene.cs
 
 key-decisions:
   - "Used 1x1 pixel texture with color tint instead of real sprite sheet (sprites come in Phase 3-4)"
@@ -71,8 +71,8 @@ Each task was committed atomically:
 **Plan metadata:** [this commit] (docs: complete plan)
 
 ## Files Created/Modified
-- `Entities/DummyNpc.cs` - Concrete Entity subclass with patrol movement, colored rectangle rendering, and collision box override
-- `Scenes/TestScene.cs` - Modified to instantiate, update, and draw DummyNpc; added label for entity test
+- `src/Entities/DummyNpc.cs` - Concrete Entity subclass with patrol movement, colored rectangle rendering, and collision box override
+- `src/Scenes/TestScene.cs` - Modified to instantiate, update, and draw DummyNpc; added label for entity test
 
 ## Decisions Made
 - Used 1x1 pixel texture with ForestGreen color tint for DummyNpc rendering (real sprites deferred to Phase 3-4)

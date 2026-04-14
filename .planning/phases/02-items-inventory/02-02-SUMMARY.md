@@ -24,12 +24,12 @@ tech-stack:
 
 key-files:
   created:
-    - Scenes/InventoryScene.cs
-    - UI/InventoryGridRenderer.cs
-    - UI/EquipmentRenderer.cs
+    - src/Scenes/InventoryScene.cs
+    - src/UI/InventoryGridRenderer.cs
+    - src/UI/EquipmentRenderer.cs
   modified:
-    - Core/SceneManager.cs
-    - Scenes/FarmScene.cs
+    - src/Core/SceneManager.cs
+    - src/Scenes/FarmScene.cs
 
 key-decisions:
   - "Added PopImmediate to SceneManager for instant overlay close (no fade)"
@@ -78,11 +78,11 @@ Each task was committed atomically:
 2. **Task 2: FarmScene wiring and multi-rarity test items** - `d6f66f3` (feat)
 
 ## Files Created/Modified
-- `Scenes/InventoryScene.cs` - Overlay scene with tab state, click handling, close on I/Escape
-- `UI/InventoryGridRenderer.cs` - 20-slot grid rendering with selection, rarity colors, quantity text
-- `UI/EquipmentRenderer.cs` - Tibia-style equipment layout with weapon/armor slots and stat summary
-- `Core/SceneManager.cs` - Added PopImmediate() for instant scene removal without fade
-- `Scenes/FarmScene.cs` - Enabled I-key handler, added multi-rarity test items
+- `src/Scenes/InventoryScene.cs` - Overlay scene with tab state, click handling, close on I/Escape
+- `src/UI/InventoryGridRenderer.cs` - 20-slot grid rendering with selection, rarity colors, quantity text
+- `src/UI/EquipmentRenderer.cs` - Tibia-style equipment layout with weapon/armor slots and stat summary
+- `src/Core/SceneManager.cs` - Added PopImmediate() for instant scene removal without fade
+- `src/Scenes/FarmScene.cs` - Enabled I-key handler, added multi-rarity test items
 
 ## Decisions Made
 - Added PopImmediate to SceneManager for instant overlay close -- PushImmediate existed but Pop only had fade version
@@ -97,7 +97,7 @@ Each task was committed atomically:
 - **Found during:** Task 1
 - **Issue:** Plan noted SceneManager.Pop() does fade transition. Inventory overlay should close instantly (no delay). PopImmediate did not exist.
 - **Fix:** Added PopImmediate() method following same pattern as PushImmediate (pop + unload, no fade state machine)
-- **Files modified:** Core/SceneManager.cs
+- **Files modified:** src/Core/SceneManager.cs
 - **Commit:** 6eb2651
 
 ---

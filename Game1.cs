@@ -22,7 +22,7 @@ public class Game1 : Game
     public Game1()
     {
         _graphics = new GraphicsDeviceManager(this);
-        Content.RootDirectory = "Content";
+        Content.RootDirectory = "assets";
         IsMouseVisible = true;
 
         _graphics.PreferredBackBufferWidth = 960;

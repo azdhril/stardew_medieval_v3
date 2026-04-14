@@ -33,20 +33,20 @@ dotnet run
 ```
 stardew_medieval_v3.Tests/
 ├── Unit/
-│   ├── Core/
+│   ├── src/Core/
 │   │   ├── TimeManagerTests.cs
 │   │   ├── InputManagerTests.cs
 │   │   ├── SaveManagerTests.cs
 │   │   └── GameStateTests.cs
-│   ├── Farming/
+│   ├── src/Farming/
 │   │   ├── GridManagerTests.cs
 │   │   ├── CropManagerTests.cs
 │   │   ├── CropInstanceTests.cs
 │   │   └── CropDataTests.cs
-│   ├── Player/
+│   ├── src/Player/
 │   │   ├── PlayerEntityTests.cs
 │   │   └── PlayerStatsTests.cs
-│   └── World/
+│   └── src/World/
 │       └── TileMapTests.cs
 ├── Fixtures/
 │   ├── CropDataFixtures.cs

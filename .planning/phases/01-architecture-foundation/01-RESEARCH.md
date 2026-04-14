@@ -42,7 +42,7 @@ None -- discussion stayed within phase scope
 | ID | Description | Research Support |
 |----|-------------|------------------|
 | ARCH-01 | SceneManager manages transition between scenes (Farm, Village, Dungeon) with fade in/out | D-01, D-03, D-04 define the exact architecture. Fade state machine pattern documented below. |
-| ARCH-02 | Entity base class with position, sprite, collision, shared by Player/Enemy/NPC | D-05, D-06 define the full property set. PlayerEntity provides extraction reference. |
+| ARCH-02 | Entity base class with position, sprite, collision, shared by src/Player/Enemy/NPC | D-05, D-06 define the full property set. PlayerEntity provides extraction reference. |
 | ARCH-03 | Unified ItemDefinition model for crops, tools, weapons, armor, consumables, loot | D-07, D-08 define structure and JSON loading. CropRegistry migration path documented. |
 | ARCH-04 | GameState restructured for inventory, XP, quest state, gold, current scene | D-09, D-10 define exact fields and migration strategy. SaveManager pattern already exists. |
 | ARCH-05 | Game1.cs refactored to delegate logic to scenes instead of coordinating directly | All decisions combined. Game1 becomes thin shell delegating to SceneManager. |
@@ -80,22 +80,22 @@ This phase requires **zero new NuGet packages**. All functionality is built with
 
 ### Recommended Project Structure (new/modified files)
 ```
-Core/
+src/Core/
   Entity.cs             # NEW - abstract base class
   ServiceContainer.cs   # NEW - groups shared services
   SceneManager.cs       # NEW - stack-based scene management
   Scene.cs              # NEW - abstract scene base
   GameState.cs          # MODIFIED - expanded fields
   SaveManager.cs        # MODIFIED - v2->v3 migration
-Data/
+src/Data/
   ItemDefinition.cs     # NEW - unified item model
   ItemRegistry.cs       # NEW - static JSON loader (replaces CropRegistry)
   ItemType.cs           # NEW - enum (Crop/Seed/Tool/Weapon/Armor/Consumable/Loot)
   Rarity.cs             # NEW - enum (Common/Uncommon/Rare)
   items.json            # NEW - item definitions (crops initially)
-Farming/
+src/Farming/
   CropData.cs           # MODIFIED - references ItemDefinition
-Scenes/
+src/Scenes/
   FarmScene.cs          # NEW - extracted from Game1.cs
   TestScene.cs          # NEW - placeholder for transition testing
 Game1.cs                # MODIFIED - thin shell delegating to SceneManager
@@ -330,9 +330,9 @@ private static void MigrateIfNeeded(GameState state)
 **Warning signs:** Crops disappearing after load, null crop references.
 
 ### Pitfall 6: Direction Enum Duplication
-**What goes wrong:** `Direction` enum is currently in `Player/PlayerEntity.cs`. Moving to Entity base creates a conflict or duplication.
+**What goes wrong:** `Direction` enum is currently in `src/Player/PlayerEntity.cs`. Moving to Entity base creates a conflict or duplication.
 **Why it happens:** Enum is defined in the same file as PlayerEntity per current conventions.
-**How to avoid:** Move `Direction` enum to its own file in `Core/` or keep in Entity.cs. Update all `using` statements. Do this as the very first step.
+**How to avoid:** Move `Direction` enum to its own file in `src/Core/` or keep in Entity.cs. Update all `using` statements. Do this as the very first step.
 **Warning signs:** Compilation errors about ambiguous Direction type.
 
 ## Code Examples
@@ -443,9 +443,9 @@ public class GameState
 ## Open Questions (RESOLVED)
 
 1. **items.json location**
-   - What we know: D-08 says JSON loaded via ItemRegistry. Config files currently live in `Content/` or `Data/`.
-   - What's unclear: Exact path. `Data/items.json`? `Content/Data/items.json`?
-   - RESOLVED: Use `Data/items.json` alongside the code, with CopyToOutputDirectory in .csproj. Consistent with content organization. (Implemented in Plan 01-01 Task 2)
+   - What we know: D-08 says JSON loaded via ItemRegistry. Config files currently live in `assets/` or `src/Data/`.
+   - What's unclear: Exact path. `src/Data/items.json`? `assets/Data/items.json`?
+   - RESOLVED: Use `src/Data/items.json` alongside the code, with CopyToOutputDirectory in .csproj. Consistent with content organization. (Implemented in Plan 01-01 Task 2)
 
 2. **CropData relationship to ItemDefinition**
    - What we know: CropRegistry migrates to ItemRegistry (D-08). CropData has growth-specific fields (DaysPerStage, StageCount, GrowthSheet, etc.) that don't belong in generic ItemDefinition.

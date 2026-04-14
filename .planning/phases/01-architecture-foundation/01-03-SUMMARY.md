@@ -25,11 +25,11 @@ tech-stack:
 
 key-files:
   created:
-    - Scenes/FarmScene.cs
-    - Scenes/TestScene.cs
+    - src/Scenes/FarmScene.cs
+    - src/Scenes/TestScene.cs
   modified:
-    - Core/GameState.cs
-    - Core/SaveManager.cs
+    - src/Core/GameState.cs
+    - src/Core/SaveManager.cs
     - Game1.cs
 
 key-decisions:
@@ -71,8 +71,8 @@ completed: 2026-04-10
 - Commit: `57ade36`
 
 ### Task 2: Extract FarmScene, create TestScene, refactor Game1
-- Created `Scenes/FarmScene.cs` with all farm gameplay logic extracted from Game1 (tilemap, player, farming, HUD, day/night cycle, save/load)
-- Created `Scenes/TestScene.cs` as a placeholder scene with dark blue background and text, proving transitions work
+- Created `src/Scenes/FarmScene.cs` with all farm gameplay logic extracted from Game1 (tilemap, player, farming, HUD, day/night cycle, save/load)
+- Created `src/Scenes/TestScene.cs` as a placeholder scene with dark blue background and text, proving transitions work
 - Refactored `Game1.cs` to thin shell: creates ServiceContainer + SceneManager, pushes FarmScene, delegates Update/Draw
 - Game1 went from ~255 lines to ~80 lines (under 60 lines of logic)
 - Scene transitions: T key to TestScene, B key to return to FarmScene, with fade-to-black effect

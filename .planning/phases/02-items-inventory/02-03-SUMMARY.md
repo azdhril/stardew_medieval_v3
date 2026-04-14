@@ -27,13 +27,13 @@ tech-stack:
 
 key-files:
   created:
-    - Entities/ItemDropEntity.cs
+    - src/Entities/ItemDropEntity.cs
   modified:
-    - Scenes/FarmScene.cs
-    - Farming/ToolController.cs
-    - Player/PlayerEntity.cs
-    - Inventory/InventoryManager.cs
-    - UI/HotbarRenderer.cs
+    - src/Scenes/FarmScene.cs
+    - src/Farming/ToolController.cs
+    - src/Player/PlayerEntity.cs
+    - src/Inventory/InventoryManager.cs
+    - src/UI/HotbarRenderer.cs
 
 key-decisions:
   - "GetTilePosition uses foot position (CollisionBox center) instead of sprite center for accurate tile targeting"
@@ -80,12 +80,12 @@ Each task was committed atomically:
 3. **Task 3: Human verification fixes** - `88635de` + `a75ef50` (fix)
 
 ## Files Created/Modified
-- `Entities/ItemDropEntity.cs` - World-space item entity with bounce, magnetism, and pickup
-- `Farming/ToolController.cs` - Scythe tool, harvest spawns ItemDropEntity, facing tile fix
-- `Player/PlayerEntity.cs` - GetFootPosition() for foot-based tile calculations
-- `Scenes/FarmScene.cs` - Item drop list management, uses foot position for magnetism
-- `Inventory/InventoryManager.cs` - ConsumableSlotCount reduced to 1
-- `UI/HotbarRenderer.cs` - Consumable key labels updated to Q-only
+- `src/Entities/ItemDropEntity.cs` - World-space item entity with bounce, magnetism, and pickup
+- `src/Farming/ToolController.cs` - Scythe tool, harvest spawns ItemDropEntity, facing tile fix
+- `src/Player/PlayerEntity.cs` - GetFootPosition() for foot-based tile calculations
+- `src/Scenes/FarmScene.cs` - Item drop list management, uses foot position for magnetism
+- `src/Inventory/InventoryManager.cs` - ConsumableSlotCount reduced to 1
+- `src/UI/HotbarRenderer.cs` - Consumable key labels updated to Q-only
 
 ## Decisions Made
 - GetFacingTile was targeting head-level tiles because GetTilePosition used sprite center (Position). Fixed by adding GetFootPosition() that uses CollisionBox center — all tile calculations now foot-based.
@@ -100,7 +100,7 @@ Each task was committed atomically:
 - **Found during:** Task 3 (human verification)
 - **Issue:** GetTilePosition() used Position (sprite center = head), making actions target tiles at head height
 - **Fix:** Added GetFootPosition() using CollisionBox center; GetTilePosition() now uses it
-- **Files modified:** Player/PlayerEntity.cs
+- **Files modified:** src/Player/PlayerEntity.cs
 - **Verification:** User confirmed tilling targets correct tile relative to feet
 - **Committed in:** 88635de
 
@@ -108,7 +108,7 @@ Each task was committed atomically:
 - **Found during:** Task 3 (human verification)
 - **Issue:** Magnetism used player sprite center which was within pickup range of facing tile
 - **Fix:** FarmScene passes GetFootPosition() to UpdateWithPlayer; added 0.5s PickupDelay
-- **Files modified:** Entities/ItemDropEntity.cs, Scenes/FarmScene.cs
+- **Files modified:** src/Entities/ItemDropEntity.cs, src/Scenes/FarmScene.cs
 - **Verification:** User confirmed bounce animation visible and magnetism works
 - **Committed in:** a75ef50
 

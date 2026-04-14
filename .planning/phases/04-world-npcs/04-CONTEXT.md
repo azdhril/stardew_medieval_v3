@@ -60,7 +60,7 @@ None — no pending todos matched Phase 4 scope.
 
 ### Prior Phase Context
 - `.planning/phases/01-architecture-foundation/01-CONTEXT.md` — Scene/SceneManager/Entity decisions (door triggers and new scenes build on this).
-- `.planning/phases/02-items-inventory/02-CONTEXT.md` — Inventory/hotbar/gold model used by Shop.
+- `.planning/phases/02-items-inventory/02-CONTEXT.md` — src/Inventory/hotbar/gold model used by Shop.
 - `.planning/phases/03-combat/03-CONTEXT.md` — HP/damage model used by starter weapon/armor the shop sells.
 
 ### Verification Baselines
@@ -75,15 +75,15 @@ No external specs/ADRs beyond the planning directory — requirements fully capt
 ## Existing Code Insights
 
 ### Reusable Assets
-- `Core/SceneManager.cs` + `Core/Scene.cs` — scene lifecycle with fade transitions already proven by FarmScene ↔ TestScene. VillageScene / CastleScene / ShopScene plug in here.
-- `Core/GameState.cs` — serializable DTO; extend with `CurrentScene`, `MainQuestState`, Gold is already tracked via Phase 2.
-- `Core/SaveManager.cs` — JSON save with version migration. New fields go here.
-- `Core/Entity.cs` — base for NPC entities. Player/enemies already use it.
-- `World/TileMap.cs` — TMX loader with polygon collision. Door trigger zones can reuse polygon-object parsing.
-- `UI/HUD.cs` — existing HUD surface; quest tracker renders here.
-- `UI/InventoryGridRenderer.cs` — grid rendering pattern the Sell tab can reuse for player inventory display.
-- `Scenes/InventoryScene.cs` — pause-over-gameplay UI scene pattern; ShopScene/dialogue overlay can mirror this.
-- `Core/InputManager.cs` — edge-detection inputs already exist; E key and tab switching plug in.
+- `src/Core/SceneManager.cs` + `src/Core/Scene.cs` — scene lifecycle with fade transitions already proven by FarmScene ↔ TestScene. VillageScene / CastleScene / ShopScene plug in here.
+- `src/Core/GameState.cs` — serializable DTO; extend with `CurrentScene`, `MainQuestState`, Gold is already tracked via Phase 2.
+- `src/Core/SaveManager.cs` — JSON save with version migration. New fields go here.
+- `src/Core/Entity.cs` — base for NPC entities. src/Player/enemies already use it.
+- `src/World/TileMap.cs` — TMX loader with polygon collision. Door trigger zones can reuse polygon-object parsing.
+- `src/UI/HUD.cs` — existing HUD surface; quest tracker renders here.
+- `src/UI/InventoryGridRenderer.cs` — grid rendering pattern the Sell tab can reuse for player inventory display.
+- `src/Scenes/InventoryScene.cs` — pause-over-gameplay UI scene pattern; ShopScene/dialogue overlay can mirror this.
+- `src/Core/InputManager.cs` — edge-detection inputs already exist; E key and tab switching plug in.
 
 ### Established Patterns
 - Scene-per-screen with fade transitions (FarmScene / TestScene / InventoryScene / PauseScene).

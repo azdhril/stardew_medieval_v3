@@ -112,7 +112,7 @@ This phase requires **zero new NuGet packages**. MonoGame's built-in math (Vecto
 
 ### Recommended Project Structure
 ```
-Combat/
+src/Combat/
     CombatManager.cs       # Coordinates attacks, damage, i-frames for player
     MeleeAttack.cs         # Melee hitbox creation, slash visual, cooldown
     Projectile.cs          # Fireball entity (and future projectiles)
@@ -124,7 +124,7 @@ Enemies/
     EnemyAI.cs             # FSM logic (Idle/Chase/Attack/Return)
     BossEntity.cs          # Boss-specific behavior extending EnemyEntity
     LootTable.cs           # Drop definitions per enemy type
-UI/
+src/UI/
     (modify existing HUD.cs)  # Add player HP bar, magic cooldown indicator
     EnemyHealthBar.cs      # World-space HP bar drawn above enemies
     BossHealthBar.cs       # Screen-space boss HP bar at bottom
@@ -500,7 +500,7 @@ Note: The project has no pytest/xunit/nunit configuration. CLAUDE.md for the Sen
 ### Primary (HIGH confidence)
 - **Codebase files verified:** Entity.cs, PlayerEntity.cs, InputManager.cs, FarmScene.cs, DummyNpc.cs, ItemDropEntity.cs, InventoryManager.cs, EquipmentData.cs, HUD.cs, items.json, ServiceContainer.cs, Scene.cs, ToolController.cs, PlayerStats.cs
 - **MonoGame API:** Rectangle.Intersects, Vector2.Distance, MathHelper.Lerp/Clamp, SpriteBatch.Draw Color tint parameter -- all verified as existing MonoGame 3.8 API via codebase usage
-- **Asset verification:** UI_StatusBar_Fill_HP.png, UI_StatusBar_Bg.png, UI_Icon_HP.png confirmed present in Content/Sprites/System/UI Elements/Bars/
+- **Asset verification:** UI_StatusBar_Fill_HP.png, UI_StatusBar_Bg.png, UI_Icon_HP.png confirmed present in assets/Sprites/System/UI Elements/Bars/
 
 ### Secondary (MEDIUM confidence)
 - Combat design patterns (FSM, hitbox, knockback, i-frames) are standard 2D game development approaches widely documented

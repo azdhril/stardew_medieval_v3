@@ -56,7 +56,7 @@ Fase 4 é principalmente **composição sobre infraestrutura existente**, não c
 
 - **Engine fixa:** MonoGame 3.8 DesktopGL — sem adicionar libs externas pesadas. [VERIFIED: CLAUDE.md]
 - **Linguagem:** C# 12 / .NET 8.0. Nullable reference types habilitado. [VERIFIED: .csproj checked]
-- **Mapas:** Tiled `.tmx`/`.tsx` via TiledCS 3.3.3. Novos mapas devem usar o mesmo padrão de `test_farm.tmx`. [VERIFIED: TileMap.cs + Content/Maps/]
+- **Mapas:** Tiled `.tmx`/`.tsx` via TiledCS 3.3.3. Novos mapas devem usar o mesmo padrão de `test_farm.tmx`. [VERIFIED: TileMap.cs + assets/Maps/]
 - **Resolução:** 960×540 base. Village D-01 encaixa (40 tiles × 30 tiles a 16px = 640×480; usar 60×34 = 960×544 ou manter 40×30 se cabe — village é "single screen no scroll"). [CITED: CLAUDE.md constraint]
 - **Nullable enabled:** Todas refs opcionais devem ser `Type?` e inicializadas com `null!` se preenchidas em `LoadContent`. [VERIFIED: existing scenes]
 - **Convenções obrigatórias:** PascalCase classes/métodos, `_camelCase` para campos privados, `On*` para events, `Try*` para fallible ops, `[ModuleName]` em `Console.WriteLine`. [VERIFIED: CLAUDE.md]
@@ -67,12 +67,12 @@ Fase 4 é principalmente **composição sobre infraestrutura existente**, não c
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| WLD-01 | Map transitions Farm ↔ Village ↔ Dungeon com fade to black | `SceneManager.TransitionTo` já implementa fade-to-black com pending action (Core/SceneManager.cs:37). Phase 4 implementa Farm↔Village; "Dungeon entrance" é placeholder scene vazia wired na Phase 5. |
+| WLD-01 | Map transitions Farm ↔ Village ↔ Dungeon com fade to black | `SceneManager.TransitionTo` já implementa fade-to-black com pending action (src/Core/SceneManager.cs:37). Phase 4 implementa Farm↔Village; "Dungeon entrance" é placeholder scene vazia wired na Phase 5. |
 | WLD-02 | Vila mínima com castelo do Rei e 1 loja | Criar `village.tmx` (Tiled), `CastleScene`, `ShopScene`. `test_farm.tmx` serve de molde. |
 | WLD-03 | Trigger zones em bordas/portas | Estender `TileMap` para carregar um object group "Triggers" (análogo ao "Collision" já suportado em TileMap.cs:74–92). Cada objeto tem nome (ex: `exit_village`, `door_castle`) consumido pela Scene. |
 | WLD-04 | Estado do player preservado entre transições | `GameState` já serializa posição/stamina/inventário. Adicionar `CurrentScene` (já existe, default `"Farm"`) + scene-specific spawn points. Scenes precisam respeitar `_loadedState.CurrentScene` na entry. |
 | NPC-01 | Sistema de diálogo com caixa de texto e retrato | Nova `DialogueScene` overlay, seguindo padrão de `InventoryScene` (PushImmediate, dim background, bottom-anchored panel). Retrato renderizado como `Texture2D` estático à esquerda. |
-| NPC-02 | Rei NPC no castelo dando main quest | `NpcEntity` nova classe em `Entities/`. King instanciado em `CastleScene`. Interação via `InputManager.InteractPressed` (E) + proximity check usando `CollisionBox`/`HitBox` distance. |
+| NPC-02 | Rei NPC no castelo dando main quest | `NpcEntity` nova classe em `src/Entities/`. King instanciado em `CastleScene`. Interação via `InputManager.InteractPressed` (E) + proximity check usando `CollisionBox`/`HitBox` distance. |
 | NPC-03 | Shopkeeper com UI de compra/venda | `ShopScene` reusa `InventoryGridRenderer` para Sell tab; Buy tab renderiza lista de `ShopItem { ItemDef, Price }`. Gold já está em `InventoryManager`? → **NOTA:** Gold está em `GameState.Gold` mas não em `InventoryManager`. Precisa acessar Gold via `Services` ou passar ref. Planner deve decidir (ver Open Questions). |
 | NPC-04 | NPCs com estado de quest alterando diálogo | `NpcEntity.GetDialogueFor(QuestState)` retorna `string[]` (linhas). `MainQuest` publica `OnQuestStateChanged`; HUD e próximo diálogo reagem. |
 | HUD-03 | Shop UI com lista, preços, botões comprar/vender | `ShopScene` implementa. Abas via botão/tabs no topo do painel. Item row: ícone (reuse `SpriteAtlas`) + nome + preço + botão. |
@@ -85,22 +85,22 @@ Fase 4 é principalmente **composição sobre infraestrutura existente**, não c
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | MonoGame.Framework.DesktopGL | 3.8.* | Engine, rendering, input | [VERIFIED: .csproj] Locked by CLAUDE.md |
-| TiledCS | 3.3.3 | Parse `.tmx`/`.tsx` | [VERIFIED: World/TileMap.cs:7] Já extrai polygons + object groups |
+| TiledCS | 3.3.3 | Parse `.tmx`/`.tsx` | [VERIFIED: src/World/TileMap.cs:7] Já extrai polygons + object groups |
 | System.Text.Json | (BCL) | GameState serialization | [VERIFIED: SaveManager.cs:4] |
 
 ### Supporting (existing subsystems this phase consumes)
 
 | Class | Purpose | Phase 4 Touch |
 |-------|---------|---------------|
-| `Core/SceneManager.cs` | Fade transitions, scene stack | Chamar `TransitionTo(new VillageScene(...))` from FarmScene; `PushImmediate(new DialogueScene(...))` from NPC interact |
-| `Core/ServiceContainer.cs` | DI bag | Adicionar `QuestManager` ou deixar quest state dentro de `GameState` acessível via Services |
-| `Core/GameState.cs` | Persistent state | Add `QuestState` já existe (int, 0=None); promover para enum `MainQuestState`; adicionar `CurrentScene` (já existe) é usado na entry |
-| `Core/SaveManager.cs` | Save/load + migration | Bump to v5; migrate `QuestState` int → ensure `MainQuestState` semântica |
-| `Core/Entity.cs` | Base para NpcEntity | Herdar; override `CollisionBox`, `Draw`; interação via proximity |
-| `World/TileMap.cs` | TMX loader + collision | Estender com `LoadTriggerObjects()` análogo a `LoadCollisionObjects()` (TileMap.cs:70–92) |
-| `UI/HUD.cs` | Screen-space HUD | Adicionar quest tracker text top-right |
-| `UI/InventoryGridRenderer.cs` | Grid UI | Reusar no Sell tab do ShopScene |
-| `Inventory/InventoryManager.cs` | Slots, equipment | Shop chama `TryAdd`/`RemoveAt`/`TryConsume`; precisa acesso ao Gold |
+| `src/Core/SceneManager.cs` | Fade transitions, scene stack | Chamar `TransitionTo(new VillageScene(...))` from FarmScene; `PushImmediate(new DialogueScene(...))` from NPC interact |
+| `src/Core/ServiceContainer.cs` | DI bag | Adicionar `QuestManager` ou deixar quest state dentro de `GameState` acessível via Services |
+| `src/Core/GameState.cs` | Persistent state | Add `QuestState` já existe (int, 0=None); promover para enum `MainQuestState`; adicionar `CurrentScene` (já existe) é usado na entry |
+| `src/Core/SaveManager.cs` | Save/load + migration | Bump to v5; migrate `QuestState` int → ensure `MainQuestState` semântica |
+| `src/Core/Entity.cs` | Base para NpcEntity | Herdar; override `CollisionBox`, `Draw`; interação via proximity |
+| `src/World/TileMap.cs` | TMX loader + collision | Estender com `LoadTriggerObjects()` análogo a `LoadCollisionObjects()` (TileMap.cs:70–92) |
+| `src/UI/HUD.cs` | Screen-space HUD | Adicionar quest tracker text top-right |
+| `src/UI/InventoryGridRenderer.cs` | Grid UI | Reusar no Sell tab do ShopScene |
+| `src/Inventory/InventoryManager.cs` | Slots, equipment | Shop chama `TryAdd`/`RemoveAt`/`TryConsume`; precisa acesso ao Gold |
 
 **Não adicionar nada novo no NuGet.** Toda a Phase 4 é construída sobre o que já tem.
 
@@ -109,8 +109,8 @@ Fase 4 é principalmente **composição sobre infraestrutura existente**, não c
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
 | Custom trigger zones in Tiled object group | Tile-based detection (check a layer's GID at player tile) | Object groups são mais flexíveis (qualquer shape, nomes arbitrários) e já suportados pelo TileMap. **Recomendação: object group.** |
-| Write `MainQuestManager` standalone | Inline quest state em `GameState` + static helper | Com apenas 1 quest em Phase 4, manager pequeno é aceitável. **Recomendação: criar `Quest/MainQuest.cs` leve agora para facilitar Phase 6 (HUD-04 + save).** |
-| Portrait como `Texture2D` separado | Embutir no spritesheet do NPC | Separado é mais simples e permite reuso em múltiplas scenes. **Recomendação: `Content/Sprites/Portraits/king.png`, `shopkeeper.png`.** |
+| Write `MainQuestManager` standalone | Inline quest state em `GameState` + static helper | Com apenas 1 quest em Phase 4, manager pequeno é aceitável. **Recomendação: criar `src/Quest/MainQuest.cs` leve agora para facilitar Phase 6 (HUD-04 + save).** |
+| Portrait como `Texture2D` separado | Embutir no spritesheet do NPC | Separado é mais simples e permite reuso em múltiplas scenes. **Recomendação: `assets/Sprites/Portraits/king.png`, `shopkeeper.png`.** |
 | `DialogueScene` como Scene overlay | Desenhar direto em VillageScene | Overlay Scene é consistente com `InventoryScene`/`PauseScene` — bloqueia input da scene de baixo, UnloadContent limpa. **Recomendação: Scene overlay.** |
 
 ### Version Verification
@@ -123,32 +123,32 @@ Nenhum package novo — sem necessidade de `npm view`/`dotnet list`. Versões ex
 
 ```
 stardew_medieval_v3/
-├── Scenes/
+├── src/Scenes/
 │   ├── FarmScene.cs          (existing — add transition to VillageScene via edge trigger)
 │   ├── VillageScene.cs       (NEW — loads village.tmx, spawns door triggers)
 │   ├── CastleScene.cs        (NEW — interior, spawns KingNpc)
 │   ├── ShopScene.cs          (NEW — interior + overlay UI)
 │   ├── DialogueScene.cs      (NEW — overlay for NPC conversations)
 │   └── InventoryScene.cs     (existing — pattern reference)
-├── Entities/
+├── src/Entities/
 │   ├── DummyNpc.cs           (existing — pattern reference)
 │   └── NpcEntity.cs          (NEW — base for interactive NPCs)
-├── World/
+├── src/World/
 │   ├── TileMap.cs            (existing — extend to parse "Triggers" object group)
 │   └── TriggerZone.cs        (NEW — record struct: Name, Polygon/Rect, Target)
-├── Quest/                    (NEW directory)
+├── src/Quest/                    (NEW directory)
 │   ├── MainQuestState.cs     (NEW — enum NotStarted/Active/Complete)
 │   └── MainQuest.cs          (NEW — state + event + methods)
-├── UI/
+├── src/UI/
 │   ├── HUD.cs                (existing — add quest tracker)
 │   ├── DialogueBox.cs        (NEW — renderer used by DialogueScene)
 │   ├── ShopPanel.cs          (NEW — renderer used by ShopScene; Buy/Sell tabs)
 │   └── Toast.cs              (NEW — optional; small confirmation after purchase)
-├── Data/
+├── src/Data/
 │   ├── ItemDefinition.cs     (existing — needs price field OR separate price table)
 │   ├── ShopStock.cs          (NEW — static: list of (ItemId, Price) for shopkeeper)
 │   └── DialogueRegistry.cs   (NEW — static: dialogues per NPC per quest state)
-├── Content/
+├── assets/
 │   ├── Maps/
 │   │   ├── village.tmx       (NEW)
 │   │   ├── castle.tmx        (NEW)
@@ -172,7 +172,7 @@ if (_castleDoorTrigger.Contains(_player.CollisionBox) && input.InteractPressed)
 }
 ```
 
-Source: verified from `Core/SceneManager.cs:37-52` + `Scenes/FarmScene.cs:183-186`.
+Source: verified from `src/Core/SceneManager.cs:37-52` + `src/Scenes/FarmScene.cs:183-186`.
 
 ### Pattern 2: Overlay Scene (Dialogue, Shop)
 
@@ -187,7 +187,7 @@ Services.SceneManager.PushImmediate(new DialogueScene(Services, this, _quest.Sta
 Services.SceneManager.PopImmediate();
 ```
 
-Source: verified from `Core/SceneManager.cs:82-96, 129-135` + `Scenes/InventoryScene.cs:61-66`.
+Source: verified from `src/Core/SceneManager.cs:82-96, 129-135` + `src/Scenes/InventoryScene.cs:61-66`.
 
 ### Pattern 3: Entity with Interaction Prompt
 
@@ -206,7 +206,7 @@ public class NpcEntity : Entity
 }
 ```
 
-Model derived from `Entities/DummyNpc.cs` + `Core/Entity.cs:64-77`.
+Model derived from `src/Entities/DummyNpc.cs` + `src/Core/Entity.cs:64-77`.
 
 ### Pattern 4: Event-Driven Quest State
 
@@ -236,7 +236,7 @@ public class MainQuest
 </objectgroup>
 ```
 
-**Code extension (World/TileMap.cs):**
+**Code extension (src/World/TileMap.cs):**
 ```csharp
 public IReadOnlyList<TriggerZone> Triggers => _triggers;
 private readonly List<TriggerZone> _triggers = new();
@@ -260,7 +260,7 @@ private void LoadTriggerObjects()
 public record TriggerZone(string Name, Rectangle Bounds);
 ```
 
-Source: mirrors `LoadCollisionObjects` pattern at `World/TileMap.cs:70-92`. [VERIFIED: TileMap.cs behavior]
+Source: mirrors `LoadCollisionObjects` pattern at `src/World/TileMap.cs:70-92`. [VERIFIED: TileMap.cs behavior]
 
 ### Anti-Patterns to Avoid
 
@@ -296,7 +296,7 @@ Source: mirrors `LoadCollisionObjects` pattern at `World/TileMap.cs:70-92`. [VER
 | Live service config | None — projeto local | — |
 | OS-registered state | None | — |
 | Secrets/env vars | None | — |
-| Build artifacts | Nova content (maps, portraits) deve ser copiada via `<Content Include="...">` no `.csproj` (ou MGCB se for processada) | Checar `Content/Content.mgcb` para novos PNGs se usar pipeline; .tmx files são lidos direto via File.OpenRead (FarmScene.cs:59), sem MGCB |
+| Build artifacts | Nova content (maps, portraits) deve ser copiada via `<Content Include="...">` no `.csproj` (ou MGCB se for processada) | Checar `assets/Content.mgcb` para novos PNGs se usar pipeline; .tmx files são lidos direto via File.OpenRead (FarmScene.cs:59), sem MGCB |
 
 ## Common Pitfalls
 
@@ -385,7 +385,7 @@ public class NpcEntity : Entity
 }
 ```
 
-Pattern source: `Entities/DummyNpc.cs` (verified). [VERIFIED: codebase read]
+Pattern source: `src/Entities/DummyNpc.cs` (verified). [VERIFIED: codebase read]
 
 ### Example 2: DialogueScene skeleton
 
@@ -481,7 +481,7 @@ if (state.SaveVersion < 5)
 }
 ```
 
-Note: `GameState.QuestState` (int) já existe (GameState.cs:27). Migration apenas bumpa versão; semantic enum pode viver em `Quest/MainQuestState.cs` com conversão int ↔ enum nas bordas.
+Note: `GameState.QuestState` (int) já existe (GameState.cs:27). Migration apenas bumpa versão; semantic enum pode viver em `src/Quest/MainQuestState.cs` com conversão int ↔ enum nas bordas.
 
 ## State of the Art
 
@@ -532,7 +532,7 @@ Note: `GameState.QuestState` (int) já existe (GameState.cs:27). Migration apena
    - Recommendation: Criar `castle_tileset.tsx` e `shop_tileset.tsx` leves. Disponibilidade de assets é o limitador (STATE.md blocker #1). **Placeholder**: reuse farm_tileset com tiles sólidos como "walls" é ok para MVP.
 
 5. **Portraits: where to load?**
-   - Recommendation: `Content/Sprites/Portraits/king.png`, `shopkeeper.png`, carregados direto via `Texture2D.FromStream` em scene `LoadContent` (match FarmScene.cs:652 pattern).
+   - Recommendation: `assets/Sprites/Portraits/king.png`, `shopkeeper.png`, carregados direto via `Texture2D.FromStream` em scene `LoadContent` (match FarmScene.cs:652 pattern).
 
 ## Environment Availability
 
@@ -597,23 +597,23 @@ All Phase 4 requirements are UI-/UX-heavy and therefore manual-only — same mod
 ## Sources
 
 ### Primary (HIGH confidence — verified via codebase read)
-- `Core/SceneManager.cs` — TransitionTo/Push/Pop/Immediate semantics, fade state machine (lines 37–159)
-- `Core/Scene.cs` — abstract lifecycle (LoadContent/Update/Draw/UnloadContent)
-- `Core/GameState.cs` — persistent fields, `QuestState` (int) already present at line 27
-- `Core/SaveManager.cs` — migration pattern, CURRENT_SAVE_VERSION bump (lines 67–99)
-- `Core/Entity.cs` — base class contract, HitBox/CollisionBox virtuals
-- `Core/InputManager.cs` — edge-triggered input, `IsKeyPressed` for E/Space
-- `Core/ServiceContainer.cs` — composition root pattern
-- `Entities/DummyNpc.cs` — exact NPC entity pattern to mirror
-- `Scenes/FarmScene.cs` — reference for scene lifecycle, TMX load, save/load wiring
-- `Scenes/InventoryScene.cs` — overlay Scene pattern (PushImmediate + dim background + panel)
-- `Scenes/PauseScene.cs` — overlay menu pattern (button grid, hover, PopImmediate)
-- `Scenes/TestScene.cs` — minimal scene scaffold (matches CastleScene need)
-- `World/TileMap.cs` — TMX loader, `LoadCollisionObjects` pattern at lines 70–92 to mirror for triggers
-- `Inventory/InventoryManager.cs` — TryAdd/TryConsume/RemoveAt API + save/load integration
-- `UI/HUD.cs` — existing HUD surface (screen-space, PointClamp)
-- `UI/InventoryGridRenderer.cs` — reusable for Sell tab
-- `Content/Maps/test_farm.tmx` — TMX schema reference (object groups, polygons)
+- `src/Core/SceneManager.cs` — TransitionTo/Push/Pop/Immediate semantics, fade state machine (lines 37–159)
+- `src/Core/Scene.cs` — abstract lifecycle (LoadContent/Update/Draw/UnloadContent)
+- `src/Core/GameState.cs` — persistent fields, `QuestState` (int) already present at line 27
+- `src/Core/SaveManager.cs` — migration pattern, CURRENT_SAVE_VERSION bump (lines 67–99)
+- `src/Core/Entity.cs` — base class contract, HitBox/CollisionBox virtuals
+- `src/Core/InputManager.cs` — edge-triggered input, `IsKeyPressed` for E/Space
+- `src/Core/ServiceContainer.cs` — composition root pattern
+- `src/Entities/DummyNpc.cs` — exact NPC entity pattern to mirror
+- `src/Scenes/FarmScene.cs` — reference for scene lifecycle, TMX load, save/load wiring
+- `src/Scenes/InventoryScene.cs` — overlay Scene pattern (PushImmediate + dim background + panel)
+- `src/Scenes/PauseScene.cs` — overlay menu pattern (button grid, hover, PopImmediate)
+- `src/Scenes/TestScene.cs` — minimal scene scaffold (matches CastleScene need)
+- `src/World/TileMap.cs` — TMX loader, `LoadCollisionObjects` pattern at lines 70–92 to mirror for triggers
+- `src/Inventory/InventoryManager.cs` — TryAdd/TryConsume/RemoveAt API + save/load integration
+- `src/UI/HUD.cs` — existing HUD surface (screen-space, PointClamp)
+- `src/UI/InventoryGridRenderer.cs` — reusable for Sell tab
+- `assets/Maps/test_farm.tmx` — TMX schema reference (object groups, polygons)
 
 ### Secondary (MEDIUM — derived from CLAUDE.md/CONTEXT.md)
 - `CLAUDE.md` project constraints (engine, language, Tiled pipeline, conventions)

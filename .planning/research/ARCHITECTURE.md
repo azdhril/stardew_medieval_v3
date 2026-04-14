@@ -18,7 +18,7 @@ The goal is to **extend the existing architecture, not rewrite it**. Game1 remai
 ```
 Game1.cs (coordinator)
   |
-  +-- Core/ (unchanged: InputManager, TimeManager, Camera, SaveManager, GameState)
+  +-- src/Core/ (unchanged: InputManager, TimeManager, Camera, SaveManager, GameState)
   |
   +-- SceneManager (NEW)
   |     |
@@ -27,14 +27,14 @@ Game1.cs (coordinator)
   |     +-- DungeonScene     (rooms, enemies, combat, loot)
   |     +-- BossRoomScene    (boss fight, special arena)
   |
-  +-- Entities/ (NEW: shared base for all game objects)
+  +-- src/Entities/ (NEW: shared base for all game objects)
   |     +-- Entity (base: Position, Velocity, CollisionBox, Update, Draw)
   |     +-- PlayerEntity (REFACTORED: extends Entity, adds combat stats)
   |     +-- Enemy (extends Entity, adds AI + health + loot table)
   |     +-- NPC (extends Entity, adds dialogue tree)
   |     +-- Projectile (extends Entity: spells, thrown items)
   |
-  +-- Combat/ (NEW)
+  +-- src/Combat/ (NEW)
   |     +-- CombatManager (hit detection, damage calc, cooldowns)
   |     +-- AttackData (weapon stats, hitbox shapes, cooldowns)
   |     +-- DamageCalculator (attack vs defense, level scaling)
@@ -46,7 +46,7 @@ Game1.cs (coordinator)
   |     +-- AttackBehavior (attack when in range)
   |     +-- BossAI (phase-based behavior)
   |
-  +-- Inventory/ (NEW)
+  +-- src/Inventory/ (NEW)
   |     +-- InventoryManager (slot array, add/remove/stack)
   |     +-- Item (base: ID, name, icon, stackable, type)
   |     +-- Equipment (extends Item: weapon/armor with stats)
@@ -66,16 +66,16 @@ Game1.cs (coordinator)
   |     +-- LevelSystem (XP thresholds, stat gains per level)
   |     +-- PlayerProgression (current XP, level, allocated stats)
   |
-  +-- UI/ (EXTENDED)
+  +-- src/UI/ (EXTENDED)
   |     +-- HUD (existing, extended with health bar + XP + active weapon)
   |     +-- InventoryScreen (grid UI, drag equip)
   |     +-- DialogueBox (text rendering, choice buttons)
   |     +-- ShopScreen (buy/sell interface)
   |     +-- BossHealthBar (screen-top boss HP)
   |
-  +-- Farming/ (unchanged)
-  +-- World/ (unchanged, TileMap reused per scene)
-  +-- Data/ (extended: ItemRegistry, EnemyRegistry, DialogueRegistry)
+  +-- src/Farming/ (unchanged)
+  +-- src/World/ (unchanged, TileMap reused per scene)
+  +-- src/Data/ (extended: ItemRegistry, EnemyRegistry, DialogueRegistry)
 ```
 
 ## Component Boundaries

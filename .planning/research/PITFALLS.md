@@ -53,7 +53,7 @@ Mistakes that cause rewrites or major issues.
 
 **Detection:** You're copy-pasting movement or collision code from PlayerEntity into a new class.
 
-**Phase:** Must happen before Combat/Enemy systems. Part of the architecture refactor phase.
+**Phase:** Must happen before src/Combat/Enemy systems. Part of the architecture refactor phase.
 
 ---
 
@@ -284,7 +284,7 @@ Mistakes that cause rewrites or major issues.
 | Combat System | Pitfall 5 (Collision mismatch), Pitfall 7 (No spatial partition) | Separate combat hitboxes from world collision. Profile with 20 enemies early. |
 | Dungeon/Maps | Pitfall 4 (Map transitions), Pitfall 9 (No pathfinding) | Scene manager + tile walkability grid before content authoring. |
 | NPCs/Quests | Pitfall 10 (Hardcoded quests) | Data-driven dialogue and quest conditions. Generic objective system. |
-| UI/HUD | Pitfall 11 (Screen vs world space UI) | Clear render pass ordering. WorldUI helper for floating elements. |
+| src/UI/HUD | Pitfall 11 (Screen vs world space UI) | Clear render pass ordering. WorldUI helper for floating elements. |
 | Content Pipeline | Pitfall 12 (Texture explosion), Pitfall 14 (Hardcoded data) | Atlas planning early. JSON data loading for all content types. |
 
 ## Sources

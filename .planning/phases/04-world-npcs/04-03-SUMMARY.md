@@ -30,17 +30,17 @@ tech-stack:
     - "#if DEBUG-gated dev input hook (F9)"
 key-files:
   created:
-    - "Data/DialogueRegistry.cs"
-    - "UI/DialogueBox.cs"
-    - "UI/InteractionPrompt.cs"
-    - "Scenes/DialogueScene.cs"
-    - "Content/Sprites/Portraits/king.png"
-    - "Content/Sprites/NPCs/king.png"
+    - "src/Data/DialogueRegistry.cs"
+    - "src/UI/DialogueBox.cs"
+    - "src/UI/InteractionPrompt.cs"
+    - "src/Scenes/DialogueScene.cs"
+    - "assets/Sprites/Portraits/king.png"
+    - "assets/Sprites/NPCs/king.png"
   modified:
-    - "Scenes/CastleScene.cs"
-    - "UI/HUD.cs"
+    - "src/Scenes/CastleScene.cs"
+    - "src/UI/HUD.cs"
     - "Game1.cs"
-    - "Scenes/FarmScene.cs"
+    - "src/Scenes/FarmScene.cs"
 decisions:
   - "DrawQuestTracker made static helper so CastleScene (no HUD instance) can render it too"
   - "Advance indicator uses ASCII 'v' fallback instead of Unicode '▼' to avoid SpriteFont glyph gaps"
@@ -59,12 +59,12 @@ Ship the dialogue system (NPC-01, HUD-05), wire the King NPC with quest-activati
 ## What Shipped
 
 ### UI Classes (new)
-- **`UI/DialogueBox.cs`** — Stateless renderer for the 880x120 dialogue panel. Full-screen dim overlay → panel with 1px black outline + 1px bevel → 80x80 portrait slot (left, fallback rect when null) → text column → pulsing ▼ advance indicator (ASCII 'v' for SpriteFont safety).
-- **`UI/InteractionPrompt.cs`** — Small floating panel (~120x24, sized dynamically). Caller converts world→screen; renders 20px above anchor point.
-- **`Scenes/DialogueScene.cs`** — Overlay scene with `Typing` / `WaitingAdvance` state machine. 40 cps typewriter (CharInterval = 0.025s). E or Space: snap-to-full (mid-typing) or advance (after reveal). `PopImmediate` on last-line advance; invokes `onClose` first.
+- **`src/UI/DialogueBox.cs`** — Stateless renderer for the 880x120 dialogue panel. Full-screen dim overlay → panel with 1px black outline + 1px bevel → 80x80 portrait slot (left, fallback rect when null) → text column → pulsing ▼ advance indicator (ASCII 'v' for SpriteFont safety).
+- **`src/UI/InteractionPrompt.cs`** — Small floating panel (~120x24, sized dynamically). Caller converts world→screen; renders 20px above anchor point.
+- **`src/Scenes/DialogueScene.cs`** — Overlay scene with `Typing` / `WaitingAdvance` state machine. 40 cps typewriter (CharInterval = 0.025s). E or Space: snap-to-full (mid-typing) or advance (after reveal). `PopImmediate` on last-line advance; invokes `onClose` first.
 
 ### Data (new)
-- **`Data/DialogueRegistry.cs`** — 6 entries keyed by `(npcId, MainQuestState)`:
+- **`src/Data/DialogueRegistry.cs`** — 6 entries keyed by `(npcId, MainQuestState)`:
   - `(king, NotStarted)` 3 lines ending in **"clear the dungeon"** (activation phrase).
   - `(king, Active)` 2 lines (encouragement to finish).
   - `(king, Complete)` 2 lines (reward speech).
@@ -72,8 +72,8 @@ Ship the dialogue system (NPC-01, HUD-05), wire the King NPC with quest-activati
   - Missing key returns `[ "..." ]` fallback.
 
 ### Wiring
-- **`Scenes/CastleScene.cs`** — Spawns King NPC at `(320, 100)` with 32x32 sprite + 80x80 portrait loaded via `Texture2D.FromStream`. Per-frame proximity check (`IsInInteractRange`, 28px) toggles `_showPrompt`. E press pushes `DialogueScene` with `DialogueRegistry.Get("king", Services.Quest.State)`. `onClose` activates quest if NotStarted.
-- **`UI/HUD.cs`** — `DrawQuestTracker(sb, font, pixel, state, screenWidth)` static helper. Top-right 200x20 panel, right-aligned text:
+- **`src/Scenes/CastleScene.cs`** — Spawns King NPC at `(320, 100)` with 32x32 sprite + 80x80 portrait loaded via `Texture2D.FromStream`. Per-frame proximity check (`IsInInteractRange`, 28px) toggles `_showPrompt`. E press pushes `DialogueScene` with `DialogueRegistry.Get("king", Services.Quest.State)`. `onClose` activates quest if NotStarted.
+- **`src/UI/HUD.cs`** — `DrawQuestTracker(sb, font, pixel, state, screenWidth)` static helper. Top-right 200x20 panel, right-aligned text:
   - NotStarted: `"Quest: (none)"` in `Color.Gray * 0.7f`.
   - Active: `"Quest:"` in `Color.Gold` + `" Clear the Dungeon"` in `Color.White`.
   - Complete: same + `"v"` in `Color.LimeGreen` (ASCII check).
@@ -155,14 +155,14 @@ Execution environment is non-interactive (YOLO mode, no GUI session). Automated 
 - **Found during:** Task 3
 - **Issue:** Plan requires quest tracker visible on dialogue close (steps 6-9), but the dialogue closes inside CastleScene. `HUD` is only instantiated in `FarmScene` and cannot be constructed in CastleScene because its ctor requires `TimeManager`, `PlayerStats`, `ToolController`, `PlayerEntity`, `CombatManager` — none of which CastleScene owns.
 - **Fix:** Promoted `DrawQuestTracker` to a `public static` method on `HUD`. FarmScene's `HUD.Draw` calls it internally (via the instance method that reads `_quest`). CastleScene calls it directly in its `Draw` method, passing `Services.Quest?.State ?? NotStarted`. Added `HUD.SetQuest(MainQuest?)` binder so the FarmScene path still works through a single call.
-- **Files modified:** `UI/HUD.cs`, `Scenes/CastleScene.cs`, `Scenes/FarmScene.cs`.
+- **Files modified:** `src/UI/HUD.cs`, `src/Scenes/CastleScene.cs`, `src/Scenes/FarmScene.cs`.
 - **Commit:** `0972a7e`.
 
 **2. [Rule 2 - Missing critical functionality] ▼ Unicode glyph may not exist in DefaultFont SpriteFont**
 - **Found during:** Task 2 authoring
-- **Issue:** UI-SPEC copy calls for `▼` (U+25BC) advance indicator and `✓` (U+2713) complete checkmark, but `Content/DefaultFont.spritefont` uses Arial with no guaranteed CharacterRegion covering these. Missing glyphs crash `SpriteFont.DrawString`.
+- **Issue:** UI-SPEC copy calls for `▼` (U+25BC) advance indicator and `✓` (U+2713) complete checkmark, but `assets/DefaultFont.spritefont` uses Arial with no guaranteed CharacterRegion covering these. Missing glyphs crash `SpriteFont.DrawString`.
 - **Fix:** Used ASCII `"v"` fallback for both indicators (dialogue-advance and complete-check). Documented in inline comment. Visual fidelity slightly reduced from spec; functional behavior (color-coded, pulsing, right-aligned) preserved. If a glyph-capable font ships later, changing the two string literals is trivial.
-- **Files modified:** `UI/DialogueBox.cs`, `UI/HUD.cs`.
+- **Files modified:** `src/UI/DialogueBox.cs`, `src/UI/HUD.cs`.
 
 No architectural questions raised. No auth gates encountered.
 
@@ -177,16 +177,16 @@ No architectural questions raised. No auth gates encountered.
 
 ## Self-Check: PASSED
 
-- Data/DialogueRegistry.cs: FOUND (contains `clear the dungeon`; 6 `MainQuestState.` keys)
-- UI/DialogueBox.cs: FOUND (`class DialogueBox`)
-- UI/InteractionPrompt.cs: FOUND (`class InteractionPrompt`)
-- Scenes/DialogueScene.cs: FOUND (`class DialogueScene`, `CharInterval = 0.025f`, `IsKeyPressed(Keys.E)`, `IsKeyPressed(Keys.Space)`, `PopImmediate`)
-- UI/HUD.cs: modified (contains `DrawQuestTracker`, `Quest: (none)`, `Clear the Dungeon`)
-- Scenes/CastleScene.cs: modified (contains `new NpcEntity("king"`, `PushImmediate(new DialogueScene`)
+- src/Data/DialogueRegistry.cs: FOUND (contains `clear the dungeon`; 6 `MainQuestState.` keys)
+- src/UI/DialogueBox.cs: FOUND (`class DialogueBox`)
+- src/UI/InteractionPrompt.cs: FOUND (`class InteractionPrompt`)
+- src/Scenes/DialogueScene.cs: FOUND (`class DialogueScene`, `CharInterval = 0.025f`, `IsKeyPressed(Keys.E)`, `IsKeyPressed(Keys.Space)`, `PopImmediate`)
+- src/UI/HUD.cs: modified (contains `DrawQuestTracker`, `Quest: (none)`, `Clear the Dungeon`)
+- src/Scenes/CastleScene.cs: modified (contains `new NpcEntity("king"`, `PushImmediate(new DialogueScene`)
 - Game1.cs: modified (contains `Keys.F9` inside `#if DEBUG`)
-- Scenes/FarmScene.cs: modified (contains `_hud.SetQuest(_mainQuest)`)
-- Content/Sprites/NPCs/king.png: FOUND (355 bytes, 32x32 placeholder)
-- Content/Sprites/Portraits/king.png: FOUND (672 bytes, 80x80 placeholder)
+- src/Scenes/FarmScene.cs: modified (contains `_hud.SetQuest(_mainQuest)`)
+- assets/Sprites/NPCs/king.png: FOUND (355 bytes, 32x32 placeholder)
+- assets/Sprites/Portraits/king.png: FOUND (672 bytes, 80x80 placeholder)
 - Commits 5a53890, 035859a, 0972a7e: all FOUND in git log
 - `dotnet build -c Debug --nologo -v q`: 0 warnings, 0 errors
 - `dotnet build -c Release --nologo -v q`: 0 warnings, 0 errors (F9 DEBUG gating verified)

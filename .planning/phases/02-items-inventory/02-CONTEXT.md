@@ -51,20 +51,20 @@ Sistema completo de inventario, hotbar, equipamento, e integracao farming->inven
 **Downstream agents MUST read these before planning or implementing.**
 
 ### UI Assets (CRITICO — sprites ja prontos)
-- `Content/Sprites/System/Preview/HUD.png` — Referencia visual completa da HUD desejada (hotbar, barras, retrato, minimapa)
-- `Content/Sprites/System/Preview/Preview.png` — Catalogo completo de todos sprites UI disponiveis no kit
-- `Content/Sprites/System/UI Elements/Slot/` — Sprites de slot: Normal, Selected, Dim, Normal_Small, Selected_Small
-- `Content/Sprites/System/Icons/System/` — Icones de sistema: Gold, Attack, Defense, Lock, Gem, etc.
-- `Content/Sprites/System/UI Elements/Bars/` — Barras de HP, progress bars, icones de pocao
+- `assets/Sprites/System/Preview/HUD.png` — Referencia visual completa da HUD desejada (hotbar, barras, retrato, minimapa)
+- `assets/Sprites/System/Preview/Preview.png` — Catalogo completo de todos sprites UI disponiveis no kit
+- `assets/Sprites/System/UI Elements/Slot/` — Sprites de slot: Normal, Selected, Dim, Normal_Small, Selected_Small
+- `assets/Sprites/System/Icons/System/` — Icones de sistema: Gold, Attack, Defense, Lock, Gem, etc.
+- `assets/Sprites/System/UI Elements/Bars/` — Barras de HP, progress bars, icones de pocao
 
 ### Codebase (Phase 1 outputs)
-- `Data/ItemDefinition.cs` — Modelo de item unificado (Id, Name, Type, Rarity, StackLimit, SpriteId, Stats)
-- `Data/ItemRegistry.cs` — Registry estatico com 45 itens carregados de JSON
-- `Data/items.json` — Definicoes de itens (crops, seeds, tools)
-- `Data/ItemStack.cs` — Stack de itens (item + quantidade)
-- `Core/GameState.cs` — Ja tem Inventory, Gold, HotbarSlots, WeaponId/ArmorId placeholders
-- `Core/Entity.cs` — Base class para ItemDrop entity (Position, SpriteSheet, CollisionBox, Update, Draw)
-- `Core/SaveManager.cs` — Save/load com migracao de versao
+- `src/Data/ItemDefinition.cs` — Modelo de item unificado (Id, Name, Type, Rarity, StackLimit, SpriteId, Stats)
+- `src/Data/ItemRegistry.cs` — Registry estatico com 45 itens carregados de JSON
+- `src/Data/items.json` — Definicoes de itens (crops, seeds, tools)
+- `src/Data/ItemStack.cs` — Stack de itens (item + quantidade)
+- `src/Core/GameState.cs` — Ja tem Inventory, Gold, HotbarSlots, WeaponId/ArmorId placeholders
+- `src/Core/Entity.cs` — Base class para ItemDrop entity (Position, SpriteSheet, CollisionBox, Update, Draw)
+- `src/Core/SaveManager.cs` — Save/load com migracao de versao
 
 ### Codebase Maps
 - `.planning/codebase/ARCHITECTURE.md` — Arquitetura atual, layers, data flow
@@ -93,18 +93,18 @@ Sistema completo de inventario, hotbar, equipamento, e integracao farming->inven
 - Scene push/pop para overlays — inventario como InventoryScene empilhada
 
 ### Integration Points
-- `Scenes/FarmScene.cs` — Onde item drops sao spawned apos colheita, onde magnetismo opera
-- `Farming/CropManager.cs` — Harvest logic precisa mudar: crop -> item drop no chao
-- `Farming/ToolController.cs` — Adicionar foice como ferramenta de colheita
-- `Core/GameState.cs` — Inventory/HotbarSlots/Equipment ja tem campos placeholder
-- `Player/PlayerEntity.cs` — Collision check com item drops para magnetismo
+- `src/Scenes/FarmScene.cs` — Onde item drops sao spawned apos colheita, onde magnetismo opera
+- `src/Farming/CropManager.cs` — Harvest logic precisa mudar: crop -> item drop no chao
+- `src/Farming/ToolController.cs` — Adicionar foice como ferramenta de colheita
+- `src/Core/GameState.cs` — src/Inventory/HotbarSlots/Equipment ja tem campos placeholder
+- `src/Player/PlayerEntity.cs` — Collision check com item drops para magnetismo
 
 </code_context>
 
 <specifics>
 ## Specific Ideas
 
-- Referencia visual principal: HUD.png e Preview.png no kit de sprites (Content/Sprites/System/Preview/)
+- Referencia visual principal: HUD.png e Preview.png no kit de sprites (assets/Sprites/System/Preview/)
 - Hotbar identica ao estilo mostrado no HUD.png (slots numerados na base da tela, com itens dentro)
 - Equipment screen Tibia-style com silhueta de personagem e slots fixos ao redor
 - Magnetismo estilo Stardew Valley: item flutua suavemente em direcao ao player, acelerando

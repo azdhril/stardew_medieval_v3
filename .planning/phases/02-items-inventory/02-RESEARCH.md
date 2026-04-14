@@ -83,24 +83,24 @@ No new libraries needed. This phase uses only existing MonoGame APIs:
 ### Recommended Project Structure
 ```
 stardew_medieval_v3/
-├── Inventory/
+├── src/Inventory/
 │   ├── InventoryManager.cs    # Pure data: 20 slots + 8 hotbar + equipment
 │   └── EquipmentData.cs       # Weapon/Armor slot state + stat calculation
-├── Entities/
+├── src/Entities/
 │   └── ItemDropEntity.cs      # World-space dropped item with bounce + magnetism
-├── Scenes/
+├── src/Scenes/
 │   └── InventoryScene.cs      # Overlay scene: grid tab + equipment tab
-├── UI/
+├── src/UI/
 │   ├── HUD.cs                 # (modify) Add hotbar rendering
 │   ├── HotbarRenderer.cs      # Renders 8 slots at screen bottom
 │   ├── InventoryGridRenderer.cs  # Renders 20-slot grid with items
 │   └── EquipmentRenderer.cs   # Renders equipment slots (Tibia-style)
-└── Data/
+└── src/Data/
     ├── items.json              # (modify) Add weapon/armor items for testing
     └── SpriteAtlas.cs          # Maps SpriteId -> source Rectangle in spritesheet
 ```
 
-### Pattern 1: Data/View Separation for Inventory
+### Pattern 1: src/Data/View Separation for Inventory
 **What:** `InventoryManager` owns all item slot state (add, remove, move, stack, equip). UI classes only read from it and call its methods on user input.
 **When to use:** Always -- this separation makes save/load trivial and testing possible without rendering.
 **Example:**
@@ -224,7 +224,7 @@ public class ItemDropEntity : Entity
 
 ### Pitfall 6: SaveManager Not Persisting Inventory
 **What goes wrong:** Player closes game, reopens, inventory is empty.
-**Why it happens:** `FarmScene.OnDayAdvanced()` creates GameState but doesn't populate Inventory/HotbarSlots/WeaponId/ArmorId fields.
+**Why it happens:** `FarmScene.OnDayAdvanced()` creates GameState but doesn't populate src/Inventory/HotbarSlots/WeaponId/ArmorId fields.
 **How to avoid:** Update `OnDayAdvanced()` save logic to serialize InventoryManager state into GameState fields. Also update `LoadContent()` to restore from save.
 **Warning signs:** Save file shows empty Inventory array.
 
@@ -481,7 +481,7 @@ public (float attack, float defense) GetEquipmentStats()
 - `items.json` with 45 item definitions [VERIFIED: file read]
 - `SceneManager.cs` Push/Pop/PushImmediate patterns [VERIFIED: file read]
 - `Entity.cs` base class for ItemDropEntity [VERIFIED: file read]
-- `GameState.cs` existing Inventory/HotbarSlots/WeaponId/ArmorId fields [VERIFIED: file read]
+- `GameState.cs` existing src/Inventory/HotbarSlots/WeaponId/ArmorId fields [VERIFIED: file read]
 
 ### Secondary (MEDIUM confidence)
 - MonoGame SpriteBatch, Mouse, Rectangle APIs [ASSUMED: standard MonoGame 3.8 API surface]

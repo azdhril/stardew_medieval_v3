@@ -10,19 +10,19 @@ closes_gaps:
   - "UAT Test 10 — Shop menu not mouse-operable (major) — CLOSED"
 dependency-graph:
   requires:
-    - UI/ShopPanel.cs (existing keyboard implementation)
-    - Core/InputManager.cs (MousePosition + IsLeftClickPressed already exposed)
+    - src/UI/ShopPanel.cs (existing keyboard implementation)
+    - src/Core/InputManager.cs (MousePosition + IsLeftClickPressed already exposed)
   provides:
     - Mouse interactivity for shop overlay (tabs, rows, action button, close, click-outside)
   affects:
-    - Scenes/ShopOverlayScene.cs (no code change — already maps Update→true to PopImmediate)
+    - src/Scenes/ShopOverlayScene.cs (no code change — already maps Update→true to PopImmediate)
 tech-stack:
   added: []
   patterns: ["rect.Contains(mousePos) hit-test", "edge-triggered IsLeftClickPressed"]
 key-files:
   created: []
   modified:
-    - UI/ShopPanel.cs (+132 / -14 lines)
+    - src/UI/ShopPanel.cs (+132 / -14 lines)
 decisions:
   - "UpdateLayoutCache called from BOTH Update and Draw (defensive); pure layout, no side effects"
   - "_hoveredRow uses VISIBLE-row index (0..visible-1); _selectedIndex stays ABSOLUTE (0..rows-1); conversion via _scrollOffset"
@@ -37,13 +37,13 @@ metrics:
 
 # Phase 04 Plan 06: Shop Mouse Interactivity Summary
 
-Adds full mouse hit-test and click handling to `UI/ShopPanel.cs` using the canonical
+Adds full mouse hit-test and click handling to `src/UI/ShopPanel.cs` using the canonical
 `rect.Contains(mousePos) + IsLeftClickPressed` pattern already used by `PauseScene`
 and `HotbarRenderer`. Closes UAT Tests 9 (minor) and 10 (major).
 
 ## What Changed
 
-### New Private Fields (`UI/ShopPanel.cs` lines 47-56)
+### New Private Fields (`src/UI/ShopPanel.cs` lines 47-56)
 
 ```csharp
 private Rectangle _panelRect;
@@ -154,11 +154,11 @@ form (called from both Update and Draw) over the alternate Draw-recomputes-local
 
 | Hash | Message | Files |
 |------|---------|-------|
-| f714de8 | feat(04-06): add mouse hit-test and click handling to ShopPanel | UI/ShopPanel.cs |
+| f714de8 | feat(04-06): add mouse hit-test and click handling to ShopPanel | src/UI/ShopPanel.cs |
 
 ## Self-Check: PASSED
 
-- `UI/ShopPanel.cs` exists and contains all six new field declarations: FOUND
+- `src/UI/ShopPanel.cs` exists and contains all six new field declarations: FOUND
 - `UpdateLayoutCache` method present (declaration + 2 call sites): FOUND
 - `_panelRect.Contains` click-outside guard: FOUND (1 occurrence, line 93)
 - Commit `f714de8` exists in current branch (`worktree-agent-aaf5ae4e`): FOUND

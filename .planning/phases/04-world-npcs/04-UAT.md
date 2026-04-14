@@ -53,7 +53,7 @@ result: pass
 expected: Na ShopScene, aproxime do Shopkeeper (spawn 320,200). Press E abre dialogue variante do shopkeeper (estado atual da quest). Ao fechar a última linha, ShopOverlayScene empurra automaticamente mostrando painel 720x400 centralizado com tabs Buy/Sell e contador de Gold em dourado no canto.
 result: pass
 initial_issue: "só trava em Discount? Bah. Buy what you like, on me today. e fica travado n consigo sair desse dialogo"
-fix_applied: "Scenes/DialogueScene.cs: PopImmediate() antes de _onClose?.Invoke() (ordem invertida). Bug: onClose pushava ShopOverlayScene, Pop derrubava o overlay recém-pushado."
+fix_applied: "src/Scenes/DialogueScene.cs: PopImmediate() antes de _onClose?.Invoke() (ordem invertida). Bug: onClose pushava ShopOverlayScene, Pop derrubava o overlay recém-pushado."
 retest_feedback: "Passou após fix. Feedback adicional: suporte a mouse nos tabs Buy/Sell (hoje só TAB troca)."
 
 ### 10. Shop Buy — Happy Path
@@ -94,7 +94,7 @@ skipped: 0
   reason: "User feedback no Test 9: só TAB/teclado troca abas; esperado suporte mouse também."
   severity: minor
   test: 9
-  artifacts: ["UI/ShopPanel.cs"]
+  artifacts: ["src/UI/ShopPanel.cs"]
   missing: ["Mouse hit-test + click handling para regiões dos tabs (80x32 em (136,88))"]
 
 - truth: "Shop menu deve ser totalmente manipulável com mouse (navegação da lista, seleção de item, botão Buy/Sell, fechar)"
@@ -102,7 +102,7 @@ skipped: 0
   reason: "User reported no Test 10: falta conseguir manipular o menu do shopkeeper com o mouse"
   severity: major
   test: 10
-  artifacts: ["UI/ShopPanel.cs", "Scenes/ShopOverlayScene.cs"]
+  artifacts: ["src/UI/ShopPanel.cs", "src/Scenes/ShopOverlayScene.cs"]
   missing: ["Mouse hit-test para lista de itens (hover + click seleciona)", "Click no botão Buy/Sell executa ação", "Click fora do painel ou em X fecha overlay", "Scroll wheel para lista longa"]
 
 - truth: "Shop deve ter scrollbar visível na lista de itens"
@@ -110,7 +110,7 @@ skipped: 0
   reason: "User reported no Test 12: falta barra de rolagem no menu do shop keeper"
   severity: major
   test: 12
-  artifacts: ["UI/ShopPanel.cs"]
+  artifacts: ["src/UI/ShopPanel.cs"]
   missing: ["Renderizar scrollbar vertical quando a lista excede a altura visível (indicador de posição + trilho)"]
 
 - truth: "Scroll wheel do mouse deve rolar a lista de itens do shop"
@@ -118,7 +118,7 @@ skipped: 0
   reason: "User reported no Test 12: falta conseguir utilizar a roda do mouse"
   severity: major
   test: 12
-  artifacts: ["UI/ShopPanel.cs", "Core/InputManager.cs"]
+  artifacts: ["src/UI/ShopPanel.cs", "src/Core/InputManager.cs"]
   missing: ["Captura de MouseState.ScrollWheelValue delta", "Aplicar scroll ao índice/offset da lista do ShopPanel quando overlay está ativo"]
 
 - truth: "Venda deve permitir escolher quantidade do pack (não apenas vender o stack inteiro)"
@@ -126,7 +126,7 @@ skipped: 0
   reason: "User reported no Test 12: falta poder escolher o tamanho do pack de venda, e não só vender todo o pack"
   severity: major
   test: 12
-  artifacts: ["UI/ShopPanel.cs", "Scenes/ShopOverlayScene.cs"]
+  artifacts: ["src/UI/ShopPanel.cs", "src/Scenes/ShopOverlayScene.cs"]
   missing: ["UI de seleção de quantidade (ex: +/- buttons, slider, ou prompt numérico)", "Lógica de venda parcial: debita N do stack, credita N * sellPrice ao Gold", "Confirmar com Enter, cancelar com Esc"]
 
 - truth: "Save após F1/dormir deve persistir Gold, quest state e inventário"
@@ -134,5 +134,5 @@ skipped: 0
   reason: "User reported no Test 13: após F1 e reload, quest state perdido, Gold e itens não salvaram (boot em Farm é por design, não é o bug)"
   severity: blocker
   test: 13
-  artifacts: ["Core/SaveManager.cs", "Core/GameState.cs", "Scenes/FarmScene.cs"]
+  artifacts: ["src/Core/SaveManager.cs", "src/Core/GameState.cs", "src/Scenes/FarmScene.cs"]
   missing: ["Incluir PlayerStats.Gold na serialização de GameState", "Incluir QuestTracker/quest state na serialização", "Incluir Inventory (slots + hotbar + equipment) na serialização", "Aplicar estado carregado ao reentrar nas cenas após boot", "Verificar migration v4→v5 preserva campos novos"]

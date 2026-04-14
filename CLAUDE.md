@@ -39,7 +39,7 @@ Um jogo top-down medieval fantasy que combina simulação de fazenda (estilo Sta
 ## Configuration
 - Manifest: `app.manifest` - Windows application manifest for DPI awareness and OS compatibility
 - `stardew_medieval_v3.csproj` - MSBuild project file
-- `Content/Content.mgcb` - MonoGame content project file
+- `assets/Content.mgcb` - MonoGame content project file
 ## Platform Requirements
 - .NET 8.0 SDK
 - Visual Studio 2022 or VS Code with C# extension
@@ -59,7 +59,7 @@ Um jogo top-down medieval fantasy que combina simulação de fazenda (estilo Sta
 
 ## Naming Patterns
 - Class files use PascalCase: `GameState.cs`, `TimeManager.cs`, `PlayerEntity.cs`
-- Organized by feature/domain in directories: `Core/`, `Farming/`, `Player/`, `UI/`, `World/`, `Data/`
+- Organized by feature/domain in directories: `src/Core/`, `src/Farming/`, `src/Player/`, `src/UI/`, `src/World/`, `src/Data/`
 - One public class per file as standard
 - Public methods use PascalCase: `Update()`, `LoadContent()`, `TrySpendStamina()`, `GetSourceRect()`
 - Private methods use PascalCase: `AdvanceDay()`, `TryMove()`, `DrawFarmZoneHint()`
@@ -155,32 +155,32 @@ Um jogo top-down medieval fantasy que combina simulação de fazenda (estilo Sta
 - Content assets (sprites, maps) organized in `/Content` directory, loaded via MonoGame Content Pipeline
 ## Layers
 - Purpose: Manages fundamental game state and input
-- Location: `Core/`
+- Location: `src/Core/`
 - Contains: `InputManager`, `TimeManager`, `Camera`, `GameState`, `SaveManager`
 - Depends on: MonoGame Framework
 - Used by: Game1 (coordinator), all entity systems
 - Purpose: Represents the static game world, collision detection, tilemap rendering
-- Location: `World/`
+- Location: `src/World/`
 - Contains: `TileMap` (loads Tiled TMX files, manages layers, handles collision detection via polygon ray-casting)
 - Depends on: `TiledCS` library for TMX parsing, MonoGame for rendering
 - Used by: Player movement, camera bounds, grid-based farming
 - Purpose: Manages individual game objects with position, animation, and behavior
-- Location: `Player/`
+- Location: `src/Player/`
 - Contains: `PlayerEntity` (position, movement, animation, collision box), `PlayerStats` (stamina management)
 - Depends on: Core systems (InputManager, TileMap for collision)
 - Used by: Game1 for update/draw, ToolController for farming actions
 - Purpose: Grid-based farming mechanics (tilling, watering, crop growth, harvesting)
-- Location: `Farming/`
+- Location: `src/Farming/`
 - Contains: `GridManager` (cell state dictionary), `CropManager` (lifecycle), `CropInstance` (individual crop), `CropData` (static crop definition), `ToolController` (input dispatch)
 - Depends on: PlayerEntity, GridManager, CropRegistry
 - Used by: Game1 for day-advance events, input handling
 - Purpose: Central registry of static game data (crop definitions)
-- Location: `Data/`
+- Location: `src/Data/`
 - Contains: `CropRegistry` (static dictionary of all crop types with growth sheets)
 - Depends on: MonoGame GraphicsDevice for texture loading
 - Used by: CropManager, GridManager during load/instantiation
 - Purpose: Non-diegetic screen-space overlay (HUD with stamina, time, controls)
-- Location: `UI/`
+- Location: `src/UI/`
 - Contains: `HUD` (renders text, bars, control hints in screen coordinates)
 - Depends on: TimeManager, PlayerStats, ToolController
 - Used by: Game1 for final render pass
@@ -191,7 +191,7 @@ Um jogo top-down medieval fantasy que combina simulação de fazenda (estilo Sta
 - `CropInstance` wraps `CropData` with mutable dayCount and wilted flag
 ## Key Abstractions
 - Purpose: Represents static world geometry and tile-based interaction zones
-- Examples: `World/TileMap.cs` — loads .TMX (Tiled) format, extracts collision objects as polygons
+- Examples: `src/World/TileMap.cs` — loads .TMX (Tiled) format, extracts collision objects as polygons
 - Pattern: Circle-polygon intersection (smooth collision sliding), ray-casting point-in-polygon test
 - Purpose: Models crop lifecycle stages
 - Examples: `CropData.GetStageIndex()`, `CropInstance.CheckWilt()`, `CropData.IsRipe()`

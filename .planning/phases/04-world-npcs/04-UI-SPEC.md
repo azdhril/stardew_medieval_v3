@@ -21,9 +21,9 @@ created: 2026-04-12
 |----------|-------|
 | Tool | none (MonoGame native rendering — no component library) |
 | Preset | not applicable |
-| Component library | none — custom renderers in `UI/*.cs` (pattern: `HUD.cs`, `HotbarRenderer.cs`, `InventoryGridRenderer.cs`) |
-| Icon library | `SpriteAtlas` (existing, Phase 2). Portraits in `Content/Sprites/Portraits/*.png` (new). |
-| Font | `Content/DefaultFont.spritefont` — Arial 12px Regular (existing, shared across HUD/Inventory/Hotbar). **Single font, single size for Phase 4.** |
+| Component library | none — custom renderers in `src/UI/*.cs` (pattern: `HUD.cs`, `HotbarRenderer.cs`, `InventoryGridRenderer.cs`) |
+| Icon library | `SpriteAtlas` (existing, Phase 2). Portraits in `assets/Sprites/Portraits/*.png` (new). |
+| Font | `assets/DefaultFont.spritefont` — Arial 12px Regular (existing, shared across HUD/Inventory/Hotbar). **Single font, single size for Phase 4.** |
 
 **Design fingerprint pulled from existing code (do not diverge):**
 - Solid-color rects drawn with a 1×1 white `Texture2D` (`_pixel`) tinted via `Color` parameter (see `HUD.cs:35–39`).
@@ -102,7 +102,7 @@ Accent is **not** used for: NPC prompts, dialogue text, panel titles, generic bu
 
 ## Copywriting Contract
 
-All copy is **English** (game ships in English for v1 per CLAUDE.md); Portuguese is only for dev-facing documentation. All strings live in `Data/DialogueRegistry.cs` (NPC lines) and inline constants in `UI/ShopPanel.cs` / `UI/DialogueBox.cs` / `UI/HUD.cs`.
+All copy is **English** (game ships in English for v1 per CLAUDE.md); Portuguese is only for dev-facing documentation. All strings live in `src/Data/DialogueRegistry.cs` (NPC lines) and inline constants in `src/UI/ShopPanel.cs` / `src/UI/DialogueBox.cs` / `src/UI/HUD.cs`.
 
 ### Interaction prompts (NPC proximity, door triggers)
 
@@ -158,7 +158,7 @@ Phase 4 has no user-facing error states beyond the disabled-button labels above.
 
 ### Dialogue text (placeholder, planner finalizes wording)
 
-Planner drafts full copy in `Data/DialogueRegistry.cs`. Contract requirements:
+Planner drafts full copy in `src/Data/DialogueRegistry.cs`. Contract requirements:
 
 - Each NPC × MainQuestState = **1 dialogue** (6 total: King × 3 states, Shopkeeper × 3 states).
 - Maximum **3 lines** per dialogue, maximum **80 characters per line** (fits the dialogue text column: panel width 880px − portrait 80px − padding 48px ≈ 750px available, ~80 chars at 12px Arial).
@@ -183,12 +183,12 @@ Declared so the planner knows exactly what UI classes to create and the executor
 | Surface | Renderer class (new) | Size / Anchor | Notes |
 |---------|---------------------|---------------|-------|
 | Fade-to-black transition | `SceneManager` (existing — no new class) | Full screen 960×540 | Already implemented; reuse `TransitionTo`. 300ms fade out, action, 300ms fade in. |
-| NPC interaction prompt | `UI/InteractionPrompt.cs` (new, lightweight) | ~120×24 px, anchored 20px above entity | Secondary panel + black 1px outline + white text. Shows only when player within 28px. |
+| NPC interaction prompt | `src/UI/InteractionPrompt.cs` (new, lightweight) | ~120×24 px, anchored 20px above entity | Secondary panel + black 1px outline + white text. Shows only when player within 28px. |
 | Door / trigger prompt | Same `InteractionPrompt.cs` | ~140×24 px, anchored at trigger centroid | Reuses the same component; only copy differs. |
-| Dialogue box | `UI/DialogueBox.cs` (new) | **880×120 px**, anchored bottom-center, 32px from screen bottom (20px bottom margin + HUD clearance) | Portrait slot 80×80 at inner-left (md padding); text column fills remainder. Advance indicator `▼` at bottom-right inner corner. |
-| Shop panel | `UI/ShopPanel.cs` (new) | **720×400 px**, centered horizontally, 48px (2xl) from top | Tab strip (2 tabs, 80×32 each) at top. Item list below with scroll (up to 8 visible rows, 40px tall each). Gold counter at top-right of panel header. |
-| HUD quest tracker | Extension of `UI/HUD.cs` (existing) | ~200×20 px, anchored top-right, 12px from top, 12px from right | Single-line text `Quest: {objective}` with state-based color per Copywriting contract. |
-| Purchase toast | `UI/Toast.cs` (new, reusable) | ~240×32 px, anchored center-bottom, 80px above screen bottom | Auto-dismisses at 2200ms total. |
+| Dialogue box | `src/UI/DialogueBox.cs` (new) | **880×120 px**, anchored bottom-center, 32px from screen bottom (20px bottom margin + HUD clearance) | Portrait slot 80×80 at inner-left (md padding); text column fills remainder. Advance indicator `▼` at bottom-right inner corner. |
+| Shop panel | `src/UI/ShopPanel.cs` (new) | **720×400 px**, centered horizontally, 48px (2xl) from top | Tab strip (2 tabs, 80×32 each) at top. Item list below with scroll (up to 8 visible rows, 40px tall each). Gold counter at top-right of panel header. |
+| HUD quest tracker | Extension of `src/UI/HUD.cs` (existing) | ~200×20 px, anchored top-right, 12px from top, 12px from right | Single-line text `Quest: {objective}` with state-based color per Copywriting contract. |
+| Purchase toast | `src/UI/Toast.cs` (new, reusable) | ~240×32 px, anchored center-bottom, 80px above screen bottom | Auto-dismisses at 2200ms total. |
 
 **Hit targets & padding:** All clickable UI elements (tabs, Buy/Sell buttons, item rows) must be ≥ 32×32 px to match existing inventory interaction (`InventoryGridRenderer` slot size). The shop item row is 40px tall — OK.
 
@@ -239,7 +239,7 @@ No modal "Quest Accepted!" popup in Phase 4 (deferred — belongs with HUD-04 po
 |----------|-------------|-------------|
 | (none — MonoGame project, no component registries) | n/a | not applicable |
 
-No shadcn, no third-party UI registries, no npm packages. All UI code is hand-authored C# in the repo's `UI/` directory using MonoGame primitives. Registry safety gate is therefore **N/A** — but the planner MUST verify no new NuGet UI packages are added (per `04-RESEARCH.md` "Não adicionar nada novo no NuGet").
+No shadcn, no third-party UI registries, no npm packages. All UI code is hand-authored C# in the repo's `src/UI/` directory using MonoGame primitives. Registry safety gate is therefore **N/A** — but the planner MUST verify no new NuGet UI packages are added (per `04-RESEARCH.md` "Não adicionar nada novo no NuGet").
 
 ---
 
@@ -247,11 +247,11 @@ No shadcn, no third-party UI registries, no npm packages. All UI code is hand-au
 
 | Asset | Path | Size | Notes |
 |-------|------|------|-------|
-| King portrait | `Content/Sprites/Portraits/king.png` | 80×80 | Placeholder pixel art acceptable per CONTEXT "Claude's Discretion". Register in `Content.mgcb`. |
-| Shopkeeper portrait | `Content/Sprites/Portraits/shopkeeper.png` | 80×80 | Same. |
-| King NPC overworld sprite | `Content/Sprites/NPCs/king.png` | 32×32 (single frame, idle) | Can reuse `DummyNpc` sprite as placeholder. |
-| Shopkeeper NPC overworld sprite | `Content/Sprites/NPCs/shopkeeper.png` | 32×32 | Same. |
-| Gold coin icon (for shop price display) | `Content/Sprites/UI/coin.png` | 16×16 | Optional — price can be rendered text-only (`{n}g`) if icon unavailable. |
+| King portrait | `assets/Sprites/Portraits/king.png` | 80×80 | Placeholder pixel art acceptable per CONTEXT "Claude's Discretion". Register in `Content.mgcb`. |
+| Shopkeeper portrait | `assets/Sprites/Portraits/shopkeeper.png` | 80×80 | Same. |
+| King NPC overworld sprite | `assets/Sprites/NPCs/king.png` | 32×32 (single frame, idle) | Can reuse `DummyNpc` sprite as placeholder. |
+| Shopkeeper NPC overworld sprite | `assets/Sprites/NPCs/shopkeeper.png` | 32×32 | Same. |
+| Gold coin icon (for shop price display) | `assets/Sprites/UI/coin.png` | 16×16 | Optional — price can be rendered text-only (`{n}g`) if icon unavailable. |
 
 ---
 

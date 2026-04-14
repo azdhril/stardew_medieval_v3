@@ -39,7 +39,7 @@
 
 **Critical:**
 - TiledCS 3.3.3 - Tiled map format parsing and loading
-  - Used in `World/TileMap.cs` to load `.tmx` files
+  - Used in `src/World/TileMap.cs` to load `.tmx` files
   - Provides `TiledMap`, `TiledTileset`, `TiledLayer` classes
   - Handles tileset parsing from `.tsx` files
   - Loads collision objects from Tiled object layers
@@ -63,7 +63,7 @@
   - Content files marked for `PreserveNewest` copy to output
 
 **Content Pipeline:**
-- `Content/Content.mgcb` - MonoGame content project file
+- `assets/Content.mgcb` - MonoGame content project file
   - OutputDir: `bin/$(Platform)` - Platform-specific output
   - Platform: DesktopGL
   - Profile: Reach (compatibility profile)

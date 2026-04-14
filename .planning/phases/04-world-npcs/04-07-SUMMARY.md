@@ -11,12 +11,12 @@ closes_gaps:
 
 ## What changed
 
-### `Core/InputManager.cs`
+### `src/Core/InputManager.cs`
 - Added `ScrollWheelDelta` property returning `_currentMouse.ScrollWheelValue - _previousMouse.ScrollWheelValue`.
 - Positive = wheel up, negative = wheel down. Native MonoGame delta is ±120 per tick; consumers normalize with `Math.Sign`.
 - No changes to `Update()` (already samples `_currentMouse`/`_previousMouse`).
 
-### `Inventory/InventoryManager.cs`
+### `src/Inventory/InventoryManager.cs`
 - Added `ItemStack? RemoveQuantity(int index, int quantity)` after `RemoveAt`.
 - Semantics:
   - Returns `null` for out-of-range index, empty slot, or `quantity <= 0`.
@@ -24,7 +24,7 @@ closes_gaps:
   - Otherwise mutates `stack.Quantity -= quantity` in place (ItemStack.Quantity is mutable — confirmed via `TryAdd`/`TryConsume` both mutating it directly), returns a new `ItemStack` with the removed portion, fires `OnInventoryChanged`.
 - Mutation strategy: **in-place** (not replace). Matches existing codebase patterns (`TryAdd` line ~106, `TryConsume` line ~140).
 
-### `UI/ShopPanel.cs`
+### `src/UI/ShopPanel.cs`
 - **New fields:**
   - `_sellQty` (default 1) — selling quantity on the Sell tab.
   - `_lastTabForQty`, `_lastSelectedIndexForQty` — trigger reset of `_sellQty` to 1 when tab/row changes.
@@ -61,9 +61,9 @@ Resolves the live `ItemStack` for `_selectedIndex` on the Sell tab (or `null` on
 - **T-04-28** (zero/negative qty): `RemoveQuantity` early-return on `quantity <= 0`.
 
 ## Key files modified
-- `Core/InputManager.cs`
-- `Inventory/InventoryManager.cs`
-- `UI/ShopPanel.cs`
+- `src/Core/InputManager.cs`
+- `src/Inventory/InventoryManager.cs`
+- `src/UI/ShopPanel.cs`
 
 ## Commits
 - `3b74a22`: feat(04-07): add ScrollWheelDelta and RemoveQuantity APIs

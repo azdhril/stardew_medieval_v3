@@ -50,10 +50,10 @@ Refatorar a base de codigo para suportar multiplas scenes, entidades compartilha
 
 ### Source Files (refatoracao direta)
 - `Game1.cs` -- Coordenador central que sera decomposto em scenes
-- `Core/GameState.cs` -- Modelo de estado que sera expandido
-- `Core/SaveManager.cs` -- Ja tem MigrateIfNeeded(), estender
-- `Player/PlayerEntity.cs` -- Referencia para extração da Entity base
-- `Data/CropRegistry.cs` -- Sera migrado para o sistema ItemRegistry unificado
+- `src/Core/GameState.cs` -- Modelo de estado que sera expandido
+- `src/Core/SaveManager.cs` -- Ja tem MigrateIfNeeded(), estender
+- `src/Player/PlayerEntity.cs` -- Referencia para extração da Entity base
+- `src/Data/CropRegistry.cs` -- Sera migrado para o sistema ItemRegistry unificado
 
 ### Requirements
 - `.planning/REQUIREMENTS.md` -- ARCH-01 a ARCH-05 definem os criterios desta fase

@@ -10,21 +10,21 @@ stardew_medieval_v3/
 ├── Game1.cs                # Main game coordinator (256 lines)
 ├── stardew_medieval_v3.csproj  # Project file, dependencies
 │
-├── Core/                   # Fundamental game systems
+├── src/Core/                   # Fundamental game systems
 │   ├── GameState.cs        # Persistent game data model
 │   ├── SaveManager.cs      # JSON save/load with versioning
 │   ├── TimeManager.cs      # In-game clock, day/night cycle
 │   ├── InputManager.cs     # Keyboard state with edge detection
 │   └── Camera.cs           # 2D camera with smooth follow
 │
-├── World/                  # Static world representation
+├── src/World/                  # Static world representation
 │   └── TileMap.cs          # Tiled TMX loader, collision, rendering
 │
-├── Player/                 # Player entity
+├── src/Player/                 # Player entity
 │   ├── PlayerEntity.cs     # Position, movement, animation, collision
 │   └── PlayerStats.cs      # Stamina tracking
 │
-├── Farming/                # Crop and grid management
+├── src/Farming/                # Crop and grid management
 │   ├── GridManager.cs      # Cell dictionary, tilling/watering
 │   ├── CropManager.cs      # Planting, growth lifecycle
 │   ├── CropInstance.cs     # Mutable crop state (day count, wilted)
@@ -32,17 +32,17 @@ stardew_medieval_v3/
 │   ├── CellData.cs         # Single farm cell state
 │   └── ToolController.cs   # Tool selection, input dispatch
 │
-├── Data/                   # Game data registries
+├── src/Data/                   # Game data registries
 │   └── CropRegistry.cs     # Static crop definitions + texture loading
 │
-├── UI/                     # User interface
+├── src/UI/                     # User interface
 │   └── HUD.cs              # Stamina bar, clock, controls hint
 │
-├── Content/                # Game assets (sprites, maps)
+├── assets/                # Game assets (sprites, maps)
 │   ├── Maps/               # Tiled TMX files
 │   │   └── test_farm.tmx   # Main game map
 │   ├── Sprites/
-│   │   ├── Player/         # player_spritesheet.png (4x4 grid)
+│   │   ├── src/Player/         # player_spritesheet.png (4x4 grid)
 │   │   ├── Crops/          # 20+ crop growth sheets
 │   │   └── Farm/           # (directory exists, no files yet)
 │   └── bin/                # Content pipeline output
@@ -62,22 +62,22 @@ stardew_medieval_v3/
 - Contains: Three lines instantiating and running `Game1`
 - Key files: N/A (entry point)
 
-**Core/:**
+**src/Core/:**
 - Purpose: Fundamental game systems (time, input, camera, persistence)
 - Contains: Stateful managers with event systems
 - Key files: `TimeManager.cs` (day cycle), `SaveManager.cs` (JSON persistence), `InputManager.cs` (keyboard polling)
 
-**World/:**
+**src/World/:**
 - Purpose: Static game world (map layout, collision, rendering)
 - Contains: Single `TileMap` class handling Tiled TMX parsing and collision detection
 - Key files: `TileMap.cs` (polygon-based collision, layer rendering, farm zone detection)
 
-**Player/:**
+**src/Player/:**
 - Purpose: Player character entity
 - Contains: Movement, animation, stamina
 - Key files: `PlayerEntity.cs` (position, movement with collision), `PlayerStats.cs` (stamina bar state)
 
-**Farming/:**
+**src/Farming/:**
 - Purpose: Grid-based farming mechanics
 - Contains: Cell management, crop lifecycle, tool input dispatch
 - Key files: 
@@ -85,20 +85,20 @@ stardew_medieval_v3/
   - `CropManager.cs` (planting, day-tick growth evaluation)
   - `ToolController.cs` (tool selection, action dispatch to grid/crop/harvest)
 
-**Data/:**
+**src/Data/:**
 - Purpose: Game content registries
 - Contains: Crop definitions with texture loading
 - Key files: `CropRegistry.cs` (static dictionary of 18+ crop types)
 
-**UI/:**
+**src/UI/:**
 - Purpose: Screen-space user interface
 - Contains: HUD rendering (stamina, time, controls)
 - Key files: `HUD.cs` (text, bars, hints in screen coordinates)
 
-**Content/:**
+**assets/:**
 - Purpose: Game assets (sprites, maps)
 - Contains: Tiled TMX files, PNG spritesheets
-- Key files: `Content/Maps/test_farm.tmx` (main tilemap), `Content/Sprites/Crops/*.png` (growth stage sheets)
+- Key files: `assets/Maps/test_farm.tmx` (main tilemap), `assets/Sprites/Crops/*.png` (growth stage sheets)
 
 ## Key File Locations
 
@@ -112,12 +112,12 @@ stardew_medieval_v3/
 
 **Core Logic:**
 - `Game1.cs`: Main update/draw loop, system initialization, day-advance cascade
-- `Core/TimeManager.cs`: Game clock with hour/day advancement
-- `Core/SaveManager.cs`: JSON serialization to LocalApplicationData
-- `World/TileMap.cs`: Tiled TMX parsing, collision detection, layer rendering
-- `Farming/GridManager.cs`: Cell state management, soil overlay rendering
-- `Farming/CropManager.cs`: Crop growth, wilt checking, planting
-- `Player/PlayerEntity.cs`: Movement with collision, animation, interaction
+- `src/Core/TimeManager.cs`: Game clock with hour/day advancement
+- `src/Core/SaveManager.cs`: JSON serialization to LocalApplicationData
+- `src/World/TileMap.cs`: Tiled TMX parsing, collision detection, layer rendering
+- `src/Farming/GridManager.cs`: Cell state management, soil overlay rendering
+- `src/Farming/CropManager.cs`: Crop growth, wilt checking, planting
+- `src/Player/PlayerEntity.cs`: Movement with collision, animation, interaction
 
 **Testing:**
 - No test directory present (testing not yet implemented)
@@ -130,8 +130,8 @@ stardew_medieval_v3/
 - Namespace mirrors directory structure: `stardew_medieval_v3.Farming`, `stardew_medieval_v3.Core`
 
 **Directories:**
-- `PascalCase` for all directories (e.g., `Core/`, `Player/`, `Farming/`)
-- Plural for content directories (`Content/Sprites/`, `Content/Maps/`)
+- `PascalCase` for all directories (e.g., `src/Core/`, `src/Player/`, `src/Farming/`)
+- Plural for content directories (`assets/Sprites/`, `assets/Maps/`)
 
 **Classes:**
 - `PascalCase` with descriptive suffix: `Manager`, `Entity`, `Data`, `Controller`, `Registry`
@@ -154,36 +154,36 @@ stardew_medieval_v3/
 ## Where to Add New Code
 
 **New Farming Mechanic (e.g., fertilizer, pesticide):**
-- Primary code: `Farming/FertilizerManager.cs` (follow CropManager pattern)
+- Primary code: `src/Farming/FertilizerManager.cs` (follow CropManager pattern)
 - Integration: Update `Game1.cs` to instantiate manager and call Update/OnDayAdvanced
 - Data: Add properties to `CellData.cs` and `FarmCellSaveData.cs`
 - UI: Update `HUD.cs` if status display needed
 
 **New Crop:**
-- Add `CropRegistry.Register()` call in `Data/CropRegistry.cs`
-- Create or reuse spritesheet in `Content/Sprites/Crops/`
+- Add `CropRegistry.Register()` call in `src/Data/CropRegistry.cs`
+- Create or reuse spritesheet in `assets/Sprites/Crops/`
 - Define `CropData` instance with stages, yield, timing
 - No code change needed if using existing mechanics
 
 **New Player Ability (e.g., fishing, mining):**
-- Primary code: `Player/PlayerAbility.cs` or `Core/AbilityManager.cs`
-- Input dispatch: Add key binding to `Core/InputManager.cs`
+- Primary code: `src/Player/PlayerAbility.cs` or `src/Core/AbilityManager.cs`
+- Input dispatch: Add key binding to `src/Core/InputManager.cs`
 - Integration: Call from `Game1.Update()` or `ToolController.Update()`
 - Stats: Extend `PlayerStats.cs` with new skill/level properties
 
 **New UI Element (e.g., inventory screen):**
-- Implementation: `UI/InventoryScreen.cs`
+- Implementation: `src/UI/InventoryScreen.cs`
 - Integration: Call from `Game1.Draw()` in separate `_spriteBatch.Begin/End` block
 - Input: Handle in `Game1.Update()` or delegate to UI class
 
 **Utilities:**
-- Shared helpers: `Farming/FarmingUtils.cs` or `Core/GameUtils.cs`
+- Shared helpers: `src/Farming/FarmingUtils.cs` or `src/Core/GameUtils.cs`
 - Extension methods: Add to matching namespace file or create `Extensions.cs`
 - No external lib dependencies in core (game logic only)
 
 ## Special Directories
 
-**Content/:**
+**assets/:**
 - Purpose: Game assets (sprites, maps, fonts)
 - Generated: No (hand-authored)
 - Committed: Yes (essential for gameplay)

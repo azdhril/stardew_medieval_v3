@@ -6,18 +6,18 @@ tags: [shop, ui, npc, shopkeeper, buy-sell, toast]
 requirements: [NPC-03, NPC-04, HUD-03]
 dependency_graph:
   requires:
-    - "Data/ItemRegistry (items.json loader)"
-    - "Inventory/InventoryManager (Gold API from 04-01)"
-    - "Entities/NpcEntity (from 04-01)"
-    - "Scenes/ShopScene shell (from 04-02)"
-    - "Scenes/DialogueScene + DialogueRegistry shopkeeper entries (from 04-03)"
-    - "Data/SpriteAtlas"
+    - "src/Data/ItemRegistry (items.json loader)"
+    - "src/Inventory/InventoryManager (Gold API from 04-01)"
+    - "src/Entities/NpcEntity (from 04-01)"
+    - "src/Scenes/ShopScene shell (from 04-02)"
+    - "src/Scenes/DialogueScene + DialogueRegistry shopkeeper entries (from 04-03)"
+    - "src/Data/SpriteAtlas"
   provides:
     - "ItemDefinition.BasePrice field"
-    - "Data/ShopStock static registry + GetSellPrice"
-    - "UI/ShopPanel (Buy/Sell renderer + input)"
-    - "UI/Toast (600/1200/400 fade)"
-    - "Scenes/ShopOverlayScene (panel + toast overlay)"
+    - "src/Data/ShopStock static registry + GetSellPrice"
+    - "src/UI/ShopPanel (Buy/Sell renderer + input)"
+    - "src/UI/Toast (600/1200/400 fade)"
+    - "src/Scenes/ShopOverlayScene (panel + toast overlay)"
     - "ServiceContainer.Atlas slot"
   affects:
     - "Phase 4 complete; Phase 5 picks up dungeon entrance"
@@ -29,18 +29,18 @@ tech-stack:
     - "Shared SpriteAtlas via ServiceContainer"
 key-files:
   created:
-    - "Data/ShopStock.cs"
-    - "UI/ShopPanel.cs"
-    - "UI/Toast.cs"
-    - "Scenes/ShopOverlayScene.cs"
-    - "Content/Sprites/NPCs/shopkeeper.png"
-    - "Content/Sprites/Portraits/shopkeeper.png"
+    - "src/Data/ShopStock.cs"
+    - "src/UI/ShopPanel.cs"
+    - "src/UI/Toast.cs"
+    - "src/Scenes/ShopOverlayScene.cs"
+    - "assets/Sprites/NPCs/shopkeeper.png"
+    - "assets/Sprites/Portraits/shopkeeper.png"
   modified:
-    - "Data/ItemDefinition.cs"
-    - "Data/items.json"
-    - "Core/ServiceContainer.cs"
-    - "Scenes/FarmScene.cs"
-    - "Scenes/ShopScene.cs"
+    - "src/Data/ItemDefinition.cs"
+    - "src/Data/items.json"
+    - "src/Core/ServiceContainer.cs"
+    - "src/Scenes/FarmScene.cs"
+    - "src/Scenes/ShopScene.cs"
 decisions:
   - "Option A overlay scene: ShopOverlayScene owns ShopPanel + Toast, pops on Esc"
   - "Dialogue-first flow: E press -> DialogueScene with onClose -> PushImmediate(ShopOverlayScene)"
@@ -95,7 +95,7 @@ All IDs resolve via `ItemRegistry.Get(...)`. Buy prices have a small markup over
 
 ## ShopPanel Decisions Confirmed
 
-- **Option A overlay scene** implemented: `Scenes/ShopOverlayScene.cs` owns a `ShopPanel` + `Toast`, pushed on top of `ShopScene`. This mirrors the Plan 04-03 DialogueScene overlay pattern.
+- **Option A overlay scene** implemented: `src/Scenes/ShopOverlayScene.cs` owns a `ShopPanel` + `Toast`, pushed on top of `ShopScene`. This mirrors the Plan 04-03 DialogueScene overlay pattern.
 - **Single-frame Buy flow order (strict, T-04-14/15):**
   1. `_inv.Gold < price` -> block "Not enough gold"
   2. `CanAddOne(itemId)` false -> block "Inventory full"
@@ -168,14 +168,14 @@ Execution environment is non-interactive. Live walkthrough deferred to user; all
 - **Found during:** Task 3 (ShopOverlayScene construction)
 - **Issue:** `ShopPanel` constructor needs `SpriteAtlas` for item icon rendering, but `ServiceContainer` only exposed `Inventory`, `Player`, `Quest`, `GameState`, and `PlayerSpriteSheet`. The atlas was a private field in `FarmScene`. Without sharing, `ShopOverlayScene` could not draw item icons for rows.
 - **Fix:** Added `public SpriteAtlas? Atlas { get; set; }` slot. `FarmScene.LoadContent` now publishes `Services.Atlas = _spriteAtlas` after atlas construction. `ShopOverlayScene` reads it via `Services.Atlas` and throws a clear error if null.
-- **Files modified:** `Core/ServiceContainer.cs`, `Scenes/FarmScene.cs`
+- **Files modified:** `src/Core/ServiceContainer.cs`, `src/Scenes/FarmScene.cs`
 - **Commit:** `fd1a127`
 
 **2. [Rule 2 - Missing functionality] Full-stack Sell semantics not specified by plan**
 - **Found during:** Task 2 (TrySell implementation)
 - **Issue:** Plan said "RemoveAt + AddGold" per Sell press but did not specify whether to sell one unit or the full stack. Stardew Valley convention is full-stack on a single click (shift-click sells one; we don't have shift handling). UI-SPEC `Sold {item name} for {price}g` supports either.
 - **Fix:** `TrySell` credits `BasePrice/2 * stack.Quantity` and clears the slot in one action. Toast reports total price. Documented in this SUMMARY.
-- **Files modified:** `UI/ShopPanel.cs`
+- **Files modified:** `src/UI/ShopPanel.cs`
 - **Commit:** `fda3e83`
 
 No architectural questions raised. No auth gates. No out-of-scope work.
@@ -193,17 +193,17 @@ No architectural questions raised. No auth gates. No out-of-scope work.
 
 ## Self-Check: PASSED
 
-- Data/ItemDefinition.cs: modified (contains `public int BasePrice`)
-- Data/items.json: modified (contains 60+ `"BasePrice"` keys)
-- Data/ShopStock.cs: FOUND (contains `public static class ShopStock`, `public static int GetSellPrice`)
-- UI/ShopPanel.cs: FOUND (contains `class ShopPanel`, all 4 disabled-reason strings, `TrySpendGold`, `AddGold`, `TryAdd`, `RemoveAt`, `ShopStock.Items`)
-- UI/Toast.cs: FOUND (contains `class Toast`, `0.6f`, `1.2f`, `0.4f` timing constants)
-- Scenes/ShopScene.cs: modified (contains `new NpcEntity("shopkeeper"`, `DialogueRegistry.Get("shopkeeper"`)
-- Scenes/ShopOverlayScene.cs: FOUND (contains `class ShopOverlayScene`, `PushImmediate(new ShopOverlayScene`)
-- Core/ServiceContainer.cs: modified (contains `public SpriteAtlas? Atlas`)
-- Scenes/FarmScene.cs: modified (contains `Services.Atlas = _spriteAtlas`)
-- Content/Sprites/NPCs/shopkeeper.png: FOUND (355 bytes)
-- Content/Sprites/Portraits/shopkeeper.png: FOUND (672 bytes)
+- src/Data/ItemDefinition.cs: modified (contains `public int BasePrice`)
+- src/Data/items.json: modified (contains 60+ `"BasePrice"` keys)
+- src/Data/ShopStock.cs: FOUND (contains `public static class ShopStock`, `public static int GetSellPrice`)
+- src/UI/ShopPanel.cs: FOUND (contains `class ShopPanel`, all 4 disabled-reason strings, `TrySpendGold`, `AddGold`, `TryAdd`, `RemoveAt`, `ShopStock.Items`)
+- src/UI/Toast.cs: FOUND (contains `class Toast`, `0.6f`, `1.2f`, `0.4f` timing constants)
+- src/Scenes/ShopScene.cs: modified (contains `new NpcEntity("shopkeeper"`, `DialogueRegistry.Get("shopkeeper"`)
+- src/Scenes/ShopOverlayScene.cs: FOUND (contains `class ShopOverlayScene`, `PushImmediate(new ShopOverlayScene`)
+- src/Core/ServiceContainer.cs: modified (contains `public SpriteAtlas? Atlas`)
+- src/Scenes/FarmScene.cs: modified (contains `Services.Atlas = _spriteAtlas`)
+- assets/Sprites/NPCs/shopkeeper.png: FOUND (355 bytes)
+- assets/Sprites/Portraits/shopkeeper.png: FOUND (672 bytes)
 - Commits 25ca221, fda3e83, fd1a127: all FOUND in git log
 - `dotnet build -c Debug --nologo -v q`: 0 warnings, 0 errors
 - `dotnet build -c Release --nologo -v q`: 0 warnings, 0 errors

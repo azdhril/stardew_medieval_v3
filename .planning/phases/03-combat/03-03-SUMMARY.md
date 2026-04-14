@@ -21,8 +21,8 @@ tech-stack:
   patterns: ["Boss extends EnemyEntity with override attack flow (wind-up telegraph)", "HP-threshold summon phases", "Custom loot logic separate from LootTable"]
 
 key-files:
-  created: [Combat/BossEntity.cs]
-  modified: [Core/GameState.cs, Core/SaveManager.cs, Combat/EnemySpawner.cs, Scenes/FarmScene.cs]
+  created: [src/Combat/BossEntity.cs]
+  modified: [src/Core/GameState.cs, src/Core/SaveManager.cs, src/Combat/EnemySpawner.cs, src/Scenes/FarmScene.cs]
 
 key-decisions:
   - "Boss extends EnemyEntity with 'new' method hiding for Update/Draw to override attack flow without changing base class"
@@ -68,11 +68,11 @@ Each task was committed atomically:
 **Task 2: Verify complete combat system** - PENDING (checkpoint:human-verify)
 
 ## Files Created/Modified
-- `Combat/BossEntity.cs` - Skeleton King boss: 300HP, wind-up telegraph, summon phases, custom loot
-- `Combat/EnemySpawner.cs` - Added SpawnBoss() method for boss creation at fixed position
-- `Core/GameState.cs` - Added BossKilled property for first-kill loot tracking
-- `Core/SaveManager.cs` - Bumped to v4, added v3->v4 migration defaulting BossKilled=false
-- `Scenes/FarmScene.cs` - Boss spawn, update, combat collision, death/loot, BossHealthBar, day respawn
+- `src/Combat/BossEntity.cs` - Skeleton King boss: 300HP, wind-up telegraph, summon phases, custom loot
+- `src/Combat/EnemySpawner.cs` - Added SpawnBoss() method for boss creation at fixed position
+- `src/Core/GameState.cs` - Added BossKilled property for first-kill loot tracking
+- `src/Core/SaveManager.cs` - Bumped to v4, added v3->v4 migration defaulting BossKilled=false
+- `src/Scenes/FarmScene.cs` - Boss spawn, update, combat collision, death/loot, BossHealthBar, day respawn
 
 ## Decisions Made
 - Boss uses `new` method hiding (not `override`) for Update/Draw since EnemyEntity methods are non-virtual. This lets the boss intercept AI attack-ready and start wind-up instead of immediate attack.
@@ -88,7 +88,7 @@ Each task was committed atomically:
 - **Found during:** Task 1 (FarmScene integration)
 - **Issue:** Plan didn't explicitly mention adding boss to the projectile entity list, but fireballs need to damage the boss
 - **Fix:** Added `if (_boss != null && _boss.IsAlive) enemiesAsEntities.Add(_boss);` before projectile update
-- **Files modified:** Scenes/FarmScene.cs
+- **Files modified:** src/Scenes/FarmScene.cs
 - **Verification:** dotnet build passes, boss included in projectile collision checks
 - **Committed in:** d023845 (Task 1 commit)
 
@@ -96,7 +96,7 @@ Each task was committed atomically:
 - **Found during:** Task 1 (FarmScene integration)
 - **Issue:** BossHealthBar.Draw requires a SpriteFont, but FarmScene only had font as local variable in LoadContent
 - **Fix:** Added `_font` field to FarmScene, replaced local `font` variable usage
-- **Files modified:** Scenes/FarmScene.cs
+- **Files modified:** src/Scenes/FarmScene.cs
 - **Verification:** dotnet build passes, BossHealthBar renders with font
 - **Committed in:** d023845 (Task 1 commit)
 

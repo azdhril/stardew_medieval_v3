@@ -12,16 +12,16 @@ tech_stack:
   patterns: [abstract-base-class, static-registry, JSON-data-loading, enum-extraction]
 key_files:
   created:
-    - Core/Entity.cs
-    - Core/Direction.cs
-    - Data/ItemType.cs
-    - Data/Rarity.cs
-    - Data/ItemDefinition.cs
-    - Data/ItemStack.cs
-    - Data/ItemRegistry.cs
-    - Data/items.json
+    - src/Core/Entity.cs
+    - src/Core/Direction.cs
+    - src/Data/ItemType.cs
+    - src/Data/Rarity.cs
+    - src/Data/ItemDefinition.cs
+    - src/Data/ItemStack.cs
+    - src/Data/ItemRegistry.cs
+    - src/Data/items.json
   modified:
-    - Player/PlayerEntity.cs
+    - src/Player/PlayerEntity.cs
     - stardew_medieval_v3.csproj
 decisions:
   - "Entity base class uses protected properties for animation fields so subclasses access them directly"
@@ -45,18 +45,18 @@ Entity base class with HP/animation/collision and unified ItemDefinition/ItemReg
 
 ### Task 1: Entity Base Class and Direction Extraction
 
-- Created `Core/Direction.cs` extracting the `Direction` enum from the bottom of `PlayerEntity.cs` into its own file under the `stardew_medieval_v3.Core` namespace
-- Created `Core/Entity.cs` abstract base class with: Position, Velocity, FacingDirection, HP/MaxHP/IsAlive, SpriteSheet/FrameWidth/FrameHeight/FrameIndex/AnimationTimer/FrameTime (protected), virtual CollisionBox, virtual Update/Draw
-- Refactored `Player/PlayerEntity.cs` to inherit from `Entity`, removing all duplicated fields. PlayerEntity keeps its own `Update(float, Vector2, TileMap)` signature (does not override Entity.Update) and overrides `Draw`
+- Created `src/Core/Direction.cs` extracting the `Direction` enum from the bottom of `PlayerEntity.cs` into its own file under the `stardew_medieval_v3.Core` namespace
+- Created `src/Core/Entity.cs` abstract base class with: Position, Velocity, FacingDirection, HP/MaxHP/IsAlive, SpriteSheet/FrameWidth/FrameHeight/FrameIndex/AnimationTimer/FrameTime (protected), virtual CollisionBox, virtual Update/Draw
+- Refactored `src/Player/PlayerEntity.cs` to inherit from `Entity`, removing all duplicated fields. PlayerEntity keeps its own `Update(float, Vector2, TileMap)` signature (does not override Entity.Update) and overrides `Draw`
 
 ### Task 2: ItemDefinition Model and ItemRegistry
 
-- Created `Data/ItemType.cs` enum: Crop, Seed, Tool, Weapon, Armor, Consumable, Loot
-- Created `Data/Rarity.cs` enum: Common, Uncommon, Rare
-- Created `Data/ItemDefinition.cs` with Id, Name, Type, Rarity, StackLimit, SpriteId, Stats dictionary
-- Created `Data/ItemStack.cs` for inventory slot references
-- Created `Data/ItemRegistry.cs` static registry with `Initialize(jsonPath)`, `Get(id)`, `GetByType(type)`, `All` property
-- Created `Data/items.json` with 45 items: 21 crop seed/crop pairs (42 items) + 3 tools (Hoe, Watering Can, Scythe)
+- Created `src/Data/ItemType.cs` enum: Crop, Seed, Tool, Weapon, Armor, Consumable, Loot
+- Created `src/Data/Rarity.cs` enum: Common, Uncommon, Rare
+- Created `src/Data/ItemDefinition.cs` with Id, Name, Type, Rarity, StackLimit, SpriteId, Stats dictionary
+- Created `src/Data/ItemStack.cs` for inventory slot references
+- Created `src/Data/ItemRegistry.cs` static registry with `Initialize(jsonPath)`, `Get(id)`, `GetByType(type)`, `All` property
+- Created `src/Data/items.json` with 45 items: 21 crop seed/crop pairs (42 items) + 3 tools (Hoe, Watering Can, Scythe)
 - Updated `stardew_medieval_v3.csproj` to copy items.json to output directory
 
 ## Verification

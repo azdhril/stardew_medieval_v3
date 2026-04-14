@@ -10,7 +10,7 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 ### Architecture
 
 - [x] **ARCH-01**: SceneManager gerencia transicao entre scenes (Farm, Village, Dungeon) com fade in/out
-- [x] **ARCH-02**: Entity base class com posicao, sprite, colisao, compartilhada por Player/Enemy/NPC
+- [x] **ARCH-02**: Entity base class com posicao, sprite, colisao, compartilhada por src/Player/Enemy/NPC
 - [x] **ARCH-03**: Unified ItemDefinition model para crops, tools, weapons, armor, consumables e loot
 - [x] **ARCH-04**: GameState reestruturado para suportar inventario, XP, quest state, gold, scene atual
 - [x] **ARCH-05**: Game1.cs refatorado para delegar logica para scenes ao inves de coordenar diretamente
@@ -66,7 +66,7 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 - [ ] **PRG-03**: Sistema de gold -- moeda dropa de inimigos e vem de venda de crops/itens
 - [ ] **PRG-04**: Consequencia de morte: perde 10% do gold + chance aleatoria de perder 1 item do inventario/equipamento, respawn na fazenda
 
-### UI/HUD
+### src/UI/HUD
 
 - [ ] **HUD-01**: HUD grafica com sprites: barra de HP, barra de stamina, hotbar com icones, relogio/dia
 - [x] **HUD-02**: Inventory UI abrivel (tecla I ou similar) mostrando grid + equipment slots

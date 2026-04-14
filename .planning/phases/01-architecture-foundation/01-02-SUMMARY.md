@@ -17,9 +17,9 @@ tech-stack:
 
 key-files:
   created:
-    - Core/Scene.cs
-    - Core/ServiceContainer.cs
-    - Core/SceneManager.cs
+    - src/Core/Scene.cs
+    - src/Core/ServiceContainer.cs
+    - src/Core/SceneManager.cs
   modified: []
 
 key-decisions:
@@ -64,9 +64,9 @@ Each task was committed atomically:
 2. **Task 2: Create SceneManager with stack and fade transition state machine** - `fb25577` (feat)
 
 ## Files Created/Modified
-- `Core/Scene.cs` - Abstract base class for all game scenes with virtual lifecycle methods
-- `Core/ServiceContainer.cs` - Dependency bag grouping shared game services for scene constructors
-- `Core/SceneManager.cs` - Stack-based scene manager with fade-to-black transition state machine and TransitionState enum
+- `src/Core/Scene.cs` - Abstract base class for all game scenes with virtual lifecycle methods
+- `src/Core/ServiceContainer.cs` - Dependency bag grouping shared game services for scene constructors
+- `src/Core/SceneManager.cs` - Stack-based scene manager with fade-to-black transition state machine and TransitionState enum
 
 ## Decisions Made
 - ServiceContainer.SceneManager uses regular setter (not `required init`) to resolve circular reference: ServiceContainer is created first, then SceneManager, then the property is assigned

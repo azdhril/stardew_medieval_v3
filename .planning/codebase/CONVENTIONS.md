@@ -6,7 +6,7 @@
 
 **Files:**
 - Class files use PascalCase: `GameState.cs`, `TimeManager.cs`, `PlayerEntity.cs`
-- Organized by feature/domain in directories: `Core/`, `Farming/`, `Player/`, `UI/`, `World/`, `Data/`
+- Organized by feature/domain in directories: `src/Core/`, `src/Farming/`, `src/Player/`, `src/UI/`, `src/World/`, `src/Data/`
 - One public class per file as standard
 
 **Functions/Methods:**

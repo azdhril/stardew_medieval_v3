@@ -7,14 +7,14 @@
 ### 1. Verbose Console Logging in Production Code
 - **Issue**: 34 direct Console.WriteLine() calls scattered throughout gameplay systems
 - **Files**: 
-  - `Core/SaveManager.cs` (4 calls)
-  - `Core/GameState.cs` (implicit via SaveManager)
-  - `Core/TimeManager.cs` (implicit via callers)
-  - `Farming/GridManager.cs` (8 calls)
-  - `Farming/CropManager.cs` (7 calls)
-  - `Farming/ToolController.cs` (9 calls)
-  - `World/TileMap.cs` (3 calls)
-  - `Data/CropRegistry.cs` (1 call)
+  - `src/Core/SaveManager.cs` (4 calls)
+  - `src/Core/GameState.cs` (implicit via SaveManager)
+  - `src/Core/TimeManager.cs` (implicit via callers)
+  - `src/Farming/GridManager.cs` (8 calls)
+  - `src/Farming/CropManager.cs` (7 calls)
+  - `src/Farming/ToolController.cs` (9 calls)
+  - `src/World/TileMap.cs` (3 calls)
+  - `src/Data/CropRegistry.cs` (1 call)
   - `Game1.cs` (2 calls)
 - **Impact**: 
   - Makes debugging difficult (mixed with game logs)
@@ -27,10 +27,10 @@
 - **Issue**: 17 declarations using `null!` operator suppress null-safety checks
 - **Files**: 
   - `Game1.cs` (8 fields: _spriteBatch, _input, _time, _camera, _map, _player, _gridManager, _cropManager, _toolController, _hud, _pixel)
-  - `Farming/GridManager.cs` (2 fields: _tilledTexture, _wateredTexture)
-  - `Player/PlayerEntity.cs` (1 field: _spriteSheet)
-  - `UI/HUD.cs` (2 fields: _font, _pixel)
-  - `World/TileMap.cs` (1 field: _map)
+  - `src/Farming/GridManager.cs` (2 fields: _tilledTexture, _wateredTexture)
+  - `src/Player/PlayerEntity.cs` (1 field: _spriteSheet)
+  - `src/UI/HUD.cs` (2 fields: _font, _pixel)
+  - `src/World/TileMap.cs` (1 field: _map)
 - **Impact**: 
   - Hides real null-reference exceptions that occur at runtime
   - Breaks null-safety contract of C# 8.0 nullable reference types
@@ -40,7 +40,7 @@
 
 ### 3. Lack of Null Checks After Texture/Asset Loading
 - **Issue**: `LoadTexture()` in `CropRegistry.cs` (line 194) returns null on failure but callers don't validate
-- **Files**: `Data/CropRegistry.cs` (22-181)
+- **Files**: `src/Data/CropRegistry.cs` (22-181)
 - **Scenario**: If a crop spritesheet fails to load (missing file, corrupted), `GrowthSheet` property remains null
 - **Impact**: 
   - `GridManager.DrawCrops()` line 204 checks `crop.Data.GrowthSheet == null` but this should never happen if crops load
@@ -50,7 +50,7 @@
 
 ### 4. Save File Migration Incomplete
 - **Issue**: Version migration in `SaveManager.cs` only handles v1→v2, no forward compatibility
-- **Files**: `Core/SaveManager.cs` (65-73)
+- **Files**: `src/Core/SaveManager.cs` (65-73)
 - **Problem**: 
   - If save format changes in future (e.g., v2→v3), old logic doesn't handle it
   - Only one migration path exists
@@ -59,7 +59,7 @@
 
 ### 5. Crop Data Hardcoded in Code, Not Data-Driven
 - **Issue**: All 23 crop definitions hardcoded in `CropRegistry.Initialize()` 
-- **Files**: `Data/CropRegistry.cs` (22-178)
+- **Files**: `src/Data/CropRegistry.cs` (22-178)
 - **Impact**: 
   - Adding new crop requires code change + recompilation
   - Cannot validate crop data (no schema)
@@ -70,7 +70,7 @@
 
 ### 1. Potential Index Out of Bounds in Crop Stage Calculation
 - **Trigger**: If `DaysPerStage <= 0` set in CropData
-- **Files**: `Farming/CropData.cs` (35-40)
+- **Files**: `src/Farming/CropData.cs` (35-40)
 - **Symptom**: `GetStageIndex()` returns 0, but `GetSourceRect()` uses stage*16 as X offset - may read wrong column
 - **Current safeguard**: `Clamp(stage, 0, StageCount-1)` prevents true crash but silently uses wrong sprite
 - **Workaround**: None - uses last growth stage visually
@@ -78,7 +78,7 @@
 
 ### 2. Watering Overlay Persists Across Save/Load
 - **Trigger**: Player waters tile on Day 1, saves game, loads game, checks GridManager
-- **Files**: `Farming/GridManager.cs` (119-125), `Core/SaveManager.cs`
+- **Files**: `src/Farming/GridManager.cs` (119-125), `src/Core/SaveManager.cs`
 - **Symptom**: `IsWatered` flag resets daily per design, BUT if player waters tile -> saves -> exits game -> loads, the watered state is lost (expected), but if they water tile -> saves while still playing same day -> loads same day, watered overlay vanishes
 - **Impact**: Cosmetic (watered visual state doesn't affect gameplay since crops only check `IsWatered` on growth)
 - **Cause**: `GetSaveData()` saves IsWatered but `OnDayAdvanced()` resets it - save happens *after* watering action
@@ -86,7 +86,7 @@
 
 ### 3. Harvest of Wilted Crops Clears Tilled State Inconsistently
 - **Trigger**: Crop wilts, player harvests with Hands tool
-- **Files**: `Farming/ToolController.cs` (88-123)
+- **Files**: `src/Farming/ToolController.cs` (88-123)
 - **Behavior**: Wilted crop harvest (line 100-107) sets IsTilled=false, IsWatered=false. But normal ripe harvest (line 115-123) does the same
 - **Issue**: Wilted crops should arguably stay tilled (player didn't clear the ground), but design requires re-tilling
 - **Impact**: Stardew-style is correct, but may surprise players
@@ -96,7 +96,7 @@
 
 ### 1. Save File Located in User AppData (Information Disclosure Risk)
 - **Risk**: `C:\Users\{user}\AppData\Local\StardewMedieval\savegame.json` is plaintext
-- **Files**: `Core/SaveManager.cs` (14-18)
+- **Files**: `src/Core/SaveManager.cs` (14-18)
 - **Current mitigation**: None - JSON is world-readable
 - **What could go wrong**: 
   - Player inventory visible to any process on system
@@ -108,7 +108,7 @@
 
 ### 2. No Input Validation in Tool Actions
 - **Risk**: ToolController dispatches actions based on player input without bounds checking
-- **Files**: `Farming/ToolController.cs` (64-66)
+- **Files**: `src/Farming/ToolController.cs` (64-66)
 - **Scenario**: If player hacks memory/modifies input, could target invalid tiles
 - **Current safeguard**: `GridManager.TryTill()` and `GridManager.TryWater()` check `IsFarmZone()` and `IsTillable`
 - **Recommendation**: Add tile boundary validation before calling action handlers
@@ -117,7 +117,7 @@
 
 ### 1. Inefficient Collision Detection in TileMap
 - **Problem**: `CheckCircleCollision()` iterates ALL collision polygons every frame
-- **Files**: `World/TileMap.cs` (171-187)
+- **Files**: `src/World/TileMap.cs` (171-187)
 - **Scenario**: If map has 100+ collision polygons, player movement check is O(n) per update
 - **Current impact**: Likely acceptable for Stardew-scale maps but will hurt on complex maps
 - **Improvement path**: 
@@ -127,7 +127,7 @@
 
 ### 2. Dictionary Lookups in DrawCrops/DrawOverlays
 - **Problem**: `GridManager` iterates ALL cells every draw frame, even off-screen
-- **Files**: `Farming/GridManager.cs` (171-222)
+- **Files**: `src/Farming/GridManager.cs` (171-222)
 - **Current safeguard**: `viewArea.Intersects()` check prevents rendering off-screen cells, but dictionary iteration is still O(n)
 - **Improvement path**: 
   - Spatial index of cells by tile position
@@ -136,7 +136,7 @@
 
 ### 3. Time Manager Precision Loss
 - **Problem**: `GameTime` is float, accumulated each frame
-- **Files**: `Core/TimeManager.cs` (26)
+- **Files**: `src/Core/TimeManager.cs` (26)
 - **Risk**: Over long sessions (1000+ days), float precision loss could cause drift
 - **Impact**: Low - 120 second days * 1000 days = 120,000 seconds. Float has ~7 significant digits precision
 - **Improvement path**: Use double for time accumulation, or frame counter
@@ -144,7 +144,7 @@
 ## Fragile Areas
 
 ### 1. Crop Spritesheet Layout Assumptions
-- **Files**: `Farming/CropData.cs`, `Data/CropRegistry.cs`
+- **Files**: `src/Farming/CropData.cs`, `src/Data/CropRegistry.cs`
 - **Why fragile**: 
   - Assumes all sprites are 16px wide per stage
   - Assumes height is only 16, 32, or 48px (hard-coded in sprite.Height)
@@ -157,7 +157,7 @@
 - **Test coverage**: None - no tests verify sprite extraction
 
 ### 2. Player-TileMap Coupling
-- **Files**: `Player/PlayerEntity.cs`, `World/TileMap.cs`
+- **Files**: `src/Player/PlayerEntity.cs`, `src/World/TileMap.cs`
 - **Why fragile**: 
   - `TileMap.WorldToTile()` and `TileToWorld()` are static conversions
   - Player collision box calculation uses hardcoded frame offset: `_frameHeight / 2 - h - 2` (line 38)
@@ -169,7 +169,7 @@
 - **Test coverage**: None - no collision tests
 
 ### 3. HUD Layout Assumes Fixed Screen Resolution
-- **Files**: `UI/HUD.cs`
+- **Files**: `src/UI/HUD.cs`
 - **Why fragile**: 
   - Hardcoded positions: stamina bar at (12, screenHeight-30)
   - Control text centered on `screenWidth / 2`
@@ -182,7 +182,7 @@
 - **Test coverage**: None - UI is visual-only
 
 ### 4. CropManager State Not Synchronized with GridManager
-- **Files**: `Farming/CropManager.cs`, `Farming/GridManager.cs`, `Game1.cs` (OnDayAdvanced)
+- **Files**: `src/Farming/CropManager.cs`, `src/Farming/GridManager.cs`, `Game1.cs` (OnDayAdvanced)
 - **Why fragile**: 
   - Both managers own crop state (CropManager manages selected crop, GridManager owns cells)
   - Order matters in `OnDayAdvanced()`: crops must tick BEFORE watering resets (Game1.cs line 232)
@@ -248,7 +248,7 @@
 - **Blocks**: Saving mid-day, changing settings, pausing gameplay
 - **Implementation**: Add GameState enum (Playing, Paused, Menu)
 
-### 3. No Inventory/Item Storage
+### 3. No src/Inventory/Item Storage
 - **Problem**: Crops harvested but not tracked (ToolController.cs line 116 just logs)
 - **Blocks**: Selling items, crafting, inventory limits
 - **Implementation**: Create Inventory system with ItemStack
@@ -265,7 +265,7 @@
   - Crop stage progression (DaysPerStage calculations)
   - Wilting logic (DaysToWilt timing)
   - Save/load state preservation
-- **Files**: `Farming/CropData.cs`, `Farming/CropInstance.cs`, `Farming/CropManager.cs`
+- **Files**: `src/Farming/CropData.cs`, `src/Farming/CropInstance.cs`, `src/Farming/CropManager.cs`
 - **Risk**: Adding new crops could break growth timings silently
 - **Priority**: High - growth is core game loop
 
@@ -274,7 +274,7 @@
   - Polygon collision detection (CircleIntersectsPolygon)
   - Point-in-polygon algorithm
   - Tileset lookup and rendering
-- **Files**: `World/TileMap.cs` (entire file)
+- **Files**: `src/World/TileMap.cs` (entire file)
 - **Risk**: Changes to collision code could break player movement
 - **Priority**: High - collision is core mechanic
 
@@ -283,7 +283,7 @@
   - Order of OnDayAdvanced() calls
   - Crop state persistence across days
   - Time manager state reset
-- **Files**: `Game1.cs` (OnDayAdvanced method), `Core/TimeManager.cs`
+- **Files**: `Game1.cs` (OnDayAdvanced method), `src/Core/TimeManager.cs`
 - **Risk**: Fragile state transitions, as noted in CropManager fragility section
 - **Priority**: Medium - critical but low frequency execution
 
@@ -292,7 +292,7 @@
   - Save to JSON, load from JSON, compare state
   - Migration logic
   - Corrupted save file handling
-- **Files**: `Core/SaveManager.cs`, `Core/GameState.cs`
+- **Files**: `src/Core/SaveManager.cs`, `src/Core/GameState.cs`
 - **Risk**: Save corruption goes undetected until next load
 - **Priority**: High - data loss is unacceptable
 
@@ -301,7 +301,7 @@
   - Sprite rendering at correct position
   - Overlay visibility
   - Clipping of off-screen elements
-- **Files**: `UI/HUD.cs`, `Farming/GridManager.cs`, `Player/PlayerEntity.cs`
+- **Files**: `src/UI/HUD.cs`, `src/Farming/GridManager.cs`, `src/Player/PlayerEntity.cs`
 - **Risk**: Visual bugs (misaligned sprites, overlapping text)
 - **Priority**: Medium - visual-only bugs
 

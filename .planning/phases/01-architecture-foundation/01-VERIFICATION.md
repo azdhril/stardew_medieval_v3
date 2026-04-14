@@ -18,7 +18,7 @@ human_verification:
   - test: "Pressionar T na farm scene, depois B para voltar"
     expected: "Tela fade para preto, mostra fundo azul escuro 'Test Scene - Press B to go back' com DummyNpc verde se movendo horizontalmente, pressionar B fade de volta para a farm com estado preservado"
     why_human: "Animacao de fade, movimento do DummyNpc e preservacao de estado de cena requerem jogo rodando para confirmar"
-  - test: "Carregar um save v2 (SaveVersion=2, sem campos Inventory/Gold/XP)"
+  - test: "Carregar um save v2 (SaveVersion=2, sem campos src/Inventory/Gold/XP)"
     expected: "Jogo carrega sem crash; console mostra '[SaveManager] Migrated save from v2 to v3'; Inventory=vazio, Gold=0, XP=0, Level=1, CurrentScene=Farm como defaults"
     why_human: "Requer um save v2 real e observacao da saida do console"
 ---
@@ -32,7 +32,7 @@ human_verification:
 
 ## Sumario da Re-verificacao
 
-A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma entidade concreta nao-player existia para provar extensibilidade da classe Entity. O Plan 04 foi executado para fechar esse gap criando `Entities/DummyNpc.cs` e integrando ao `Scenes/TestScene.cs`. O gap foi fechado e verificado abaixo.
+A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma entidade concreta nao-player existia para provar extensibilidade da classe Entity. O Plan 04 foi executado para fechar esse gap criando `src/Entities/DummyNpc.cs` e integrando ao `src/Scenes/TestScene.cs`. O gap foi fechado e verificado abaixo.
 
 **Gaps anteriores:** 1 (SC-3 falhou)
 **Gaps fechados:** 1 (SC-3 agora VERIFIED)
@@ -49,7 +49,7 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 |---|-------|--------|----------|
 | SC-1 | Game boots into FarmScene que se comporta identicamente ao jogo anterior (zero regressao) | ? HUMAN NEEDED | Build passa com 0 erros/warnings. FarmScene.cs contem toda logica de gameplay (TileMap, Player, GridManager, CropManager, HUD, dia/noite, save/load). Game1.cs nao tem campos de gameplay. Regressao visual requer verificacao humana. |
 | SC-2 | Player pode transicionar entre pelo menos duas cenas placeholder (Farm e test scene) com fade in/out | ✓ VERIFIED | FarmScene.cs chama `Services.SceneManager.Push(new TestScene(Services))` na tecla T. TestScene.cs chama `Services.SceneManager.Pop()` na tecla B. SceneManager implementa maquina de estados FadingOut->FadingIn com FadeDuration=0.4f. |
-| SC-3 | Uma entidade de teste (ex: dummy NPC) pode ser spawned usando a Entity base class com posicao, sprite e colisao | ✓ VERIFIED | `Entities/DummyNpc.cs` existe. `public class DummyNpc : Entity` (linha 13). Override CollisionBox (12x8 pixels na base). Override Update() com patrulha horizontal (30px/s, inverte a cada 2s). Override Draw() renderiza retangulo verde + caixa de colisao vermelha transparente. TestScene instancia, atualiza e desenha DummyNpc a cada frame. Build 0 erros. |
+| SC-3 | Uma entidade de teste (ex: dummy NPC) pode ser spawned usando a Entity base class com posicao, sprite e colisao | ✓ VERIFIED | `src/Entities/DummyNpc.cs` existe. `public class DummyNpc : Entity` (linha 13). Override CollisionBox (12x8 pixels na base). Override Update() com patrulha horizontal (30px/s, inverte a cada 2s). Override Draw() renderiza retangulo verde + caixa de colisao vermelha transparente. TestScene instancia, atualiza e desenha DummyNpc a cada frame. Build 0 erros. |
 | SC-4 | GameState serializa e deserializa a nova estrutura (inventory placeholder, scene, gold) sem quebrar saves existentes | ✓ VERIFIED | GameState.cs tem os 9 novos campos v3 (Inventory, Gold, XP, Level, CurrentScene, QuestState, WeaponId, ArmorId, HotbarSlots). SaveManager.cs CURRENT_SAVE_VERSION=3, bloco de migracao `state.SaveVersion < 3` com defaults seguros. Teste com save v2 real requer verificacao humana. |
 
 **Score:** 4/4 truths verificadas (SC-1 e SC-4 passam nos checks de codigo; comportamento em runtime requer humano)
@@ -60,20 +60,20 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `Core/Entity.cs` | Abstract Entity base class | ✓ VERIFIED | Contem `Position`, `HP/MaxHP/IsAlive`, `SpriteSheet/FrameWidth/FrameHeight` (protected), virtual `CollisionBox/Update/Draw`. Sem regressao. |
-| `Core/Direction.cs` | Direction enum extraido de PlayerEntity | ✓ VERIFIED | `public enum Direction { Down, Left, Right, Up }` no namespace Core. |
-| `Core/Scene.cs` | Abstract scene base class | ✓ VERIFIED | abstract class Scene com protected ServiceContainer, virtual LoadContent/Update/Draw/UnloadContent. |
-| `Core/ServiceContainer.cs` | Dependency bag de servicos compartilhados | ✓ VERIFIED | Todos os campos obrigatorios: GraphicsDevice, SpriteBatch, Input, Time, Camera, Content, SceneManager. |
-| `Core/SceneManager.cs` | Scene manager com stack e fade transitions | ✓ VERIFIED | Stack<Scene>, TransitionTo/Push/Pop/PushImmediate, maquina de estados FadingOut->FadingIn, FadeDuration=0.4f. |
-| `Core/GameState.cs` | Game state expandido v3 | ✓ VERIFIED | 9 novos campos. SaveVersion default = 3. |
-| `Core/SaveManager.cs` | Migracao v2->v3 | ✓ VERIFIED | CURRENT_SAVE_VERSION=3, bloco `state.SaveVersion < 3` com log. |
-| `Data/ItemDefinition.cs` | Unified item model | ✓ VERIFIED | Id, Name, Type, Rarity, StackLimit, SpriteId, Stats (Dictionary<string,float>). |
-| `Data/ItemRegistry.cs` | Registry estatico carregando de JSON | ✓ VERIFIED | `public static class ItemRegistry`, Initialize/Get/GetByType/All. |
-| `Data/items.json` | 45 definicoes de items | ✓ VERIFIED | 45 entradas (grep `"Id"` = 45). Contem Cabbage, Prickly Pear, Hoe. |
-| `Scenes/FarmScene.cs` | Cena de gameplay da fazenda extraida de Game1 | ✓ VERIFIED | `class FarmScene : Scene`. Contem _map, _player, _gridManager, _cropManager, _toolController, _hud. Desenha mapa/player/crops/HUD. Subscribe/unsubscribe de evento. |
-| `Scenes/TestScene.cs` | Cena placeholder para teste de transicoes | ✓ VERIFIED | `class TestScene : Scene`. Fundo azul escuro, texto, instancia DummyNpc, chama _npc.Update() e _npc.Draw(), tecla B chama Pop(). |
-| `Player/PlayerEntity.cs` | Herda de Entity | ✓ VERIFIED | `public class PlayerEntity : Entity`. Sem Direction enum interno. Usa SpriteSheet/FrameIndex/AnimationTimer herdados. |
-| `Entities/DummyNpc.cs` | Subclasse concreta nao-player de Entity (NOVO - gap closure) | ✓ VERIFIED | `public class DummyNpc : Entity`. Override CollisionBox (12x8). Override Update() com patrulha. Override Draw() com retangulo colorido. Instanciado e executado em TestScene. |
+| `src/Core/Entity.cs` | Abstract Entity base class | ✓ VERIFIED | Contem `Position`, `HP/MaxHP/IsAlive`, `SpriteSheet/FrameWidth/FrameHeight` (protected), virtual `CollisionBox/Update/Draw`. Sem regressao. |
+| `src/Core/Direction.cs` | Direction enum extraido de PlayerEntity | ✓ VERIFIED | `public enum Direction { Down, Left, Right, Up }` no namespace Core. |
+| `src/Core/Scene.cs` | Abstract scene base class | ✓ VERIFIED | abstract class Scene com protected ServiceContainer, virtual LoadContent/Update/Draw/UnloadContent. |
+| `src/Core/ServiceContainer.cs` | Dependency bag de servicos compartilhados | ✓ VERIFIED | Todos os campos obrigatorios: GraphicsDevice, SpriteBatch, Input, Time, Camera, Content, SceneManager. |
+| `src/Core/SceneManager.cs` | Scene manager com stack e fade transitions | ✓ VERIFIED | Stack<Scene>, TransitionTo/Push/Pop/PushImmediate, maquina de estados FadingOut->FadingIn, FadeDuration=0.4f. |
+| `src/Core/GameState.cs` | Game state expandido v3 | ✓ VERIFIED | 9 novos campos. SaveVersion default = 3. |
+| `src/Core/SaveManager.cs` | Migracao v2->v3 | ✓ VERIFIED | CURRENT_SAVE_VERSION=3, bloco `state.SaveVersion < 3` com log. |
+| `src/Data/ItemDefinition.cs` | Unified item model | ✓ VERIFIED | Id, Name, Type, Rarity, StackLimit, SpriteId, Stats (Dictionary<string,float>). |
+| `src/Data/ItemRegistry.cs` | Registry estatico carregando de JSON | ✓ VERIFIED | `public static class ItemRegistry`, Initialize/Get/GetByType/All. |
+| `src/Data/items.json` | 45 definicoes de items | ✓ VERIFIED | 45 entradas (grep `"Id"` = 45). Contem Cabbage, Prickly Pear, Hoe. |
+| `src/Scenes/FarmScene.cs` | Cena de gameplay da fazenda extraida de Game1 | ✓ VERIFIED | `class FarmScene : Scene`. Contem _map, _player, _gridManager, _cropManager, _toolController, _hud. Desenha mapa/player/crops/HUD. Subscribe/unsubscribe de evento. |
+| `src/Scenes/TestScene.cs` | Cena placeholder para teste de transicoes | ✓ VERIFIED | `class TestScene : Scene`. Fundo azul escuro, texto, instancia DummyNpc, chama _npc.Update() e _npc.Draw(), tecla B chama Pop(). |
+| `src/Player/PlayerEntity.cs` | Herda de Entity | ✓ VERIFIED | `public class PlayerEntity : Entity`. Sem Direction enum interno. Usa SpriteSheet/FrameIndex/AnimationTimer herdados. |
+| `src/Entities/DummyNpc.cs` | Subclasse concreta nao-player de Entity (NOVO - gap closure) | ✓ VERIFIED | `public class DummyNpc : Entity`. Override CollisionBox (12x8). Override Update() com patrulha. Override Draw() com retangulo colorido. Instanciado e executado em TestScene. |
 
 ---
 
@@ -81,15 +81,15 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| Player/PlayerEntity.cs | Core/Entity.cs | heranca de classe | ✓ WIRED | `public class PlayerEntity : Entity` |
-| Entities/DummyNpc.cs | Core/Entity.cs | heranca de classe | ✓ WIRED | `public class DummyNpc : Entity` (linha 13) |
-| Scenes/TestScene.cs | Entities/DummyNpc.cs | instanciacao + Update/Draw | ✓ WIRED | `_npc = new DummyNpc(...)`, `_npc.Update(deltaTime)`, `_npc.Draw(spriteBatch)` |
-| Data/ItemRegistry.cs | Data/items.json | JsonSerializer.Deserialize | ✓ WIRED | Initialize() le arquivo, usa JsonStringEnumConverter |
-| Core/Scene.cs | Core/ServiceContainer.cs | parametro no construtor | ✓ WIRED | `protected Scene(ServiceContainer services)` |
-| Core/SceneManager.cs | Core/Scene.cs | Stack<Scene> | ✓ WIRED | `private readonly Stack<Scene> _scenes = new()` |
-| Game1.cs | Core/SceneManager.cs | delegacao em Update/Draw | ✓ WIRED | `_sceneManager.Update(dt)` e `_sceneManager.Draw(_spriteBatch)` |
-| Scenes/FarmScene.cs | Core/Scene.cs | heranca de classe | ✓ WIRED | `public class FarmScene : Scene` |
-| Core/SaveManager.cs | Core/GameState.cs | logica de migracao | ✓ WIRED | `if (state.SaveVersion < 3)` em MigrateIfNeeded |
+| src/Player/PlayerEntity.cs | src/Core/Entity.cs | heranca de classe | ✓ WIRED | `public class PlayerEntity : Entity` |
+| src/Entities/DummyNpc.cs | src/Core/Entity.cs | heranca de classe | ✓ WIRED | `public class DummyNpc : Entity` (linha 13) |
+| src/Scenes/TestScene.cs | src/Entities/DummyNpc.cs | instanciacao + Update/Draw | ✓ WIRED | `_npc = new DummyNpc(...)`, `_npc.Update(deltaTime)`, `_npc.Draw(spriteBatch)` |
+| src/Data/ItemRegistry.cs | src/Data/items.json | JsonSerializer.Deserialize | ✓ WIRED | Initialize() le arquivo, usa JsonStringEnumConverter |
+| src/Core/Scene.cs | src/Core/ServiceContainer.cs | parametro no construtor | ✓ WIRED | `protected Scene(ServiceContainer services)` |
+| src/Core/SceneManager.cs | src/Core/Scene.cs | Stack<Scene> | ✓ WIRED | `private readonly Stack<Scene> _scenes = new()` |
+| Game1.cs | src/Core/SceneManager.cs | delegacao em Update/Draw | ✓ WIRED | `_sceneManager.Update(dt)` e `_sceneManager.Draw(_spriteBatch)` |
+| src/Scenes/FarmScene.cs | src/Core/Scene.cs | heranca de classe | ✓ WIRED | `public class FarmScene : Scene` |
+| src/Core/SaveManager.cs | src/Core/GameState.cs | logica de migracao | ✓ WIRED | `if (state.SaveVersion < 3)` em MigrateIfNeeded |
 
 ---
 
@@ -97,10 +97,10 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |----------|---------------|--------|--------------------|--------|
-| Scenes/FarmScene.cs | _player, _map, _gridManager | SaveManager.Load() + instanciacao direta | Save data carregado de JSON; mapa carregado de TMX | ✓ FLOWING |
-| Scenes/FarmScene.cs | OnDayAdvanced (auto-save) | GameState populado do estado ao vivo | Salva DayNumber, PlayerX/Y, StaminaCurrent, FarmCells | ✓ FLOWING |
-| Data/ItemRegistry | _items Dictionary | items.json via JsonSerializer | 45 items carregados de arquivo | ✓ FLOWING |
-| Entities/DummyNpc.cs | Position (patrulha) | Update() com _paceDirection e deltaTime | Posicao calculada a cada frame (nao estatica) | ✓ FLOWING |
+| src/Scenes/FarmScene.cs | _player, _map, _gridManager | SaveManager.Load() + instanciacao direta | Save data carregado de JSON; mapa carregado de TMX | ✓ FLOWING |
+| src/Scenes/FarmScene.cs | OnDayAdvanced (auto-save) | GameState populado do estado ao vivo | Salva DayNumber, PlayerX/Y, StaminaCurrent, FarmCells | ✓ FLOWING |
+| src/Data/ItemRegistry | _items Dictionary | items.json via JsonSerializer | 45 items carregados de arquivo | ✓ FLOWING |
+| src/Entities/DummyNpc.cs | Position (patrulha) | Update() com _paceDirection e deltaTime | Posicao calculada a cada frame (nao estatica) | ✓ FLOWING |
 
 ---
 
@@ -109,10 +109,10 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
 | Build com zero erros | `dotnet build --no-restore` | "Compilacao com exito. 0 Aviso(s) 0 Erro(s)" | ✓ PASS |
-| DummyNpc herda Entity | `grep "class DummyNpc : Entity" Entities/DummyNpc.cs` | Encontrado linha 13 | ✓ PASS |
+| DummyNpc herda Entity | `grep "class DummyNpc : Entity" src/Entities/DummyNpc.cs` | Encontrado linha 13 | ✓ PASS |
 | DummyNpc overrides CollisionBox, Update, Draw | grep no DummyNpc.cs | 3 overrides encontrados (linhas 38, 54, 74) | ✓ PASS |
 | TestScene instancia, atualiza e desenha DummyNpc | grep "_npc" TestScene.cs | Instanciacao (linha 29), Update (36), Draw (69) | ✓ PASS |
-| items.json tem 45 entradas | `grep -c '"Id"' Data/items.json` | 45 | ✓ PASS |
+| items.json tem 45 entradas | `grep -c '"Id"' src/Data/items.json` | 45 | ✓ PASS |
 | Game1 nao tem campos de gameplay | grep no Game1.cs | 0 ocorrencias de TileMap/PlayerEntity/GridManager/CropManager | ✓ PASS |
 | Game1 delega para SceneManager | grep no Game1.cs | `_sceneManager.Update(dt)` linha 72, `_sceneManager.Draw` linha 80 | ✓ PASS |
 
@@ -123,7 +123,7 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 | Requirement | Source Plan | Descricao | Status | Evidencia |
 |-------------|------------|-----------|--------|-----------|
 | ARCH-01 | Plan 02 | SceneManager gerencia transicao entre scenes com fade in/out | ✓ SATISFIED | SceneManager com stack, TransitionTo/Push/Pop, maquina de estados fade. Transicoes FarmScene<->TestScene implementadas. |
-| ARCH-02 | Plans 01 + 04 | Entity base class com posicao, sprite, colisao, compartilhada por Player/Enemy/NPC | ✓ SATISFIED | Entity base class completa. PlayerEntity herda. DummyNpc (nao-player) herda e prova extensibilidade. SC-3 fechado. |
+| ARCH-02 | Plans 01 + 04 | Entity base class com posicao, sprite, colisao, compartilhada por src/Player/Enemy/NPC | ✓ SATISFIED | Entity base class completa. PlayerEntity herda. DummyNpc (nao-player) herda e prova extensibilidade. SC-3 fechado. |
 | ARCH-03 | Plan 01 | Unified ItemDefinition model para crops, tools, weapons, armor, consumables e loot | ✓ SATISFIED | ItemDefinition com Id/Name/Type/Rarity/StackLimit/SpriteId/Stats. ItemRegistry com 45 items. ItemType cobre todas as categorias. |
 | ARCH-04 | Plan 03 | GameState reestruturado para suportar inventario, XP, quest state, gold, scene atual | ✓ SATISFIED | 9 novos campos v3 em GameState. Migracao save v2->v3 implementada. |
 | ARCH-05 | Plan 03 | Game1.cs refatorado para delegar logica para scenes | ✓ SATISFIED | Game1 tem ~80 linhas, zero campos de gameplay, delega Update/Draw inteiramente para SceneManager. |
@@ -134,8 +134,8 @@ A verificacao anterior (2026-04-10T22:30:00Z) encontrou SC-3 falhando: nenhuma e
 
 | File | Pattern | Severidade | Impacto |
 |------|---------|------------|---------|
-| Scenes/FarmScene.cs | `null!` declarations nos campos | INFO | Padrao MonoGame padrao -- inicializado em LoadContent antes do uso. Nao eh stub. |
-| Entities/DummyNpc.cs | `null!` para _npc em TestScene | INFO | Inicializado em LoadContent. Nao eh stub. |
+| src/Scenes/FarmScene.cs | `null!` declarations nos campos | INFO | Padrao MonoGame padrao -- inicializado em LoadContent antes do uso. Nao eh stub. |
+| src/Entities/DummyNpc.cs | `null!` para _npc em TestScene | INFO | Inicializado em LoadContent. Nao eh stub. |
 
 Nenhuma implementacao stub, comentario TODO/FIXME ou retorno placeholder encontrado nos arquivos de output da fase.
 
@@ -157,7 +157,7 @@ Nenhuma implementacao stub, comentario TODO/FIXME ou retorno placeholder encontr
 
 ### 3. Migracao de Save v2 para v3
 
-**Test:** Se um save v2 existir (ou criar manualmente com SaveVersion=2 sem campos Inventory/Gold/XP), carregar o jogo
+**Test:** Se um save v2 existir (ou criar manualmente com SaveVersion=2 sem campos src/Inventory/Gold/XP), carregar o jogo
 **Expected:** Console mostra "[SaveManager] Migrated save from v2 to v3". Jogo carrega com estado da fazenda intacto. Inventory vazio, Gold=0, Level=1.
 **Why human:** Requer um save v2 real e observacao da saida do console
 
@@ -165,7 +165,7 @@ Nenhuma implementacao stub, comentario TODO/FIXME ou retorno placeholder encontr
 
 ## Gaps Summary
 
-Nenhum gap bloqueando o objetivo da fase. O unico gap anterior (SC-3) foi fechado pelo Plan 04 com a criacao de `Entities/DummyNpc.cs`. Todos os 4 success criteria do roadmap estao verificados no codigo.
+Nenhum gap bloqueando o objetivo da fase. O unico gap anterior (SC-3) foi fechado pelo Plan 04 com a criacao de `src/Entities/DummyNpc.cs`. Todos os 4 success criteria do roadmap estao verificados no codigo.
 
 Os itens de verificacao humana restantes sao confirmacoes de comportamento em runtime que nao podem ser verificadas programaticamente -- nao sao gaps de implementacao.
 

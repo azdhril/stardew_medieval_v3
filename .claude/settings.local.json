@@ -11,7 +11,28 @@
       "Bash(find \"Content/Sprites/System/UI Elements/Slot\" -type f)",
       "Bash(find \"Content/Sprites/System/Preview\" -type f)",
       "Bash(ls Content/Data/)",
-      "Bash(ls Data/*.json)"
+      "Bash(ls Data/*.json)",
+      "Bash(ls Data/)",
+      "Bash(ls Items/)",
+      "Bash(ls Inventory/)",
+      "Bash(python -c \"from PIL import Image; im=Image.open\\(r'Content/Sprites/Items/Pickup_Items.png'\\); print\\('Pickup:',im.size,'cols:',im.size[0]//16,'rows:',im.size[1]//16\\); im2=Image.open\\(r'Content/Sprites/Items/Fruits and Vegetables/Food_Icons.png'\\); print\\('Food:',im2.size,'cols:',im2.size[0]//16,'rows:',im2.size[1]//16\\)\")",
+      "Bash(dotnet run:*)",
+      "Bash(python -c \"from PIL import Image; im=Image.open\\(r'Content/Sprites/Player/player_spritesheet.png'\\); print\\(im.size\\)\")",
+      "Bash(powershell -c 'Add-Type -AssemblyName System.Drawing; $i=[System.Drawing.Image]::FromFile\\('\\\\''__TRACKED_VAR__/Content/Sprites/Player/player_spritesheet.png'\\\\''\\); Write-Host \"$\\($i.Width\\)x$\\($i.Height\\)\"')",
+      "Bash(git show:*)",
+      "Read(//tmp/**)",
+      "Skill(gsd-verify-work)",
+      "Skill(gsd-next)",
+      "Bash(python:*)",
+      "Skill(gsd-execute-phase)",
+      "Bash(powershell.exe -Command 'Get-Process | Where-Object { $_.Path -like '\\\\''*stardew*'\\\\'' -or $_.Name -like '\\\\''*mgcb*'\\\\'' -or $_.Name -like '\\\\''*dotnet*'\\\\'' } | Select-Object Name,Id')",
+      "Bash(mkdir assets:*)",
+      "Bash(mv Content/* Content/.??* assets/)",
+      "Bash(find Content -depth -type d -empty -exec rmdir {} +)",
+      "Bash(cmd.exe //c \"rmdir /s /q Content\")",
+      "Bash(rm -rf Content)",
+      "Bash(sed -i -E \"s#\\\\\"\\(Combat|Core|Data|Entities|Farming|Inventory|Player|Quest|Scenes|UI|World\\)/#\\\\\"src/\\\\1/#g\" .planning/HANDOFF.json)",
+      "Bash(sed -i -E \"s#\\\\\"Content/#\\\\\"assets/#g\" .planning/HANDOFF.json)"
     ]
   }
 }

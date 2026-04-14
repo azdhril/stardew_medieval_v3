@@ -19,17 +19,17 @@ references:
 All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 1. Implementation SUMMARYs for plans 03-01, 03-02, and 03-03 (with per-task commit hashes).
-2. Source code under `Combat/`, `UI/`, `Core/`, and `Player/` — file paths verified on disk.
+2. Source code under `src/Combat/`, `src/UI/`, `src/Core/`, and `src/Player/` — file paths verified on disk.
 3. `.planning/phases/03-combat/03-UAT.md`, which recorded **15/15 pass** across player combat, enemy AI, and boss fight scenarios (cases UAT-01 through UAT-15).
 
 | Requirement | Status | Primary Evidence | UAT Case(s) |
 |-------------|--------|------------------|-------------|
-| CMB-01 | Satisfied | `Combat/MeleeAttack.cs` + `Combat/CombatManager.cs` + `Combat/SlashEffect.cs` (knockback in `Core/Entity.cs`) | UAT-01 |
-| CMB-02 | Satisfied | `Combat/Projectile.cs` + `Combat/ProjectileManager.cs` + fireball cooldown in `Combat/CombatManager.cs` | UAT-02 |
-| CMB-03 | Satisfied | `Player/PlayerStats.cs` HP + `UI/HUD.cs` player bar + `UI/EnemyHealthBar.cs` + `UI/BossHealthBar.cs` + i-frames in `Combat/CombatManager.cs` / `Player/PlayerEntity.cs` | UAT-03, UAT-04 |
-| CMB-04 | Satisfied | `Combat/EnemyData.cs` (Skeleton / DarkMage / Golem) + `Combat/EnemyEntity.cs` | UAT-05, UAT-06, UAT-07 |
-| CMB-05 | Satisfied | `Combat/EnemyAI.cs` FSM (Idle/Chase/Attack/Return) + `Combat/EnemySpawner.cs` respawn | UAT-08, UAT-09, UAT-10, UAT-11 |
-| CMB-06 | Satisfied | `Combat/BossEntity.cs` telegraphed slash + summon phases + `Core/GameState.cs` BossKilled + `Core/SaveManager.cs` v4 migration | UAT-12, UAT-13, UAT-14, UAT-15 |
+| CMB-01 | Satisfied | `src/Combat/MeleeAttack.cs` + `src/Combat/CombatManager.cs` + `src/Combat/SlashEffect.cs` (knockback in `src/Core/Entity.cs`) | UAT-01 |
+| CMB-02 | Satisfied | `src/Combat/Projectile.cs` + `src/Combat/ProjectileManager.cs` + fireball cooldown in `src/Combat/CombatManager.cs` | UAT-02 |
+| CMB-03 | Satisfied | `src/Player/PlayerStats.cs` HP + `src/UI/HUD.cs` player bar + `src/UI/EnemyHealthBar.cs` + `src/UI/BossHealthBar.cs` + i-frames in `src/Combat/CombatManager.cs` / `src/Player/PlayerEntity.cs` | UAT-03, UAT-04 |
+| CMB-04 | Satisfied | `src/Combat/EnemyData.cs` (Skeleton / DarkMage / Golem) + `src/Combat/EnemyEntity.cs` | UAT-05, UAT-06, UAT-07 |
+| CMB-05 | Satisfied | `src/Combat/EnemyAI.cs` FSM (Idle/Chase/Attack/Return) + `src/Combat/EnemySpawner.cs` respawn | UAT-08, UAT-09, UAT-10, UAT-11 |
+| CMB-06 | Satisfied | `src/Combat/BossEntity.cs` telegraphed slash + summon phases + `src/Core/GameState.cs` BossKilled + `src/Core/SaveManager.cs` v4 migration | UAT-12, UAT-13, UAT-14, UAT-15 |
 
 ## Per-Requirement Evidence
 
@@ -39,11 +39,11 @@ All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 **Evidence:**
 - Source (attack):
-  - `Combat/MeleeAttack.cs` — 48x24px hitbox aligned to `Player.FacingDirection`, HashSet-tracked hit set prevents multi-hit per swing (per 03-01 Research Pitfall 1).
-  - `Combat/CombatManager.cs` — LMB dispatch, weapon-gated (requires equipped weapon in hotbar), per-weapon cooldown.
-  - `Combat/SlashEffect.cs` — fading slash overlay rendered on swing.
+  - `src/Combat/MeleeAttack.cs` — 48x24px hitbox aligned to `Player.FacingDirection`, HashSet-tracked hit set prevents multi-hit per swing (per 03-01 Research Pitfall 1).
+  - `src/Combat/CombatManager.cs` — LMB dispatch, weapon-gated (requires equipped weapon in hotbar), per-weapon cooldown.
+  - `src/Combat/SlashEffect.cs` — fading slash overlay rendered on swing.
 - Source (knockback):
-  - `Core/Entity.cs` — `ApplyKnockback()` + lerp update; `TakeDamage()` enforces minimum 1 damage per 03-01 D-06.
+  - `src/Core/Entity.cs` — `ApplyKnockback()` + lerp update; `TakeDamage()` enforces minimum 1 damage per 03-01 D-06.
 - Implementation summary: 03-01-SUMMARY.md (Task 1 commit `335c80f`).
 - Behavioral proof: 03-UAT.md **UAT-01 (Melee Attack (LMB)) — pass** ("slash visual aparece, inimigo na frente leva dano 1x por swing, respeita cooldown da arma").
 
@@ -55,10 +55,10 @@ All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 **Evidence:**
 - Source:
-  - `Combat/Projectile.cs` — position/velocity/damage/lifetime/ownership data model.
-  - `Combat/ProjectileManager.cs` — spawn/update/collision for all projectiles (player + enemy).
-  - `Combat/CombatManager.cs` — RMB dispatch, fireball 200px/s, 300px max range, 15 fixed damage, cooldown indicator consumed by HUD.
-  - `UI/HUD.cs` — fireball cooldown progress fill.
+  - `src/Combat/Projectile.cs` — position/velocity/damage/lifetime/ownership data model.
+  - `src/Combat/ProjectileManager.cs` — spawn/update/collision for all projectiles (player + enemy).
+  - `src/Combat/CombatManager.cs` — RMB dispatch, fireball 200px/s, 300px max range, 15 fixed damage, cooldown indicator consumed by HUD.
+  - `src/UI/HUD.cs` — fireball cooldown progress fill.
 - Implementation summary: 03-01-SUMMARY.md (Task 2 commit `892918c`, Task 3 commit `01271b2`).
 - Behavioral proof: 03-UAT.md **UAT-02 (Fireball (RMB)) — pass** (note: cooldown consciously tuned to 1s — intentional spec drift confirmed by user).
 
@@ -70,15 +70,15 @@ All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 **Evidence:**
 - Source (HP model):
-  - `Player/PlayerStats.cs` — HP and stamina state.
-  - `Core/Entity.cs` — base HP + `TakeDamage()` + Defense property.
+  - `src/Player/PlayerStats.cs` — HP and stamina state.
+  - `src/Core/Entity.cs` — base HP + `TakeDamage()` + Defense property.
 - Source (rendering):
-  - `UI/HUD.cs` — red player HP bar.
-  - `UI/EnemyHealthBar.cs` — world-space, hidden at 100% HP.
-  - `UI/BossHealthBar.cs` — screen-space with boss name text.
+  - `src/UI/HUD.cs` — red player HP bar.
+  - `src/UI/EnemyHealthBar.cs` — world-space, hidden at 100% HP.
+  - `src/UI/BossHealthBar.cs` — screen-space with boss name text.
 - Source (i-frames):
-  - `Combat/CombatManager.cs` — sets `IFrameTimer` on PlayerEntity (1s default).
-  - `Player/PlayerEntity.cs` — blink rendering during i-frames, red flash on hit.
+  - `src/Combat/CombatManager.cs` — sets `IFrameTimer` on PlayerEntity (1s default).
+  - `src/Player/PlayerEntity.cs` — blink rendering during i-frames, red flash on hit.
 - Implementation summary: 03-01-SUMMARY.md (Task 3 commit `01271b2`).
 - Behavioral proof: 03-UAT.md **UAT-03 (Player HP Bar + I-Frames) — pass** and **UAT-04 (Enemy Health Bars) — pass**.
 
@@ -90,9 +90,9 @@ All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 **Evidence:**
 - Source:
-  - `Combat/EnemyData.cs` — static records for Skeleton, DarkMage, Golem inside `EnemyRegistry`.
-  - `Combat/EnemyEntity.cs` — single generic entity driven by `EnemyData`; `ApplyKnockbackWithResistance` implements Golem's resistance scaling.
-  - `Combat/EnemyAI.cs` — ranged kiting branch in `GetMoveDirection(EnemyData)` for Dark Mage.
+  - `src/Combat/EnemyData.cs` — static records for Skeleton, DarkMage, Golem inside `EnemyRegistry`.
+  - `src/Combat/EnemyEntity.cs` — single generic entity driven by `EnemyData`; `ApplyKnockbackWithResistance` implements Golem's resistance scaling.
+  - `src/Combat/EnemyAI.cs` — ranged kiting branch in `GetMoveDirection(EnemyData)` for Dark Mage.
 - Implementation summary: 03-02-SUMMARY.md (Task 1 commit `594afdb`).
 - Behavioral proof: 03-UAT.md **UAT-05 (Skeleton melee rusher) — pass**, **UAT-06 (Dark Mage ranged kiter) — pass**, **UAT-07 (Golem tank with knockback resistance) — pass**.
 
@@ -104,10 +104,10 @@ All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 **Evidence:**
 - Source:
-  - `Combat/EnemyAI.cs` — `EnemyState` enum (Idle/Chase/Attack/Return) + per-state transition logic keyed on player distance.
-  - `Combat/EnemyEntity.cs` — owns the AI instance; consumes state to decide movement / attack.
-  - `Combat/EnemySpawner.cs` — hardcoded spawn positions and `OnDayAdvanced` respawn hook.
-  - `Scenes/FarmScene.cs` — wires spawner into day-advance event.
+  - `src/Combat/EnemyAI.cs` — `EnemyState` enum (Idle/Chase/Attack/Return) + per-state transition logic keyed on player distance.
+  - `src/Combat/EnemyEntity.cs` — owns the AI instance; consumes state to decide movement / attack.
+  - `src/Combat/EnemySpawner.cs` — hardcoded spawn positions and `OnDayAdvanced` respawn hook.
+  - `src/Scenes/FarmScene.cs` — wires spawner into day-advance event.
 - Implementation summary: 03-02-SUMMARY.md (Task 2 commit `8ef531a`).
 - Behavioral proof: 03-UAT.md **UAT-08 (Enemy AI FSM) — pass**, **UAT-09 (Loot Drops) — pass**, **UAT-10 (Player Death & Respawn) — pass**, **UAT-11 (Enemy Respawn on Day Advance) — pass**.
 
@@ -119,12 +119,12 @@ All 6 combat requirements are **Satisfied**. Evidence comes from three sources:
 
 **Evidence:**
 - Source:
-  - `Combat/BossEntity.cs` — extends `EnemyEntity` via `new`-method hiding; 1s wind-up telegraph (red flash), 64x32 wide slash hitbox, HP-threshold phase counter (70%/40%) that summons 2 Skeletons each, custom loot method with Flame_Blade guarantee + 5x Stone_Chunk gold proxy.
-  - `Combat/EnemySpawner.cs` — `SpawnBoss()` for fixed-position boss creation and daily respawn.
-  - `Core/GameState.cs` — `BossKilled` property.
-  - `Core/SaveManager.cs` — v3→v4 migration defaulting `BossKilled = false`.
-  - `UI/BossHealthBar.cs` — screen-space boss bar with name text.
-  - `Scenes/FarmScene.cs` — boss spawn, update, projectile/melee collision, death loot, daily respawn, HP bar rendering.
+  - `src/Combat/BossEntity.cs` — extends `EnemyEntity` via `new`-method hiding; 1s wind-up telegraph (red flash), 64x32 wide slash hitbox, HP-threshold phase counter (70%/40%) that summons 2 Skeletons each, custom loot method with Flame_Blade guarantee + 5x Stone_Chunk gold proxy.
+  - `src/Combat/EnemySpawner.cs` — `SpawnBoss()` for fixed-position boss creation and daily respawn.
+  - `src/Core/GameState.cs` — `BossKilled` property.
+  - `src/Core/SaveManager.cs` — v3→v4 migration defaulting `BossKilled = false`.
+  - `src/UI/BossHealthBar.cs` — screen-space boss bar with name text.
+  - `src/Scenes/FarmScene.cs` — boss spawn, update, projectile/melee collision, death loot, daily respawn, HP bar rendering.
 - Implementation summary: 03-03-SUMMARY.md (Task 1 commit `d023845`).
 - Behavioral proof: 03-UAT.md **UAT-12 (Boss Telegraphed Slash) — pass**, **UAT-13 (Boss Summon Phases) — pass**, **UAT-14 (Boss First-Kill Loot) — pass**, **UAT-15 (Boss Kill Persists Across Save) — pass** (user confirmed re-kill did not force-drop Flame_Blade).
 

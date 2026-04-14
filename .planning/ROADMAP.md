@@ -102,7 +102,7 @@ Plans:
   3. Player can talk to the King NPC and receive the main quest ("clear the dungeon") via a styled dialogue box with portrait
   4. Player can open the shop UI, see items with prices, and buy/sell items using gold
   5. NPC dialogue changes based on quest state (no quest, quest active, quest complete)
-**Plans:** 4 plans
+**Plans:** 7 plans
 **UI hint**: yes
 
 Plans:
@@ -110,6 +110,9 @@ Plans:
 - [x] 04-02-PLAN.md — World scenes & maps: VillageScene/CastleScene/ShopScene + TMX + FarmScene edge trigger (Wave 2)
 - [x] 04-03-PLAN.md — Dialogue system + King NPC + HUD quest tracker + F9 debug key (Wave 3)
 - [x] 04-04-PLAN.md — Shop UI: ShopPanel + Toast + Shopkeeper NPC + ShopStock (Wave 4)
+- [x] 04-05-PLAN.md — Gap closure: save persistence (FarmScene first-entry guard) (Wave 5) [blocker]
+- [x] 04-06-PLAN.md — Gap closure: shop mouse support (tabs + rows + action button + close) (Wave 5)
+- [ ] 04-07-PLAN.md — Gap closure: shop scroll wheel + scrollbar + partial-stack sell (Wave 6)
 
 ### Phase 5: Dungeon
 **Goal**: Players can enter and progress through a complete dungeon experience from entrance to boss room

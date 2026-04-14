@@ -14,19 +14,19 @@
 **File Storage:**
 - Local filesystem only
   - Save location: `%LOCALAPPDATA%\StardewMedieval\savegame.json`
-  - Managed by `Core/SaveManager.cs`
+  - Managed by `src/Core/SaveManager.cs`
   - Single JSON file per game instance containing all persistent state
 
 **Asset Storage:**
 - Local embedded resources
-  - Sprites directory: `Content/Sprites/**/*.png`
-  - Maps directory: `Content/Maps/**/*.tmx` (Tiled map files)
-  - Fonts directory: `Content/DefaultFont.spritefont`
+  - Sprites directory: `assets/Sprites/**/*.png`
+  - Maps directory: `assets/Maps/**/*.tmx` (Tiled map files)
+  - Fonts directory: `assets/DefaultFont.spritefont`
   - All assets copied to output via `PreserveNewest` in project file
 
 **Caching:**
 - In-memory only (not persistent)
-  - Crop registry cached in `Data/CropRegistry.cs` as static dictionary
+  - Crop registry cached in `src/Data/CropRegistry.cs` as static dictionary
   - Tileset textures cached in `TileMap._tilesetTextures` dictionary
   - Player spritesheets loaded once at startup
 
@@ -67,8 +67,8 @@
 - None detected - Application has no external environment dependencies
 
 **Hardcoded paths:**
-- Game content root: `"Content"` - Relative to application directory
-- Tiled map path: `"Content/Maps/test_farm.tmx"` - Hardcoded in `Game1.cs` LoadContent()
+- Game content root: `"assets"` - Relative to application directory
+- Tiled map path: `"assets/Maps/test_farm.tmx"` - Hardcoded in `Game1.cs` LoadContent()
 - Save directory: Uses Windows standard `%LOCALAPPDATA%` special folder
 
 **Secrets location:**

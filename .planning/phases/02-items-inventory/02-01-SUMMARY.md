@@ -23,16 +23,16 @@ tech-stack:
 
 key-files:
   created:
-    - Inventory/InventoryManager.cs
-    - Inventory/EquipmentData.cs
-    - Data/SpriteAtlas.cs
-    - UI/HotbarRenderer.cs
+    - src/Inventory/InventoryManager.cs
+    - src/Inventory/EquipmentData.cs
+    - src/Data/SpriteAtlas.cs
+    - src/UI/HotbarRenderer.cs
   modified:
-    - Core/InputManager.cs
-    - Core/ServiceContainer.cs
-    - Scenes/FarmScene.cs
-    - UI/HUD.cs
-    - Data/items.json
+    - src/Core/InputManager.cs
+    - src/Core/ServiceContainer.cs
+    - src/Scenes/FarmScene.cs
+    - src/UI/HUD.cs
+    - src/Data/items.json
 
 key-decisions:
   - "SpriteAtlas uses grid-based registration with fallback rectangle for missing sprites"
@@ -78,15 +78,15 @@ Each task was committed atomically:
 2. **Task 2: HotbarRenderer and FarmScene integration** - `a2dca95` (feat)
 
 ## Files Created/Modified
-- `Inventory/InventoryManager.cs` - Pure data class: 20 slots, hotbar index, equipment, stacking, save/load
-- `Inventory/EquipmentData.cs` - Static equipment stat calculator from weapon/armor definitions
-- `Data/SpriteAtlas.cs` - SpriteId to Rectangle mapping for item icon spritesheet
-- `UI/HotbarRenderer.cs` - 8-slot hotbar at screen bottom with slot textures and item icons
-- `Core/InputManager.cs` - Added mouse state tracking (position, click detection)
-- `Core/ServiceContainer.cs` - Added nullable Inventory property for cross-scene access
-- `Scenes/FarmScene.cs` - Inventory creation, hotbar integration, save/load, test items, number key handling
-- `UI/HUD.cs` - Removed controls hint text (replaced by hotbar)
-- `Data/items.json` - Added weapons (Iron/Steel/Flame Sword), armor (Leather/Iron/Dragon), Health Potion
+- `src/Inventory/InventoryManager.cs` - Pure data class: 20 slots, hotbar index, equipment, stacking, save/load
+- `src/Inventory/EquipmentData.cs` - Static equipment stat calculator from weapon/armor definitions
+- `src/Data/SpriteAtlas.cs` - SpriteId to Rectangle mapping for item icon spritesheet
+- `src/UI/HotbarRenderer.cs` - 8-slot hotbar at screen bottom with slot textures and item icons
+- `src/Core/InputManager.cs` - Added mouse state tracking (position, click detection)
+- `src/Core/ServiceContainer.cs` - Added nullable Inventory property for cross-scene access
+- `src/Scenes/FarmScene.cs` - Inventory creation, hotbar integration, save/load, test items, number key handling
+- `src/UI/HUD.cs` - Removed controls hint text (replaced by hotbar)
+- `src/Data/items.json` - Added weapons (Iron/Steel/Flame Sword), armor (Leather/Iron/Dragon), Health Potion
 
 ## Decisions Made
 - SpriteAtlas uses grid-based registration with fallback to (0,0,16,16) for unregistered sprites
@@ -100,7 +100,7 @@ Each task was committed atomically:
 
 **1. [Rule 3 - Blocking] Copied untracked source files from main repo to worktree**
 - **Found during:** Task 1 (pre-build verification)
-- **Issue:** Many source files (InputManager.cs, TimeManager.cs, Camera.cs, HUD.cs, Farming/, World/, Player/PlayerStats.cs, etc.) exist in main repo working directory but were never committed to git. Worktree only has tracked files, so build would fail.
+- **Issue:** Many source files (InputManager.cs, TimeManager.cs, Camera.cs, HUD.cs, src/Farming/, src/World/, src/Player/PlayerStats.cs, etc.) exist in main repo working directory but were never committed to git. Worktree only has tracked files, so build would fail.
 - **Fix:** Copied all untracked source files and content assets from main repo to worktree
 - **Files modified:** 15+ untracked files copied (not committed as new -- they are pre-existing code)
 - **Verification:** dotnet build passes before any plan changes
@@ -117,7 +117,7 @@ Each task was committed atomically:
 **Impact on plan:** Both auto-fixes were environment setup for the worktree. No code changes, no scope creep.
 
 ## Issues Encountered
-- Spritesheet path in plan says `Content/Sprites/Farming/Pickup_Items.png` but actual location is `Content/Sprites/Items/Pickup_Items.png`. Used correct path in implementation.
+- Spritesheet path in plan says `assets/Sprites/Farming/Pickup_Items.png` but actual location is `assets/Sprites/Items/Pickup_Items.png`. Used correct path in implementation.
 
 ## User Setup Required
 None - no external service configuration required.

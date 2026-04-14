@@ -24,14 +24,14 @@ tech-stack:
 
 key-files:
   created:
-    - Combat/EnemyData.cs
-    - Combat/EnemyAI.cs
-    - Combat/EnemyEntity.cs
-    - Combat/LootTable.cs
-    - Combat/EnemySpawner.cs
+    - src/Combat/EnemyData.cs
+    - src/Combat/EnemyAI.cs
+    - src/Combat/EnemyEntity.cs
+    - src/Combat/LootTable.cs
+    - src/Combat/EnemySpawner.cs
   modified:
-    - Data/items.json
-    - Scenes/FarmScene.cs
+    - src/Data/items.json
+    - src/Scenes/FarmScene.cs
 
 key-decisions:
   - "Single EnemyEntity class driven by EnemyData records rather than subclasses per enemy type"
@@ -77,13 +77,13 @@ Each task was committed atomically:
 2. **Task 2: EnemySpawner + FarmScene integration** - `8ef531a` (feat)
 
 ## Files Created/Modified
-- `Combat/EnemyData.cs` - Static enemy type definitions (Skeleton, DarkMage, Golem) as records with EnemyRegistry
-- `Combat/EnemyAI.cs` - FSM AI with Idle/Chase/Attack/Return states, ranged kiting behavior
-- `Combat/EnemyEntity.cs` - Entity subclass with data-driven stats, AI integration, placeholder rectangle rendering
-- `Combat/LootTable.cs` - LootDrop record and LootTable class with probability-based Roll method
-- `Combat/EnemySpawner.cs` - Spawn positions management and day-advance respawning
-- `Data/items.json` - Added Bones, Mana_Crystal, Stone_Chunk loot items
-- `Scenes/FarmScene.cs` - Full combat loop wiring: enemies, melee/projectile checks, death/loot, player respawn
+- `src/Combat/EnemyData.cs` - Static enemy type definitions (Skeleton, DarkMage, Golem) as records with EnemyRegistry
+- `src/Combat/EnemyAI.cs` - FSM AI with Idle/Chase/Attack/Return states, ranged kiting behavior
+- `src/Combat/EnemyEntity.cs` - Entity subclass with data-driven stats, AI integration, placeholder rectangle rendering
+- `src/Combat/LootTable.cs` - LootDrop record and LootTable class with probability-based Roll method
+- `src/Combat/EnemySpawner.cs` - Spawn positions management and day-advance respawning
+- `src/Data/items.json` - Added Bones, Mana_Crystal, Stone_Chunk loot items
+- `src/Scenes/FarmScene.cs` - Full combat loop wiring: enemies, melee/projectile checks, death/loot, player respawn
 
 ## Decisions Made
 - Used single EnemyEntity class driven by EnemyData records (not subclasses) for simplicity and data-driven design

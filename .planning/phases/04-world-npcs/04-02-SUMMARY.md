@@ -6,15 +6,15 @@ tags: [scenes, tilemaps, transitions, spawns, services]
 requirements: [WLD-01, WLD-02, WLD-03, WLD-04]
 dependency_graph:
   requires:
-    - "World/TileMap.Triggers (Plan 04-01)"
-    - "World/TriggerZone record (Plan 04-01)"
-    - "Core/SceneManager.TransitionTo (fade pipeline)"
-    - "Core/ServiceContainer (DI bag)"
+    - "src/World/TileMap.Triggers (Plan 04-01)"
+    - "src/World/TriggerZone record (Plan 04-01)"
+    - "src/Core/SceneManager.TransitionTo (fade pipeline)"
+    - "src/Core/ServiceContainer (DI bag)"
   provides:
-    - "Scenes/VillageScene.cs"
-    - "Scenes/CastleScene.cs"
-    - "Scenes/ShopScene.cs"
-    - "Content/Maps/{village,castle,shop}.tmx"
+    - "src/Scenes/VillageScene.cs"
+    - "src/Scenes/CastleScene.cs"
+    - "src/Scenes/ShopScene.cs"
+    - "assets/Maps/{village,castle,shop}.tmx"
     - "Services.Player shared slot (used by Plans 04-03, 04-04)"
     - "Services.GameState shared slot"
     - "FarmScene(fromScene) ctor overload"
@@ -29,16 +29,16 @@ tech-stack:
     - "Per-entry spawn dictionaries keyed by fromScene string"
 key-files:
   created:
-    - "Content/Maps/village.tmx"
-    - "Content/Maps/castle.tmx"
-    - "Content/Maps/shop.tmx"
-    - "Scenes/VillageScene.cs"
-    - "Scenes/CastleScene.cs"
-    - "Scenes/ShopScene.cs"
+    - "assets/Maps/village.tmx"
+    - "assets/Maps/castle.tmx"
+    - "assets/Maps/shop.tmx"
+    - "src/Scenes/VillageScene.cs"
+    - "src/Scenes/CastleScene.cs"
+    - "src/Scenes/ShopScene.cs"
   modified:
-    - "Core/ServiceContainer.cs"
-    - "Scenes/FarmScene.cs"
-    - "Content/Maps/test_farm.tmx"
+    - "src/Core/ServiceContainer.cs"
+    - "src/Scenes/FarmScene.cs"
+    - "assets/Maps/test_farm.tmx"
 decisions:
   - "Shared player via Services.Player so state survives scene transitions (WLD-04)"
   - "Farm-tileset used as placeholder art for all 3 new maps per research A2"
@@ -58,10 +58,10 @@ Deliver the navigable world topology (WLD-01..04) as a vertical slice: the playe
 
 | File | Size | Tileset | Collision | Triggers |
 |------|------|---------|-----------|----------|
-| `Content/Maps/village.tmx` | 60x34 (960x544) | farm_tileset.tsx, tile 74 grass | N/E/S perimeter walls; west edge open | `exit_to_farm` (x=0, y=240, 16x64), `door_castle` (x=192, y=96, 32x16), `door_shop` (x=720, y=96, 32x16) |
-| `Content/Maps/castle.tmx` | 40x30 (640x480) | farm_tileset.tsx, tile 74 | Full perimeter + south wall gap at x=192..224 | `exit_to_village` (x=192, y=464, 32x16) |
-| `Content/Maps/shop.tmx` | 40x30 (640x480) | farm_tileset.tsx, tile 74 | Same as castle | `exit_to_village` (x=192, y=464, 32x16) |
-| `Content/Maps/test_farm.tmx` (modified) | 40x30 (pre-existing) | (unchanged) | (unchanged) | NEW: `enter_village` (x=624, y=208, 16x64) |
+| `assets/Maps/village.tmx` | 60x34 (960x544) | farm_tileset.tsx, tile 74 grass | N/E/S perimeter walls; west edge open | `exit_to_farm` (x=0, y=240, 16x64), `door_castle` (x=192, y=96, 32x16), `door_shop` (x=720, y=96, 32x16) |
+| `assets/Maps/castle.tmx` | 40x30 (640x480) | farm_tileset.tsx, tile 74 | Full perimeter + south wall gap at x=192..224 | `exit_to_village` (x=192, y=464, 32x16) |
+| `assets/Maps/shop.tmx` | 40x30 (640x480) | farm_tileset.tsx, tile 74 | Same as castle | `exit_to_village` (x=192, y=464, 32x16) |
+| `assets/Maps/test_farm.tmx` (modified) | 40x30 (pre-existing) | (unchanged) | (unchanged) | NEW: `enter_village` (x=624, y=208, 16x64) |
 
 ## Spawn-Point Dicts Per Scene
 
@@ -112,14 +112,14 @@ All names verified via grep at build time.
 - **Found during:** Task 2
 - **Issue:** Plan interfaces reference `Services.Player!.Position` and `Services.Player.CollisionBox` as if a Player slot existed on ServiceContainer, but it did not. FarmScene owned a private `_player` field with no cross-scene accessor. Without a shared player reference, WLD-04 (state preserved across transitions) is impossible.
 - **Fix:** Added `PlayerEntity? Player`, `Texture2D? PlayerSpriteSheet`, and `GameState? GameState` slots to ServiceContainer. FarmScene.LoadContent now initializes Services.Player lazily (only on first entry) and reuses the shared instance on subsequent entries. All three new scenes (Village/Castle/Shop) read Services.Player and re-position it at their scene's spawn point. State (HP, iframes, stamina, inventory) naturally carries across transitions because the same PlayerEntity instance survives.
-- **Files modified:** `Core/ServiceContainer.cs`, `Scenes/FarmScene.cs`
+- **Files modified:** `src/Core/ServiceContainer.cs`, `src/Scenes/FarmScene.cs`
 - **Commits:** `bc41a1a`, `48c5020`
 
 **2. [Rule 2 - Missing critical functionality] Services.GameState slot did not exist**
 - **Found during:** Task 2
 - **Issue:** Plan spec said "writes `Services.GameState.CurrentScene = ...` on entry" but ServiceContainer had no GameState slot and FarmScene only materialized a GameState on day-advance. Scenes had no way to update the persisted CurrentScene.
 - **Fix:** Added `GameState? GameState` slot. FarmScene publishes `_loadedState` to Services after load. Village/Castle/Shop scenes update `Services.GameState.CurrentScene` on entry. Next save (triggered on day-advance) captures the correct last-active scene.
-- **Files modified:** `Core/ServiceContainer.cs`, `Scenes/FarmScene.cs`, plus read in all 3 new scenes.
+- **Files modified:** `src/Core/ServiceContainer.cs`, `src/Scenes/FarmScene.cs`, plus read in all 3 new scenes.
 - **Commits:** `bc41a1a`, `48c5020`
 
 ### Not deviations, but worth noting
@@ -154,7 +154,7 @@ SceneManager re-entry guard (`if (_state != TransitionState.None) return`) preve
   - `name="enter_village"` in test_farm.tmx -> 1.
   - `class VillageScene : Scene`, `class CastleScene : Scene`, `class ShopScene : Scene` -> 1 each.
   - `_fromScene|fromScene` in FarmScene.cs -> 5 hits (field + param + switch + log + store).
-- Maps copy to `bin/Debug/net8.0/Content/Maps/` on build (verified via ls).
+- Maps copy to `bin/Debug/net8.0/assets/Maps/` on build (verified via ls).
 
 ## Interfaces Block Deltas
 
@@ -162,14 +162,14 @@ Plan's `<interfaces>` block referenced `Services.Player` and `Services.GameState
 
 ## Self-Check: PASSED
 
-- Content/Maps/village.tmx: FOUND (contains `name="exit_to_farm"`, `name="door_castle"`, `name="door_shop"`)
-- Content/Maps/castle.tmx: FOUND (contains `name="exit_to_village"`)
-- Content/Maps/shop.tmx: FOUND (contains `name="exit_to_village"`)
-- Scenes/VillageScene.cs: FOUND (contains `class VillageScene : Scene`, 3 spawn entries, 3 trigger cases)
-- Scenes/CastleScene.cs: FOUND (contains `class CastleScene : Scene`, `exit_to_village` case)
-- Scenes/ShopScene.cs: FOUND (contains `class ShopScene : Scene`, `exit_to_village` case)
-- Core/ServiceContainer.cs: modified (contains `Player`, `PlayerSpriteSheet`, `GameState` slots)
-- Scenes/FarmScene.cs: modified (contains `_fromScene`, `VillageScene(Services`, `Services.Player = _player`, `enter_village`)
-- Content/Maps/test_farm.tmx: modified (contains `name="enter_village"`)
+- assets/Maps/village.tmx: FOUND (contains `name="exit_to_farm"`, `name="door_castle"`, `name="door_shop"`)
+- assets/Maps/castle.tmx: FOUND (contains `name="exit_to_village"`)
+- assets/Maps/shop.tmx: FOUND (contains `name="exit_to_village"`)
+- src/Scenes/VillageScene.cs: FOUND (contains `class VillageScene : Scene`, 3 spawn entries, 3 trigger cases)
+- src/Scenes/CastleScene.cs: FOUND (contains `class CastleScene : Scene`, `exit_to_village` case)
+- src/Scenes/ShopScene.cs: FOUND (contains `class ShopScene : Scene`, `exit_to_village` case)
+- src/Core/ServiceContainer.cs: modified (contains `Player`, `PlayerSpriteSheet`, `GameState` slots)
+- src/Scenes/FarmScene.cs: modified (contains `_fromScene`, `VillageScene(Services`, `Services.Player = _player`, `enter_village`)
+- assets/Maps/test_farm.tmx: modified (contains `name="enter_village"`)
 - Commits 9521cc0, bc41a1a, 48c5020: all FOUND in git log
 - `dotnet build -c Debug --nologo -v q`: 0 warnings, 0 errors

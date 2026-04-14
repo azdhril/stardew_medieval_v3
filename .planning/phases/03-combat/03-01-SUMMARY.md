@@ -24,18 +24,18 @@ tech-stack:
 
 key-files:
   created:
-    - Combat/CombatManager.cs
-    - Combat/MeleeAttack.cs
-    - Combat/Projectile.cs
-    - Combat/ProjectileManager.cs
-    - Combat/SlashEffect.cs
-    - UI/EnemyHealthBar.cs
-    - UI/BossHealthBar.cs
+    - src/Combat/CombatManager.cs
+    - src/Combat/MeleeAttack.cs
+    - src/Combat/Projectile.cs
+    - src/Combat/ProjectileManager.cs
+    - src/Combat/SlashEffect.cs
+    - src/UI/EnemyHealthBar.cs
+    - src/UI/BossHealthBar.cs
   modified:
-    - Core/Entity.cs
-    - Player/PlayerEntity.cs
-    - UI/HUD.cs
-    - Scenes/FarmScene.cs
+    - src/Core/Entity.cs
+    - src/Player/PlayerEntity.cs
+    - src/UI/HUD.cs
+    - src/Scenes/FarmScene.cs
 
 key-decisions:
   - "Fireball request uses consume-flag pattern to decouple CombatManager from ProjectileManager"
@@ -84,17 +84,17 @@ Each task was committed atomically:
 3. **Task 3: HP bars + magic cooldown indicator** - `01271b2` (feat)
 
 ## Files Created/Modified
-- `Combat/CombatManager.cs` - Coordinates player attacks, damage calc, i-frames, fireball cooldown
-- `Combat/MeleeAttack.cs` - Melee hitbox, swing timer, cooldown, hit tracking
-- `Combat/Projectile.cs` - Projectile data (position, velocity, damage, lifetime, ownership)
-- `Combat/ProjectileManager.cs` - Spawns/updates/collision-checks all projectiles
-- `Combat/SlashEffect.cs` - Visual slash overlay with fade animation
-- `UI/EnemyHealthBar.cs` - World-space HP bar drawn above enemies
-- `UI/BossHealthBar.cs` - Screen-space boss HP bar at bottom center
-- `Core/Entity.cs` - Added TakeDamage, ApplyKnockback, DirectionToVector, Defense, knockback, flash
-- `Player/PlayerEntity.cs` - Added IFrameTimer, blink rendering, knockback/flash updates
-- `UI/HUD.cs` - Added player HP bar and fireball cooldown indicator
-- `Scenes/FarmScene.cs` - Wired CombatManager, ProjectileManager, SlashEffect into game loop
+- `src/Combat/CombatManager.cs` - Coordinates player attacks, damage calc, i-frames, fireball cooldown
+- `src/Combat/MeleeAttack.cs` - Melee hitbox, swing timer, cooldown, hit tracking
+- `src/Combat/Projectile.cs` - Projectile data (position, velocity, damage, lifetime, ownership)
+- `src/Combat/ProjectileManager.cs` - Spawns/updates/collision-checks all projectiles
+- `src/Combat/SlashEffect.cs` - Visual slash overlay with fade animation
+- `src/UI/EnemyHealthBar.cs` - World-space HP bar drawn above enemies
+- `src/UI/BossHealthBar.cs` - Screen-space boss HP bar at bottom center
+- `src/Core/Entity.cs` - Added TakeDamage, ApplyKnockback, DirectionToVector, Defense, knockback, flash
+- `src/Player/PlayerEntity.cs` - Added IFrameTimer, blink rendering, knockback/flash updates
+- `src/UI/HUD.cs` - Added player HP bar and fireball cooldown indicator
+- `src/Scenes/FarmScene.cs` - Wired CombatManager, ProjectileManager, SlashEffect into game loop
 
 ## Decisions Made
 - Used consume-flag pattern for fireball requests: CombatManager sets flag, FarmScene reads and spawns via ProjectileManager. Avoids tight coupling.
@@ -110,7 +110,7 @@ Each task was committed atomically:
 - **Found during:** Task 3 (HUD modification)
 - **Issue:** HUD was instantiated before InventoryManager and CombatManager, but new HUD constructor requires both
 - **Fix:** Moved ItemRegistry.Initialize() and InventoryManager creation before HUD and CombatManager creation
-- **Files modified:** Scenes/FarmScene.cs
+- **Files modified:** src/Scenes/FarmScene.cs
 - **Verification:** dotnet build succeeds with 0 errors
 - **Committed in:** 01271b2 (Task 3 commit)
 

@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+**/bin/
+**/obj/
+
+# MonoGame content pipeline cache
+assets/bin/
+assets/obj/
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store

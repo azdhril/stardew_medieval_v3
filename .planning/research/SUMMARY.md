@@ -22,7 +22,7 @@ Two non-negotiable architectural changes before any new feature work:
 
 **Hand-roll:** Entity system (inheritance + composition), A* pathfinding (PriorityQueue), pixel art UI (9-slice panels), combat hitboxes (AABB separate from world collision), enemy AI (state machines).
 
-**Data-driven:** Extend existing JSON pattern (CropRegistry, SaveManager) to items, enemies, spells, loot tables, dialogue, quests. All in `Content/Data/*.json`.
+**Data-driven:** Extend existing JSON pattern (CropRegistry, SaveManager) to items, enemies, spells, loot tables, dialogue, quests. All in `assets/Data/*.json`.
 
 ## Table Stakes (v1 Must-Have)
 

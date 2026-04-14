@@ -16,42 +16,42 @@
 
 **Core Systems Layer:**
 - Purpose: Manages fundamental game state and input
-- Location: `Core/`
+- Location: `src/Core/`
 - Contains: `InputManager`, `TimeManager`, `Camera`, `GameState`, `SaveManager`
 - Depends on: MonoGame Framework
 - Used by: Game1 (coordinator), all entity systems
 
-**World/Map Layer:**
+**src/World/Map Layer:**
 - Purpose: Represents the static game world, collision detection, tilemap rendering
-- Location: `World/`
+- Location: `src/World/`
 - Contains: `TileMap` (loads Tiled TMX files, manages layers, handles collision detection via polygon ray-casting)
 - Depends on: `TiledCS` library for TMX parsing, MonoGame for rendering
 - Used by: Player movement, camera bounds, grid-based farming
 
 **Entity Layer:**
 - Purpose: Manages individual game objects with position, animation, and behavior
-- Location: `Player/`
+- Location: `src/Player/`
 - Contains: `PlayerEntity` (position, movement, animation, collision box), `PlayerStats` (stamina management)
 - Depends on: Core systems (InputManager, TileMap for collision)
 - Used by: Game1 for update/draw, ToolController for farming actions
 
 **Farming System Layer:**
 - Purpose: Grid-based farming mechanics (tilling, watering, crop growth, harvesting)
-- Location: `Farming/`
+- Location: `src/Farming/`
 - Contains: `GridManager` (cell state dictionary), `CropManager` (lifecycle), `CropInstance` (individual crop), `CropData` (static crop definition), `ToolController` (input dispatch)
 - Depends on: PlayerEntity, GridManager, CropRegistry
 - Used by: Game1 for day-advance events, input handling
 
-**Data/Registry Layer:**
+**src/Data/Registry Layer:**
 - Purpose: Central registry of static game data (crop definitions)
-- Location: `Data/`
+- Location: `src/Data/`
 - Contains: `CropRegistry` (static dictionary of all crop types with growth sheets)
 - Depends on: MonoGame GraphicsDevice for texture loading
 - Used by: CropManager, GridManager during load/instantiation
 
 **UI Layer:**
 - Purpose: Non-diegetic screen-space overlay (HUD with stamina, time, controls)
-- Location: `UI/`
+- Location: `src/UI/`
 - Contains: `HUD` (renders text, bars, control hints in screen coordinates)
 - Depends on: TimeManager, PlayerStats, ToolController
 - Used by: Game1 for final render pass
@@ -88,7 +88,7 @@
 
 **TileMap (Polygon-based Collision):**
 - Purpose: Represents static world geometry and tile-based interaction zones
-- Examples: `World/TileMap.cs` — loads .TMX (Tiled) format, extracts collision objects as polygons
+- Examples: `src/World/TileMap.cs` — loads .TMX (Tiled) format, extracts collision objects as polygons
 - Pattern: Circle-polygon intersection (smooth collision sliding), ray-casting point-in-polygon test
 
 **Crop Growth as State Machine:**

@@ -39,13 +39,13 @@ audited: 2026-04-12
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | Status |
 |---------|------|------|-------------|-----------|-------------------|--------|
-| 03-01-01 | 01 | 1 | CMB-01 | build+grep | `dotnet build && grep -r "TakeDamage" Core/Entity.cs` | COVERED |
-| 03-01-02 | 01 | 1 | CMB-01 | build+grep | `dotnet build && grep -r "MeleeAttack\|AttackHitbox" Combat/` | COVERED |
-| 03-01-03 | 01 | 1 | CMB-02 | build+grep | `dotnet build && grep -r "FireballEntity\|Projectile" Combat/` | COVERED |
-| 03-01-04 | 01 | 1 | CMB-03 | build+grep | `dotnet build && grep -r "HealthBar\|HPBar" UI/` | COVERED |
-| 03-02-01 | 02 | 2 | CMB-04, CMB-05 | build+grep | `dotnet build && grep -r "EnemyEntity\|EnemyData" Combat/` | COVERED |
-| 03-02-02 | 02 | 2 | CMB-04 | build+grep | `dotnet build && grep -r "AIState\|Idle\|Chase\|Attack\|Return" Combat/` | COVERED |
-| 03-03-01 | 03 | 3 | CMB-06 | build+grep | `dotnet build && grep -r "BossEntity\|SkeletonKing" Combat/` | COVERED |
+| 03-01-01 | 01 | 1 | CMB-01 | build+grep | `dotnet build && grep -r "TakeDamage" src/Core/Entity.cs` | COVERED |
+| 03-01-02 | 01 | 1 | CMB-01 | build+grep | `dotnet build && grep -r "MeleeAttack\|AttackHitbox" src/Combat/` | COVERED |
+| 03-01-03 | 01 | 1 | CMB-02 | build+grep | `dotnet build && grep -r "FireballEntity\|Projectile" src/Combat/` | COVERED |
+| 03-01-04 | 01 | 1 | CMB-03 | build+grep | `dotnet build && grep -r "HealthBar\|HPBar" src/UI/` | COVERED |
+| 03-02-01 | 02 | 2 | CMB-04, CMB-05 | build+grep | `dotnet build && grep -r "EnemyEntity\|EnemyData" src/Combat/` | COVERED |
+| 03-02-02 | 02 | 2 | CMB-04 | build+grep | `dotnet build && grep -r "AIState\|Idle\|Chase\|Attack\|Return" src/Combat/` | COVERED |
+| 03-03-01 | 03 | 3 | CMB-06 | build+grep | `dotnet build && grep -r "BossEntity\|SkeletonKing" src/Combat/` | COVERED |
 
 ---
 

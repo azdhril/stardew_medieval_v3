@@ -66,27 +66,27 @@ Sistema de combate completo: ataque melee com espada, magia ranged com projetil,
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Entity System (Phase 1 output)
-- `Core/Entity.cs` — Base class com HP/MaxHP/IsAlive, Position, Velocity, CollisionBox, FacingDirection, animation support
-- `Player/PlayerEntity.cs` — Player com movement, collision, animation. Sem ataque ainda.
-- `Player/PlayerStats.cs` — Stamina system. HP separado na Entity base.
+- `src/Core/Entity.cs` — Base class com HP/MaxHP/IsAlive, Position, Velocity, CollisionBox, FacingDirection, animation support
+- `src/Player/PlayerEntity.cs` — Player com movement, collision, animation. Sem ataque ainda.
+- `src/Player/PlayerStats.cs` — Stamina system. HP separado na Entity base.
 
 ### Items & Equipment (Phase 2 output)
-- `Data/items.json` — Weapons ja definidas (Iron_Sword, Steel_Sword, Flame_Blade) com damage stats
-- `Data/ItemDefinition.cs` — Modelo unificado com Stats dictionary
-- `Data/ItemRegistry.cs` — Registry de itens com lookup e filtering
-- `Data/EquipmentData.cs` — Calculo de stats combinados (attack/defense)
+- `src/Data/items.json` — Weapons ja definidas (Iron_Sword, Steel_Sword, Flame_Blade) com damage stats
+- `src/Data/ItemDefinition.cs` — Modelo unificado com Stats dictionary
+- `src/Data/ItemRegistry.cs` — Registry de itens com lookup e filtering
+- `src/Data/EquipmentData.cs` — Calculo de stats combinados (attack/defense)
 
 ### Input & Scenes
-- `Core/InputManager.cs` — LMB e RMB disponiveis (IsLeftClickPressed, IsRightClickPressed)
-- `Core/SceneManager.cs` — Stack-based scenes com transicoes
-- `Scenes/FarmScene.cs` — Scene principal, onde inimigos serao adicionados temporariamente
+- `src/Core/InputManager.cs` — LMB e RMB disponiveis (IsLeftClickPressed, IsRightClickPressed)
+- `src/Core/SceneManager.cs` — Stack-based scenes com transicoes
+- `src/Scenes/FarmScene.cs` — Scene principal, onde inimigos serao adicionados temporariamente
 
 ### UI Assets
-- `Content/Sprites/System/UI Elements/Bars/Status/UI_StatusBar_Fill_HP.png` — Barra de HP
-- `Content/Sprites/System/UI Elements/Bars/Status/UI_StatusBar_Bg.png` — Background da barra
+- `assets/Sprites/System/UI Elements/Bars/Status/UI_StatusBar_Fill_HP.png` — Barra de HP
+- `assets/Sprites/System/UI Elements/Bars/Status/UI_StatusBar_Bg.png` — Background da barra
 
 ### Collision
-- `World/TileMap.cs` — Collision com tiles (polygon-based). Entity-to-entity collision NAO existe ainda.
+- `src/World/TileMap.cs` — Collision com tiles (polygon-based). Entity-to-entity collision NAO existe ainda.
 
 ### Codebase Maps
 - `.planning/codebase/ARCHITECTURE.md` — Arquitetura atual
@@ -116,10 +116,10 @@ Sistema de combate completo: ataque melee com espada, magia ranged com projetil,
 - Try* prefix para operacoes falhaveis — TryAttack(), TryDodge()
 
 ### Integration Points
-- `Scenes/FarmScene.cs` — Adicionar lista de enemies, update/draw loop, collision checks
-- `Player/PlayerEntity.cs` — Adicionar Attack(), TakeDamage(), invulnerability timer
-- `Core/Entity.cs` — Adicionar TakeDamage(), knockback handling, death event
-- `UI/HUD.cs` — Adicionar HP bar do player e boss bar
+- `src/Scenes/FarmScene.cs` — Adicionar lista de enemies, update/draw loop, collision checks
+- `src/Player/PlayerEntity.cs` — Adicionar Attack(), TakeDamage(), invulnerability timer
+- `src/Core/Entity.cs` — Adicionar TakeDamage(), knockback handling, death event
+- `src/UI/HUD.cs` — Adicionar HP bar do player e boss bar
 
 </code_context>
 

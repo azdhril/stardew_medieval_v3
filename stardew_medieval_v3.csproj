@@ -24,9 +24,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Update="Content\Maps\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="Content\Sprites\**\*" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="Data\items.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="assets\Maps\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="assets\Sprites\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="src\Data\items.json" CopyToOutputDirectory="PreserveNewest" />
+    <MonoGameContentReference Include="assets\Content.mgcb" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*" />

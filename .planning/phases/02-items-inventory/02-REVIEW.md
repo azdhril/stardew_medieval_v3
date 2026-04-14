@@ -4,12 +4,12 @@ reviewed: 2026-04-11T12:00:00Z
 depth: standard
 files_reviewed: 6
 files_reviewed_list:
-  - Entities/ItemDropEntity.cs
-  - Scenes/FarmScene.cs
-  - Farming/ToolController.cs
-  - Player/PlayerEntity.cs
-  - Inventory/InventoryManager.cs
-  - UI/HotbarRenderer.cs
+  - src/Entities/ItemDropEntity.cs
+  - src/Scenes/FarmScene.cs
+  - src/Farming/ToolController.cs
+  - src/Player/PlayerEntity.cs
+  - src/Inventory/InventoryManager.cs
+  - src/UI/HotbarRenderer.cs
 findings:
   critical: 1
   warning: 4
@@ -33,7 +33,7 @@ Reviewed the items and inventory system: item drops with magnet pickup, inventor
 
 ### CR-01: Test consumable ref set at out-of-bounds index (silent failure)
 
-**File:** `Scenes/FarmScene.cs:119`
+**File:** `src/Scenes/FarmScene.cs:119`
 **Issue:** `_inventory.SetConsumableRef(1, "Bread")` is called, but `InventoryManager.ConsumableSlotCount` is 1, meaning only index 0 is valid. `SetConsumableRef` silently returns `false` for out-of-range indices (line 215 of InventoryManager.cs), so the "Bread" consumable ref is never assigned. This means the second consumable slot shown in the HotbarRenderer comment ("Q/E") does not actually exist -- the system was reduced to 1 slot but this call was not updated.
 **Fix:**
 ```csharp
@@ -48,7 +48,7 @@ Reviewed the items and inventory system: item drops with magnet pickup, inventor
 
 ### WR-01: SaveToState loses inventory slot positions (sparse-to-dense compression)
 
-**File:** `Inventory/InventoryManager.cs:413-416`
+**File:** `src/Inventory/InventoryManager.cs:413-416`
 **Issue:** `SaveToState` only adds non-null slots via `state.Inventory.Add(...)`, compressing the 20-slot array into a dense list. On `LoadFromState` (line 371), items are loaded sequentially from index 0. This means if the player has items at slots 0, 5, and 10, after save/load they will be at slots 0, 1, and 2. Hotbar/consumable refs use item IDs (not slot indices) so they still resolve, but the player's manual inventory arrangement is lost on every save/load cycle.
 **Fix:**
 ```csharp
@@ -66,7 +66,7 @@ for (int i = 0; i < SlotCount; i++)
 
 ### WR-02: Vector2.Normalize on zero-length vector produces NaN
 
-**File:** `Entities/ItemDropEntity.cs:132`
+**File:** `src/Entities/ItemDropEntity.cs:132`
 **Issue:** When `dist` is between `PickupRange` (8) and `MagnetRange` (56), `Vector2.Normalize(playerPos - Position)` is called. If the player and item positions are exactly equal (dist ~0 but still > PickupRange due to floating point), `Normalize` on a zero vector returns `(NaN, NaN)`, which would corrupt the item's Position permanently. While unlikely in practice (dist would need to be > 8 and the vector near-zero simultaneously), the pattern is risky.
 **Fix:**
 ```csharp
@@ -81,7 +81,7 @@ if (dist <= MagnetRange && dist > 0.01f)
 
 ### WR-03: HotbarRenderer uses direct Mouse.GetState() bypassing InputManager
 
-**File:** `UI/HotbarRenderer.cs:85`
+**File:** `src/UI/HotbarRenderer.cs:85`
 **Issue:** The `Update` method calls `Mouse.GetState().LeftButton` directly instead of going through `InputManager`. All other input in the codebase goes through `InputManager` (as seen in FarmScene, ToolController, PlayerEntity). Bypassing it means: (1) inconsistent input frame -- the mouse state read here may differ from what InputManager captured this frame, (2) if InputManager ever adds mouse input filtering or remapping, the hotbar will not respect it.
 **Fix:**
 ```csharp
@@ -91,7 +91,7 @@ public void Update(Point mousePos, bool mouseDown, int screenWidth, int screenHe
 
 ### WR-04: HotbarRenderer doc comment says "2 consumable slots (Q/E)" but only 1 exists
 
-**File:** `UI/HotbarRenderer.cs:13`
+**File:** `src/UI/HotbarRenderer.cs:13`
 **Issue:** The class summary says "consumable slots (2, Q/E)" but `ConsumableSlotCount` is 1 and only "Q" is in the `consumableKeys` array (line 138). The comment is misleading and suggests the code was partially updated when reducing from 2 to 1 consumable slot.
 **Fix:**
 ```csharp
@@ -103,7 +103,7 @@ public void Update(Point mousePos, bool mouseDown, int screenWidth, int screenHe
 
 ### IN-01: Magic number 16 for tile size in harvest position calculation
 
-**File:** `Farming/ToolController.cs:125`
+**File:** `src/Farming/ToolController.cs:125`
 **Issue:** `Vector2 worldPos = new Vector2(tile.X * 16 + 8, tile.Y * 16 + 8)` uses hardcoded 16 for tile size. The rest of the codebase uses `TileMap.TileSize` constant for this purpose.
 **Fix:**
 ```csharp
@@ -114,7 +114,7 @@ Vector2 worldPos = new Vector2(
 
 ### IN-02: Static Random instance in ItemDropEntity not thread-safe
 
-**File:** `Entities/ItemDropEntity.cs:17`
+**File:** `src/Entities/ItemDropEntity.cs:17`
 **Issue:** `private static readonly Random _random = new()` is shared across all instances. While the game currently runs single-threaded (MonoGame game loop), if entity creation ever happens from multiple threads (e.g., async loading), `Random` is not thread-safe and can return corrupted values. Low risk given the MonoGame single-threaded model.
 **Fix:** No action needed for current architecture. If multithreading is introduced later, use `Random.Shared` (.NET 6+) which is thread-safe.
 

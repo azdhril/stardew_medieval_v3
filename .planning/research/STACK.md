@@ -71,7 +71,7 @@
 
 **Confidence:** MEDIUM -- RoyT.AStar is a popular NuGet option if you want drop-in. But for tile grids it is genuinely trivial to implement. Training data may be stale on RoyT version.
 
-### Content/Asset Management (HIGH confidence)
+### assets/Asset Management (HIGH confidence)
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
@@ -132,7 +132,7 @@
 The existing project uses JSON for saves. Extend this pattern for all game data:
 
 ```
-Content/Data/
+assets/Data/
   items.json          # Item definitions (id, name, type, stats, sprite, stackSize)
   enemies.json        # Enemy definitions (id, name, hp, damage, speed, loot table, AI type)
   loot_tables.json    # Drop tables (enemy -> [{itemId, chance, minQty, maxQty}])
@@ -158,9 +158,9 @@ dotnet add package MonoGame.Extended --version 4.0.*
 Adding these systems to the existing codebase means:
 
 1. **New folders to create:**
-   - `Entities/` -- Base entity system, enemy types, projectiles
-   - `Combat/` -- Damage calculation, hitboxes, spell system
-   - `Inventory/` -- Item model, inventory grid, equipment slots
+   - `src/Entities/` -- Base entity system, enemy types, projectiles
+   - `src/Combat/` -- Damage calculation, hitboxes, spell system
+   - `src/Inventory/` -- Item model, inventory grid, equipment slots
    - `Dialogue/` -- Dialogue parser, dialogue UI
    - `Quests/` -- Quest state machine, quest tracker
    - `Dungeon/` -- Room transitions, dungeon generation/loading
@@ -168,10 +168,10 @@ Adding these systems to the existing codebase means:
 
 2. **Existing code to extend (not rewrite):**
    - `Game1.cs` -- Add entity manager, scene/map transitions
-   - `Core/GameState.cs` -- Add inventory, quest progress, player level to save data
-   - `Core/InputManager.cs` -- Add mouse click handling for UI interaction
-   - `Player/PlayerEntity.cs` -- Add combat state, equipment, animation states
-   - `Data/` -- Add ItemRegistry, EnemyRegistry, SpellRegistry alongside CropRegistry
+   - `src/Core/GameState.cs` -- Add inventory, quest progress, player level to save data
+   - `src/Core/InputManager.cs` -- Add mouse click handling for UI interaction
+   - `src/Player/PlayerEntity.cs` -- Add combat state, equipment, animation states
+   - `src/Data/` -- Add ItemRegistry, EnemyRegistry, SpellRegistry alongside CropRegistry
 
 3. **Pattern to adopt: Scene/Map Management**
    - Current: single map loaded in Game1

@@ -18,7 +18,7 @@
 | Grid + drag-and-drop | Grid com arrastar itens | |
 
 **User's choice:** Grid estilo Stardew, usar sprite UI_Slot_Selected para slots
-**Notes:** User apontou diretamente para o sprite em Content/Sprites/System/UI Elements/Slot/UI_Slot_Selected
+**Notes:** User apontou diretamente para o sprite em assets/Sprites/System/UI Elements/Slot/UI_Slot_Selected
 
 ---
 
@@ -31,7 +31,7 @@
 | Equipment integrado no grid | Sem aba separada | |
 
 **User's choice:** Hotbar visual embaixo da tela igual Stardew Valley. Equipment como aba do inventario, Tibia-style com slots fixos em formato de homenzinho.
-**Notes:** User referenciou HUD.png e Preview.png em Content/Sprites/System/Preview/ como exemplos do kit de UI
+**Notes:** User referenciou HUD.png e Preview.png em assets/Sprites/System/Preview/ como exemplos do kit de UI
 
 ---
 
