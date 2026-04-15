@@ -87,7 +87,10 @@ public class Game1 : Game
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.Black);
+        // Dark grey (not pure black) so a future "all-transparent tiles" map
+        // regression is visible rather than pitch black. See .planning/debug/
+        // dungeon-dark-and-damage.md for context.
+        GraphicsDevice.Clear(new Color(24, 24, 28));
         _sceneManager.Draw(_spriteBatch);
         base.Draw(gameTime);
     }
