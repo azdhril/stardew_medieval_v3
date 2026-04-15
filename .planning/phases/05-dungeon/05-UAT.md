@@ -1,14 +1,14 @@
 ---
-status: diagnosed
+status: pending
 phase: 05-dungeon
-source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-VALIDATION.md]
+source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-VALIDATION.md]
 started: 2026-04-14T20:16:53-03:00
-updated: 2026-04-14T20:40:00-03:00
+updated: 2026-04-15T00:00:00-03:00
 ---
 
 ## Current Test
 
-[paused — blocked on Test 2 bugs; routing to diagnosis + fix planning]
+[ready for re-run — Test 2 gap closed by plan 05-04; Tests 2-6 pending user re-attempt]
 
 ## Tests
 
@@ -28,14 +28,16 @@ expected: |
   (sprite swap or color change from closed → open) and becomes walkable. Walk
   through r1 → r2 → r3 → r4 in sequence; each clears its own enemies and opens
   its exit independently.
-result: issue
-reported: "eu nao consigo tesatar entro na dungeon está tudo escuro e fico tomando dano"
-severity: blocker
+result: pending
+resolved_by: 05-04-SUMMARY.md
 notes: |
-  Two bugs blocking all downstream tests (2-6): (1) dungeon room renders all
-  dark — lighting/visibility issue, nothing visible; (2) player takes continuous
-  damage on entry — likely hazard damage tick, enemy overlap at spawn, or
-  missing safe spawn clearance.
+  Gap resolved. Plan 05-04 re-authored the Ground layer of all 6 remaining
+  dungeon rooms (r2, r3, r3a, r4, r4a, boss) to use a visible floor GID=4554
+  mirroring r1 (commit 1d2e198), added a defensive dark-grey Clear fallback
+  in Game1 (506f988), and — discovered during human-verify — restored the
+  missing enemy/boss draw block in DungeonScene so skeletons are visible
+  while they aggro (852077c). Human-verify returned "approved". Test 2
+  full end-to-end (clear all 4 rooms + door opens) now awaits user re-run.
 
 ### 3. Optional Room Chest UX
 expected: |
@@ -44,9 +46,9 @@ expected: |
   feels smooth and matches the village chest UX. Leave and re-enter the optional
   room — the chest stays empty (state persisted across room re-entries within
   the run).
-result: blocked
-blocked_by: prior-phase
-reason: "gated by Test 2 blockers (dark rendering + damage-on-spawn in dungeon)"
+result: pending
+was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
+notes: "Unblocked. Awaiting user re-run."
 
 ### 4. Boss Gate, Fight, Loot, Return
 expected: |
@@ -54,18 +56,18 @@ expected: |
   loot drops as ItemDropEntity (pickupable on the floor, not a chest). MainQuest
   flips to Complete. Exit trigger returns the player to the village, spawning at
   the castle door at (208, 128).
-result: blocked
-blocked_by: prior-phase
-reason: "gated by Test 2 blockers (dark rendering + damage-on-spawn in dungeon)"
+result: pending
+was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
+notes: "Unblocked. Awaiting user re-run."
 
 ### 5. King Quest-Complete Dialogue
 expected: |
   After returning from the boss victory, walk to the King NPC in the village
   and talk to him. The NPC-04 quest-complete dialogue branch fires (different
   from the pre-quest dialogue) and acknowledges the dungeon being cleared.
-result: blocked
-blocked_by: prior-phase
-reason: "gated by Test 2 blockers (dark rendering + damage-on-spawn in dungeon)"
+result: pending
+was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
+notes: "Unblocked. Awaiting user re-run."
 
 ### 6. Death Reset Semantics
 expected: |
@@ -74,25 +76,29 @@ expected: |
   doors are closed again, chests are reclosed and re-seeded with fresh loot
   (RunSeed reroll), but if you had already defeated the boss in a prior run,
   BossDefeated remains true (the boss-cleared milestone persists across deaths).
-result: blocked
-blocked_by: prior-phase
-reason: "gated by Test 2 blockers (dark rendering + damage-on-spawn in dungeon)"
+result: pending
+was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
+notes: "Unblocked. Awaiting user re-run."
 
 ## Summary
 
 total: 6
 passed: 1
-issues: 1
-pending: 0
-blocked: 4
+issues: 0
+pending: 5
+blocked: 0
 skipped: 0
 
 ## Gaps
 
 [resolved: Test 1 previously reported crash is fixed (commit 6b69ebd) and now passes]
+[resolved: Test 2 dark-rendering + invisible-enemies gap closed by plan 05-04 (commits 1d2e198, 506f988, 852077c); human-verify approved]
 
 - truth: "Dungeon room is visible (lit) and does not continuously damage the player on entry"
-  status: diagnosed
+  status: resolved
+  resolved_by: ".planning/phases/05-dungeon/05-04-SUMMARY.md"
+  resolution: "6 dungeon room TMXs re-authored with visible floor GID=4554 (farm_tileset localId 73); defensive dark-grey Clear color in Game1; enemy/boss draw block restored in DungeonScene (out-of-band during human-verify). Human-verify returned approved."
+  prior_status: diagnosed
   reason: "User reported: 'entro na dungeon está tudo escuro e fico tomando dano'."
   severity: blocker
   test: 2
