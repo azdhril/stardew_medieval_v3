@@ -22,7 +22,10 @@
       "Bash(ls src/)",
       "Bash(ls src/World)",
       "Bash(ls assets/Maps)",
-      "Bash(dotnet test *)"
+      "Bash(dotnet test *)",
+      "Bash(awk '{print $6, $7, $8, $9}')",
+      "Skill(gsd-quick)",
+      "Skill(gsd-quick:*)"
     ]
   }
 }
