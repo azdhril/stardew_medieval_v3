@@ -35,6 +35,15 @@ public class TileMap
     /// <summary>Named rectangular trigger zones loaded from the TMX "Triggers" object group.</summary>
     public IReadOnlyList<TriggerZone> Triggers => _triggers;
 
+    // Decor tile-objects loaded from "Decor" object layer (visual-only, no collision)
+    private readonly List<DecorOccluder> _decor = new();
+
+    /// <summary>Decor tile-objects from the "Decor" object layer, rendered with split-sprite fade.</summary>
+    public IReadOnlyList<DecorOccluder> Decor => _decor;
+
+    // Per-tileset occlusion_y lookup: firstgid → (localId → occlusion_y pixel row)
+    private readonly Dictionary<int, Dictionary<int, int>> _occlusionYByTileset = new();
+
     public void Load(string tmxPath, GraphicsDevice device)
     {
         _map = new TiledMap(tmxPath);
@@ -54,6 +63,23 @@ public class TileMap
             using var stream = File.OpenRead(imgPath);
             var texture = Texture2D.FromStream(device, stream);
             _tilesetTextures[mapTileset.firstgid] = texture;
+
+            // Index per-tile occlusion_y overrides from the .tsx (used by Decor).
+            var occMap = new Dictionary<int, int>();
+            var tiles = tileset.Tiles ?? Array.Empty<TiledTile>();
+            foreach (var t in tiles)
+            {
+                if (t.properties == null) continue;
+                foreach (var p in t.properties)
+                {
+                    if (p.name == null) continue;
+                    if (!p.name.Equals("occlusion_y", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (int.TryParse(p.value, out int occY))
+                        occMap[t.id] = occY;
+                    break;
+                }
+            }
+            _occlusionYByTileset[mapTileset.firstgid] = occMap;
         }
 
         // Find tile layers by name
@@ -73,7 +99,10 @@ public class TileMap
         // Load trigger zones from "Triggers" object group (optional — many maps won't have one)
         LoadTriggerObjects();
 
-        Console.WriteLine($"[TileMap] Loaded {Width}x{Height} map, {_map.Layers.Length} layers, {_collisionPolygons.Count} collision polygons, {_triggers.Count} trigger zones");
+        // Load decor tile-objects from "Decor" object group (optional — visual-only, no collision)
+        LoadDecorObjects();
+
+        Console.WriteLine($"[TileMap] Loaded {Width}x{Height} map, {_map.Layers.Length} layers, {_collisionPolygons.Count} collision polygons, {_triggers.Count} trigger zones, {_decor.Count} decor occluders");
     }
 
     /// <summary>
@@ -116,7 +145,8 @@ public class TileMap
         string Name,
         Rectangle Bounds,
         Vector2 Point,
-        Dictionary<string, string> Properties);
+        Dictionary<string, string> Properties,
+        int Gid = 0);
 
     /// <summary>
     /// Return all TMX objects in the object group with the given name
@@ -156,11 +186,75 @@ public class TileMap
                     }
                 }
 
-                results.Add(new TmxObject(obj.name ?? "", bounds, point, props));
+                results.Add(new TmxObject(obj.name ?? "", bounds, point, props, (int)obj.gid));
             }
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Parses any ObjectLayer named "Decor" (case-insensitive) into <see cref="DecorOccluder"/>
+    /// instances. Only tile-objects (gid != 0) produce occluders; plain rectangles/points/polygons
+    /// on a Decor layer are silently ignored. Per-tile <c>occlusion_y</c> is read from the .tsx;
+    /// missing property falls back to tileHeight/2. No collision is registered — decor is purely
+    /// visual per task CONTEXT locked decision.
+    /// </summary>
+    private void LoadDecorObjects()
+    {
+        _decor.Clear();
+
+        var objs = GetObjectGroup("Decor");
+        foreach (var obj in objs)
+        {
+            if (obj.Gid == 0) continue; // skip non-tile objects (rects/points/polys)
+
+            int rawGid = obj.Gid;
+            int gid = rawGid & 0x1FFFFFFF;
+
+            // Resolve owning tileset (same walk as DrawTileByGid)
+            int firstGid = 0;
+            TiledTileset? ts = null;
+            Texture2D? tex = null;
+            foreach (var kvp in _tilesets)
+            {
+                if (gid >= kvp.Key && kvp.Key > firstGid)
+                {
+                    firstGid = kvp.Key;
+                    ts = kvp.Value;
+                    tex = _tilesetTextures[kvp.Key];
+                }
+            }
+            if (ts == null || tex == null) continue;
+
+            int localId = gid - firstGid;
+            int tileW = ts.TileWidth;
+            int tileH = ts.TileHeight;
+            int cols = ts.Columns;
+            if (cols <= 0 || tileW <= 0 || tileH <= 0) continue;
+
+            var src = new Rectangle((localId % cols) * tileW, (localId / cols) * tileH, tileW, tileH);
+
+            // Tiled tile-object anchor is BOTTOM-LEFT: (obj.x, obj.y) → world rect with y -= tileH
+            var dest = new Rectangle(obj.Bounds.X, obj.Bounds.Y - tileH, tileW, tileH);
+
+            // occlusion_y: per-tile tileset property > fallback tileH/2
+            int occY = tileH / 2;
+            if (_occlusionYByTileset.TryGetValue(firstGid, out var lookup) &&
+                lookup.TryGetValue(localId, out int v))
+            {
+                occY = v;
+            }
+
+            var effects = SpriteEffects.None;
+            if ((rawGid & unchecked((int)0x80000000)) != 0) effects |= SpriteEffects.FlipHorizontally;
+            if ((rawGid & 0x40000000) != 0) effects |= SpriteEffects.FlipVertically;
+
+            _decor.Add(new DecorOccluder(tex, src, dest, occY, effects));
+        }
+
+        if (_decor.Count > 0)
+            Console.WriteLine($"[TileMap] Loaded {_decor.Count} decor occluders");
     }
 
     private void LoadCollisionObjects()
