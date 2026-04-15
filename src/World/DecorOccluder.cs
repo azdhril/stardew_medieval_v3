@@ -7,10 +7,12 @@ namespace stardew_medieval_v3.World;
 
 /// <summary>
 /// Renders a single Tiled tile-object from a "Decor" object layer with the
-/// split-sprite fade-when-behind trick used by ResourceNode. Purely visual —
-/// owns no collision. Per-tile <c>occlusion_y</c> (pixel row relative to tile
-/// top) defines where the back half ends and the front half (which fades to
-/// 50% alpha when the player stands behind) begins.
+/// split-sprite fade-when-behind trick. Purely visual — owns no collision.
+/// Per-tile <c>occlusion_y</c> is the pixel row (relative to sprite top)
+/// where the trunk begins / canopy ends. Rows above <c>occlusion_y</c> are
+/// the canopy: drawn on top of the player at 50% alpha when the player is
+/// behind. Rows below are the trunk base: drawn behind the player so the
+/// player walks in front of it.
 /// </summary>
 public class DecorOccluder
 {
@@ -42,10 +44,10 @@ public class DecorOccluder
     }
 
     /// <summary>
-    /// Draw full sprite when player isn't behind, or just the back half
-    /// (rows 0..occlusion_y) when player IS behind. The front half is drawn
-    /// by <see cref="DrawAfterPlayer"/> at 50% alpha so the player remains
-    /// visible through it.
+    /// Draw full sprite when player isn't behind, or just the trunk half
+    /// (rows <c>occlusion_y..height</c>) when player IS behind. The canopy
+    /// (rows <c>0..occlusion_y</c>) is drawn by <see cref="DrawAfterPlayer"/>
+    /// at 50% alpha so it covers the player's head semi-transparently.
     /// </summary>
     public void DrawBeforePlayer(SpriteBatch sb, PlayerEntity? player)
     {
@@ -55,42 +57,40 @@ public class DecorOccluder
             return;
         }
 
-        if (_occlusionY > 0)
+        int trunkH = _sourceRect.Height - _occlusionY;
+        if (trunkH > 0)
         {
-            var backSrc = new Rectangle(_sourceRect.X, _sourceRect.Y, _sourceRect.Width, _occlusionY);
-            var backDest = new Rectangle(_destRect.X, _destRect.Y, _destRect.Width, _occlusionY);
-            sb.Draw(_texture, backDest, backSrc, Color.White, 0f, Vector2.Zero, _flipEffects, 0f);
+            var trunkSrc = new Rectangle(_sourceRect.X, _sourceRect.Y + _occlusionY, _sourceRect.Width, trunkH);
+            var trunkDest = new Rectangle(_destRect.X, _destRect.Y + _occlusionY, _destRect.Width, trunkH);
+            sb.Draw(_texture, trunkDest, trunkSrc, Color.White, 0f, Vector2.Zero, _flipEffects, 0f);
         }
     }
 
     /// <summary>
-    /// When player is behind, draws the front half (rows occlusion_y..height)
+    /// When player is behind, draws the canopy (rows <c>0..occlusion_y</c>)
     /// on top of the player at 50% alpha. No-op otherwise.
     /// </summary>
     public void DrawAfterPlayer(SpriteBatch sb, PlayerEntity player)
     {
         if (!ShouldUseFrontOccluder(player)) return;
+        if (_occlusionY <= 0) return;
 
-        int frontH = _sourceRect.Height - _occlusionY;
-        if (frontH <= 0) return;
-
-        var frontSrc = new Rectangle(_sourceRect.X, _sourceRect.Y + _occlusionY, _sourceRect.Width, frontH);
-        var frontDest = new Rectangle(_destRect.X, _destRect.Y + _occlusionY, _destRect.Width, frontH);
-        sb.Draw(_texture, frontDest, frontSrc, Color.White * 0.5f, 0f, Vector2.Zero, _flipEffects, 0f);
+        var canopySrc = new Rectangle(_sourceRect.X, _sourceRect.Y, _sourceRect.Width, _occlusionY);
+        var canopyDest = new Rectangle(_destRect.X, _destRect.Y, _destRect.Width, _occlusionY);
+        sb.Draw(_texture, canopyDest, canopySrc, Color.White * 0.5f, 0f, Vector2.Zero, _flipEffects, 0f);
     }
 
     /// <summary>
     /// Player is "behind" this decor when: they horizontally overlap it (with
-    /// an 8px inset), vertically overlap the occlusion band (with a 6px
-    /// bottom inset), and their feet are above the sort line (worldAnchor.Y).
-    /// Matches ResourceNode.ShouldUseFrontOccluder exactly.
+    /// an 8px inset), vertically reach into the canopy band, and their feet
+    /// are above the sort line (worldAnchor.Y).
     /// </summary>
     private bool ShouldUseFrontOccluder(PlayerEntity player)
     {
         Rectangle pb = player.CollisionBox;
         bool overlapsH = pb.Right > _destRect.Left + 8 && pb.Left < _destRect.Right - 8;
-        bool overlapsV = pb.Bottom > _destRect.Top + _occlusionY && pb.Top < _destRect.Bottom - 6;
+        bool reachesCanopy = pb.Top < _destRect.Top + _occlusionY && pb.Bottom > _destRect.Top;
         bool feetBehind = player.GetFootPosition().Y < _worldAnchor.Y - 1f;
-        return overlapsH && overlapsV && feetBehind;
+        return overlapsH && reachesCanopy && feetBehind;
     }
 }
