@@ -365,19 +365,32 @@ public class TileMap
 
     public void Draw(SpriteBatch spriteBatch, Rectangle viewArea)
     {
-        if (_groundLayer != null)
-            DrawLayer(spriteBatch, _groundLayer, viewArea);
-
-        if (_waterLayer != null)
-            DrawLayer(spriteBatch, _waterLayer, viewArea);
+        if (_map.Layers == null) return;
+        foreach (var layer in _map.Layers)
+        {
+            if (layer.type != TiledLayerType.TileLayer) continue;
+            if (!layer.visible) continue;
+            // farmzone is a gameplay tag layer (drives IsFarmZone), never rendered
+            if (string.Equals(layer.name, "farmzone", StringComparison.OrdinalIgnoreCase)) continue;
+            DrawLayer(spriteBatch, layer, viewArea);
+        }
     }
 
     private void DrawLayer(SpriteBatch spriteBatch, TiledLayer layer, Rectangle viewArea)
     {
-        int startX = Math.Max(0, viewArea.Left / TileSize - 1);
-        int startY = Math.Max(0, viewArea.Top / TileSize - 1);
-        int endX = Math.Min(Width - 1, viewArea.Right / TileSize + 1);
-        int endY = Math.Min(Height - 1, viewArea.Bottom / TileSize + 1);
+        int offX = (int)MathF.Round((float)layer.offsetX);
+        int offY = (int)MathF.Round((float)layer.offsetY);
+
+        // Shift viewArea into layer-local space so culling bounds account for the offset.
+        int localLeft = viewArea.Left - offX;
+        int localTop = viewArea.Top - offY;
+        int localRight = viewArea.Right - offX;
+        int localBottom = viewArea.Bottom - offY;
+
+        int startX = Math.Max(0, localLeft / TileSize - 1);
+        int startY = Math.Max(0, localTop / TileSize - 1);
+        int endX = Math.Min(Width - 1, localRight / TileSize + 1);
+        int endY = Math.Min(Height - 1, localBottom / TileSize + 1);
 
         for (int x = startX; x <= endX; x++)
         for (int y = startY; y <= endY; y++)
@@ -385,7 +398,11 @@ public class TileMap
             int gid = GetGid(layer, x, y);
             if (gid == 0) continue;
 
-            var destRect = new Rectangle(x * TileSize, y * TileSize, TileSize, TileSize);
+            var destRect = new Rectangle(
+                x * TileSize + offX,
+                y * TileSize + offY,
+                TileSize,
+                TileSize);
             DrawTileByGid(spriteBatch, gid, destRect);
         }
     }
