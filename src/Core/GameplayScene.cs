@@ -39,6 +39,30 @@ public abstract class GameplayScene : Scene
     /// <summary>Spawn position for this entry. Default keeps current player position.</summary>
     protected virtual Vector2 GetSpawn(string fromScene) => Services.Player?.Position ?? Vector2.Zero;
 
+    /// <summary>
+    /// Look up a TMX "Spawn" object-group entry named <c>from_&lt;prev&gt;</c>
+    /// (case-insensitive on the prev portion). Returns true and the object's
+    /// center Point on hit. Callers typically fall back to a hardcoded dict.
+    /// Mirrors the pattern used by <see cref="DungeonScene.GetSpawn"/>.
+    /// </summary>
+    protected bool TryReadTmxSpawn(string fromScene, out Vector2 pos)
+    {
+        pos = Vector2.Zero;
+        if (Map == null || string.IsNullOrEmpty(fromScene)) return false;
+
+        var spawns = Map.GetObjectGroup("Spawn");
+        string key = $"from_{fromScene}";
+        foreach (var s in spawns)
+        {
+            if (string.Equals(s.Name, key, StringComparison.OrdinalIgnoreCase))
+            {
+                pos = s.Point;
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>Called at end of LoadContent for subclass-specific setup.</summary>
     protected virtual void OnLoad() { }
 
