@@ -231,8 +231,14 @@ public abstract class GameplayScene : Scene
             (int)(bottomRight.Y - topLeft.Y) + 32);
 
         Map.Draw(sb, viewArea);
+        // Decor tile-objects draw first so subclass OnDrawWorld (e.g. ResourceNode flashes)
+        // layers on top. Decor back-halves go here; front-halves at 50% alpha go after Player.
+        foreach (var decor in Map.Decor)
+            decor.DrawBeforePlayer(sb, Player);
         OnDrawWorld(sb, viewArea);
         Player.Draw(sb);
+        foreach (var decor in Map.Decor)
+            decor.DrawAfterPlayer(sb, Player);
         OnDrawWorldAfterPlayer(sb, viewArea);
         DrawTriggerMarkers(sb);
 
