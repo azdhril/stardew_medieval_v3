@@ -1,5 +1,5 @@
 ---
-status: partial
+status: diagnosed
 phase: 05-dungeon
 source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-VALIDATION.md]
 started: 2026-04-14T20:16:53-03:00
@@ -92,9 +92,19 @@ skipped: 0
 [resolved: Test 1 previously reported crash is fixed (commit 6b69ebd) and now passes]
 
 - truth: "Dungeon room is visible (lit) and does not continuously damage the player on entry"
-  status: failed
-  reason: "User reported: 'entro na dungeon está tudo escuro e fico tomando dano'. Two distinct bugs: (a) rendering is all-dark — lighting setup, clear color, camera target, or draw-order regression in DungeonScene; (b) continuous damage tick on spawn — hazard tile under spawn, enemy AABB overlapping spawn point, or missing invuln frames on scene transition."
+  status: diagnosed
+  reason: "User reported: 'entro na dungeon está tudo escuro e fico tomando dano'."
   severity: blocker
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "Every dungeon room TMX Ground layer is filled with GID=1, which in the configured tileset (dungeon_tileset.tsx → 3_Props_and_Buildings_16x16.png) resolves to the blank top-left 16x16 edge of a props sheet. Result: tiles draw near-transparent over Game1's Color.Black clear → 'tudo escuro'. The continuous damage is a cascade: two Skeletons legitimately spawn at (152,144) and (312,144); player spawns at ~(240,208), ~109px away, inside DetectionRange=120, so they aggro and melee an invisible player. No separate hazard/invuln bug."
+  artifacts:
+    - path: "assets/Maps/dungeon_r1.tmx"
+      issue: "Ground layer CSV entirely GID=1 (blank tile); same for r2/r3/r3a/r4/r4a/boss"
+    - path: "assets/Maps/dungeon_tileset.tsx"
+      issue: "Points at 3_Props_and_Buildings_16x16.png whose GID=1 is not a floor tile"
+    - path: "assets/Sprites/Buildings/3_Props_and_Buildings_16x16.png"
+      issue: "(0,0,16,16) region is blank/edge, not a floor"
+  missing:
+    - "Re-author every dungeon room Ground CSV to reference a real floor GID from the props sheet (primary fix), OR swap dungeon_tileset.tsx to a tileset whose GID 1 is a floor"
+    - "Optional hardening: fallback floor color or non-black Clear so future 'all transparent tiles' regressions are visible rather than pitch-black"
+  debug_session: .planning/debug/dungeon-dark-and-damage.md
