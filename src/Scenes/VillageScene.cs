@@ -34,8 +34,22 @@ public class VillageScene : GameplayScene
     protected override string MapPath => "assets/Maps/village.tmx";
     protected override string SceneName => "Village";
 
-    protected override Vector2 GetSpawn(string fromScene) =>
-        Spawns.TryGetValue(fromScene, out var p) ? p : new Vector2(48, 270);
+    protected override Vector2 GetSpawn(string fromScene)
+    {
+        if (TryReadTmxSpawn(fromScene, out var tmxPos))
+        {
+            Console.WriteLine($"[VillageScene] Spawn from {fromScene} resolved via TMX at ({tmxPos.X},{tmxPos.Y})");
+            return tmxPos;
+        }
+        if (Spawns.TryGetValue(fromScene, out var p))
+        {
+            Console.WriteLine($"[VillageScene] Spawn from {fromScene} resolved via dict at ({p.X},{p.Y})");
+            return p;
+        }
+        var fallback = new Vector2(48, 270);
+        Console.WriteLine($"[VillageScene] Spawn from {fromScene} no match - using default ({fallback.X},{fallback.Y})");
+        return fallback;
+    }
 
     protected override bool HandleTrigger(string triggerName)
     {

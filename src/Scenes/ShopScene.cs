@@ -34,8 +34,22 @@ public class ShopScene : GameplayScene
     protected override string MapPath => "assets/Maps/shop.tmx";
     protected override string SceneName => "Shop";
 
-    protected override Vector2 GetSpawn(string fromScene) =>
-        Spawns.TryGetValue(fromScene, out var p) ? p : new Vector2(208, 416);
+    protected override Vector2 GetSpawn(string fromScene)
+    {
+        if (TryReadTmxSpawn(fromScene, out var tmxPos))
+        {
+            Console.WriteLine($"[ShopScene] Spawn from {fromScene} resolved via TMX at ({tmxPos.X},{tmxPos.Y})");
+            return tmxPos;
+        }
+        if (Spawns.TryGetValue(fromScene, out var p))
+        {
+            Console.WriteLine($"[ShopScene] Spawn from {fromScene} resolved via dict at ({p.X},{p.Y})");
+            return p;
+        }
+        var fallback = new Vector2(208, 416);
+        Console.WriteLine($"[ShopScene] Spawn from {fromScene} no match - using default ({fallback.X},{fallback.Y})");
+        return fallback;
+    }
 
     protected override void OnLoad()
     {
