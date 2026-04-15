@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-04-14T22:33:27.710Z"
-last_activity: 2026-04-14 -- Phase 05 execution started
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-04-15T00:00:00.000Z"
+last_activity: 2026-04-15 -- Phase 05 Plan 04 (dungeon rendering gap closure) complete
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 26
-  completed_plans: 23
-  percent: 88
+  total_plans: 27
+  completed_plans: 24
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 ## Current Position
 
 Phase: 05 (dungeon) — EXECUTING
-Plan: 1 of 3
+Plan: 4 of 4 (gap-closure 05-04 complete; awaiting UAT re-run for Tests 2-6)
 Status: Executing Phase 05
-Last activity: 2026-04-14 -- Phase 05 execution started
+Last activity: 2026-04-15 -- Phase 05 Plan 04 (dungeon rendering gap closure) complete
 
-Progress: [█████░░░░░] 50%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████░░░░░] 50%
 | Phase 04 P02 | 30min | 3 tasks | 9 files |
 | Phase 04 P03 | 25min | 3 tasks | 10 files |
 | Phase 04 P04 | 20min | 3 tasks | 11 files |
+| Phase 05 P04 | 25min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 04]: [04-03] ASCII fallbacks ('v') for UI-SPEC Unicode glyphs due to SpriteFont Arial CharacterRegion coverage
 - [Phase 04]: [04-04] ShopOverlayScene owns ShopPanel + Toast; dialogue onClose pushes overlay for single-press shop open
 - [Phase 04]: [04-04] ServiceContainer.Atlas slot added so overlays can render icons without rebuilding atlas
+- [Phase 05]: [05-04] Adopted farm_tileset GID=4554 as uniform dungeon floor across all 7 rooms (mirrors pre-existing r1 patch; no new tileset introduced)
+- [Phase 05]: [05-04] Game1 Clear color changed from Black to Color(24,24,28) dark grey so future all-transparent-tile regressions are diagnosable rather than pitch-black
+- [Phase 05]: [05-04] Out-of-band during human-verify: restored missing enemy/boss draw block in DungeonScene.OnDrawWorld (mirrored FarmScene verbatim) — enemies were aggroing but invisible
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T22:05:39.755Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-04-15T00:00:00.000Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
