@@ -21,7 +21,8 @@
       "Bash(powershell -Command 'Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\('\\\\''c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Containers\\\\chests.png'\\\\''\\); Write-Host \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\)')",
       "Bash(ls src/)",
       "Bash(ls src/World)",
-      "Bash(ls assets/Maps)"
+      "Bash(ls assets/Maps)",
+      "Bash(dotnet test *)"
     ]
   }
 }

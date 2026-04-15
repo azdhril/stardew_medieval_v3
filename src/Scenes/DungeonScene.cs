@@ -23,7 +23,7 @@ namespace stardew_medieval_v3.Scenes;
 public class DungeonScene : GameplayScene
 {
     private readonly string _roomId;
-    private DungeonRoomData _room = null!;
+    private readonly DungeonRoomData _room;
 
     private CombatManager _combat = null!;
     private ProjectileManager _projectiles = null!;
@@ -46,6 +46,10 @@ public class DungeonScene : GameplayScene
         : base(services, fromScene)
     {
         _roomId = roomId;
+        // Resolve the room in the ctor so MapPath is valid before the base class
+        // calls Map.Load(MapPath, device) in LoadContent — which runs *before*
+        // OnLoad(). Lazy-init crashed on first dungeon entry (NRE).
+        _room = DungeonRegistry.Get(roomId);
         int seed = services.Dungeon?.RunSeed ?? 0;
         _lootRng = seed != 0 ? new Random(seed) : new Random();
     }
@@ -79,7 +83,7 @@ public class DungeonScene : GameplayScene
 
     protected override void OnLoad()
     {
-        _room = DungeonRegistry.Get(_roomId);
+        // _room is assigned in the constructor (see note there).
 
         // Defensive: real dungeon entry initiates BeginRun in VillageScene. If a
         // scene loads with no active run (e.g. dev jump-to-room), seed one.
