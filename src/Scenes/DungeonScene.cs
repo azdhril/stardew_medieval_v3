@@ -6,6 +6,7 @@ using stardew_medieval_v3.Combat;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Entities;
+using stardew_medieval_v3.UI;
 using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Scenes;
@@ -356,6 +357,16 @@ public class DungeonScene : GameplayScene
             door.DrawFallback(sb, Pixel);
         foreach (var drop in _itemDrops)
             drop.Draw(sb);
+        foreach (var enemy in _enemies)
+        {
+            enemy.Draw(sb, Pixel);
+            EnemyHealthBar.Draw(sb, Pixel, enemy.Position, enemy.Data.Height, enemy.HP, enemy.MaxHP);
+        }
+        if (_boss != null && _boss.IsAlive)
+        {
+            _boss.Draw(sb, Pixel);
+            EnemyHealthBar.Draw(sb, Pixel, _boss.Position, _boss.Data.Height, _boss.HP, _boss.MaxHP);
+        }
     }
 
     /// <summary>Spawn an item drop entity at the given world position.</summary>
