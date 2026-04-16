@@ -443,7 +443,7 @@ public class ShopPanel
     // ================= Draw =================
 
     /// <summary>Render panel + rows + header + disabled reason.</summary>
-    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel)
+    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel, UITheme theme)
     {
         // Defensive: ensure cached layout matches current state even if Draw runs without a preceding Update.
         UpdateLayoutCache();
@@ -451,28 +451,38 @@ public class ShopPanel
         // Full-screen dim
         sb.Draw(pixel, new Rectangle(0, 0, 960, 540), Dim);
 
-        // Outline + fill
-        sb.Draw(pixel, new Rectangle(PanelX - 1, PanelY - 1, PanelWidth + 2, PanelHeight + 2), Color.Black);
-        sb.Draw(pixel, _panelRect, PanelFill);
+        // Panel chrome (9-slice frame replaces outline + solid fill)
+        NineSlice.Draw(sb, theme.PanePopup, _panelRect, theme.PanePopupInsets);
 
-        // Header strip (40px tall inside panel)
+        // Header strip — title plaque + centered "Shop" label
+        const int titlePlaqueW = 160;
+        const int titlePlaqueH = 30;
+        var titleRect = new Rectangle(PanelX + 16, PanelY - 8, titlePlaqueW, titlePlaqueH);
+        NineSlice.Draw(sb, theme.PanelTitle, titleRect, theme.PanelTitleInsets);
+        var shopSize = font.MeasureString("Shop");
+        sb.DrawString(font, "Shop",
+            new Vector2(titleRect.X + (titleRect.Width - shopSize.X) / 2,
+                        titleRect.Y + (titleRect.Height - shopSize.Y) / 2),
+            Color.White);
         int headerY = PanelY + 8;
-        sb.DrawString(font, "Shop", new Vector2(PanelX + 16, headerY), Color.White);
 
+        // Gold label inside a currency pouch
         string goldText = $"Gold: {_inv.Gold}";
         var goldSize = font.MeasureString(goldText);
-        // Shifted left to leave room for the close X button at the top-right
+        const int pouchPad = 14;
+        int pouchW = (int)goldSize.X + pouchPad * 2;
+        int pouchH = 24;
+        int pouchX = PanelX + PanelWidth - 40 - pouchW;  // leaves room for X button
+        int pouchY = headerY - 4;
+        NineSlice.Draw(sb, theme.PanelCurrency,
+            new Rectangle(pouchX, pouchY, pouchW, pouchH),
+            theme.PanelCurrencyInsets);
         sb.DrawString(font, goldText,
-            new Vector2(PanelX + PanelWidth - 40 - goldSize.X, headerY), Color.Gold);
+            new Vector2(pouchX + pouchPad, pouchY + (pouchH - goldSize.Y) / 2),
+            Color.Gold);
 
-        // Close X button (top-right of header)
-        sb.Draw(pixel, new Rectangle(_closeRect.X - 1, _closeRect.Y - 1, _closeRect.Width + 2, _closeRect.Height + 2), Color.Black);
-        sb.Draw(pixel, _closeRect, Bevel);
-        var xSz = font.MeasureString("X");
-        sb.DrawString(font, "X",
-            new Vector2(_closeRect.X + (_closeRect.Width - xSz.X) / 2,
-                        _closeRect.Y + (_closeRect.Height - xSz.Y) / 2),
-            Color.White);
+        // Close X icon (stretched to fit _closeRect; icon keeps its native transparent bg)
+        NineSlice.DrawStretched(sb, theme.BtnIconX, _closeRect);
 
         string escHint = "Esc or click outside to close";
         var escSize = font.MeasureString(escHint);
@@ -482,11 +492,12 @@ public class ShopPanel
 
         // Tab strip — driven by cached rects
         int tabY = _buyTabRect.Y;
-        DrawTab(sb, font, pixel, _buyTabRect.X,  _buyTabRect.Y,  "Buy",  _tab == Tab.Buy);
-        DrawTab(sb, font, pixel, _sellTabRect.X, _sellTabRect.Y, "Sell", _tab == Tab.Sell);
+        DrawTab(sb, font, theme, _buyTabRect.X,  _buyTabRect.Y,  "Buy",  _tab == Tab.Buy);
+        DrawTab(sb, font, theme, _sellTabRect.X, _sellTabRect.Y, "Sell", _tab == Tab.Sell);
 
-        // Divider below tabs
-        sb.Draw(pixel, new Rectangle(PanelX + 8, tabY + 40, PanelWidth - 16, 1), Bevel);
+        // Divider below tabs (thin gold deco line)
+        NineSlice.DrawStretched(sb, theme.ImageDeco,
+            new Rectangle(PanelX + 8, tabY + 40, PanelWidth - 16, 4));
 
         // Item list region
         int listY = tabY + 48;
@@ -512,13 +523,13 @@ public class ShopPanel
             // Hover tint (hover is still a valid UX cue; no persistent selection per D-01).
             if (i == _hoveredRow)
             {
-                sb.Draw(pixel, _rowRects[i], Color.White * 0.1f);
+                NineSlice.Draw(sb, theme.ListItemHover, _rowRects[i], theme.ListItemHoverInsets);
             }
 
-            DrawRow(sb, font, pixel, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex);
+            DrawRow(sb, font, pixel, theme, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex);
         }
 
-        // Scrollbar (track + thumb) when list overflows
+        // Scrollbar (track + thumb) when list overflows — left as thin solid rects per plan
         if (_scrollTrackRect != Rectangle.Empty)
         {
             sb.Draw(pixel, _scrollTrackRect, Bevel * 0.5f);
@@ -527,18 +538,18 @@ public class ShopPanel
 
     }
 
-    private void DrawTab(SpriteBatch sb, SpriteFont font, Texture2D pixel, int x, int y, string label, bool active)
+    private void DrawTab(SpriteBatch sb, SpriteFont font, UITheme theme, int x, int y, string label, bool active)
     {
-        var fill = active ? Color.Gold : Bevel;
-        sb.Draw(pixel, new Rectangle(x - 1, y - 1, 82, 34), Color.Black);
-        sb.Draw(pixel, new Rectangle(x, y, 80, 32), fill);
+        var tabRect = new Rectangle(x, y, 80, 32);
+        var tex = active ? theme.TabOn : theme.TabOff;
+        NineSlice.Draw(sb, tex, tabRect, theme.TabInsets);
         var sz = font.MeasureString(label);
         sb.DrawString(font, label,
             new Vector2(x + (80 - sz.X) / 2, y + (32 - sz.Y) / 2),
             active ? Color.Black : Color.White);
     }
 
-    private void DrawRow(SpriteBatch sb, SpriteFont font, Texture2D pixel, int x, int y, int width, int rowIndex)
+    private void DrawRow(SpriteBatch sb, SpriteFont font, Texture2D pixel, UITheme theme, int x, int y, int width, int rowIndex)
     {
         // Icon cell (16x16 centered vertically in 40px row)
         int iconX = x + 8;
@@ -591,7 +602,8 @@ public class ShopPanel
             new Vector2(actionX - 80 - priceSz.X - 12, y + (RowHeight - priceSz.Y) / 2),
             priceColor);
 
-        // Per-row qty stepper: [-][qty][+] (D-04).
+        // Per-row qty stepper: (-)[ x1 ](+) using circle buttons with +/- glyphs.
+        // Hit-test rects in _qtyMinusRects / _qtyPlusRects stay identical (layout invariant).
         int visibleSlot = rowIndex - _scrollOffset;
         if (visibleSlot >= 0 && visibleSlot < VisibleRows && _qtyLabelRects[visibleSlot] != Rectangle.Empty)
         {
@@ -599,33 +611,42 @@ public class ShopPanel
             var qtyLabel = _qtyLabelRects[visibleSlot];
             var plus  = _qtyPlusRects[visibleSlot];
 
-            sb.Draw(pixel, minus, Bevel);
-            var ms = font.MeasureString("-");
-            sb.DrawString(font, "-",
-                new Vector2(minus.X + (minus.Width - ms.X) / 2, minus.Y + (minus.Height - ms.Y) / 2),
-                Color.White);
+            // Minus circle button + Icon_minus overlay
+            sb.Draw(theme.BtnCircleSmall, minus, Color.White);
+            int glyph = 10;
+            var minusGlyphRect = new Rectangle(
+                minus.X + (minus.Width - glyph) / 2,
+                minus.Y + (minus.Height - glyph) / 2,
+                glyph, glyph);
+            sb.Draw(theme.IconMinus, minusGlyphRect, Color.White);
 
-            sb.Draw(pixel, qtyLabel, Bevel * 0.6f);
+            // Qty label — plain text, no background, so the cream row texture shows through.
             int qtyVal = rowIndex < _rowQty.Length ? _rowQty[rowIndex] : 1;
             string qtyText = $"x{qtyVal}";
             var qs = font.MeasureString(qtyText);
+            // 1-pixel drop shadow for contrast against varied row backgrounds.
+            sb.DrawString(font, qtyText,
+                new Vector2(qtyLabel.X + (qtyLabel.Width - qs.X) / 2 + 1, qtyLabel.Y + (qtyLabel.Height - qs.Y) / 2 + 1),
+                Color.Black * 0.6f);
             sb.DrawString(font, qtyText,
                 new Vector2(qtyLabel.X + (qtyLabel.Width - qs.X) / 2, qtyLabel.Y + (qtyLabel.Height - qs.Y) / 2),
                 Color.White);
 
-            sb.Draw(pixel, plus, Bevel);
-            var ps = font.MeasureString("+");
-            sb.DrawString(font, "+",
-                new Vector2(plus.X + (plus.Width - ps.X) / 2, plus.Y + (plus.Height - ps.Y) / 2),
-                Color.White);
+            // Plus circle button + Icon_plus overlay
+            sb.Draw(theme.BtnCircleSmall, plus, Color.White);
+            var plusGlyphRect = new Rectangle(
+                plus.X + (plus.Width - glyph) / 2,
+                plus.Y + (plus.Height - glyph) / 2,
+                glyph, glyph);
+            sb.Draw(theme.IconPlus, plusGlyphRect, Color.White);
         }
 
-        // Action button (60x24) on the right
+        // Action button (60x24) on the right — yellow 9-slice, dimmed when disabled
         string action = _tab == Tab.Buy ? "Buy" : "Sell";
         bool enabled = IsActionEnabled(rowIndex);
-        var btnFill = enabled ? Color.Gold : Bevel;
-        sb.Draw(pixel, new Rectangle(actionX - 1, y + 7, 62, 26), Color.Black);
-        sb.Draw(pixel, new Rectangle(actionX, y + 8, 60, 24), btnFill);
+        var btnRect = new Rectangle(actionX, y + 8, 60, 24);
+        NineSlice.Draw(sb, theme.YellowBtnSmall, btnRect, theme.YellowBtnSmallInsets,
+            enabled ? Color.White : Color.White * 0.4f);
         var aSz = font.MeasureString(action);
         sb.DrawString(font, action,
             new Vector2(actionX + (60 - aSz.X) / 2, y + 8 + (24 - aSz.Y) / 2),

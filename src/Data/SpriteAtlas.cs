@@ -194,4 +194,10 @@ public class SpriteAtlas
     {
         RegisterOn(handTexture, "tool_hand", 0, 0);
     }
+
+    /// <summary>Register consumable potion sprites from potions.png (21×15 grid, 16×16 cells).</summary>
+    public void RegisterPotions(Texture2D potionSheet)
+    {
+        RegisterOn(potionSheet, "consumable_health_potion", 3, 0);
+    }
 }

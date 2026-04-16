@@ -59,6 +59,7 @@ public class FarmScene : GameplayScene
     private readonly List<ItemDropEntity> _itemDrops = new();
     private readonly List<EnemyEntity> _enemies = new();
     private EnemySpawner _spawner = null!;
+    private Pathfinder? _pathfinder;
     private BossEntity? _boss;
     private GameState? _loadedState;
     private ChestInstance? _promptChest;
@@ -155,6 +156,10 @@ public class FarmScene : GameplayScene
         _spawner = new EnemySpawner();
         _spawner.SpawnAll(FarmSpawnPoints, _enemies);
         _boss = _spawner.SpawnBoss(FarmBossSpawn);
+
+        // Build A* walkability grid from map collision polygons
+        _pathfinder = new Pathfinder();
+        _pathfinder.BuildGrid(Map);
 
         // HUD
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat);
@@ -356,6 +361,7 @@ public class FarmScene : GameplayScene
             Combat = _combat,
             LootRng = _lootRng,
             Map = Map,
+            Pathfinder = _pathfinder,
             SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(_loadedState?.BossKilled ?? false),
             OnBossDefeated = _ =>

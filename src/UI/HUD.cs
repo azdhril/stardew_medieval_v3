@@ -21,6 +21,7 @@ public class HUD
 
     private Texture2D? _barBg;
     private Texture2D? _barFillHP;
+    private Texture2D? _barFillMana;
     private Texture2D? _barFillStamina;
 
     private readonly TimeManager _time;
@@ -69,6 +70,17 @@ public class HUD
 
         try
         {
+            using var manaStream = File.OpenRead("assets/Sprites/System/UI Elements/Bars/Status/UI_StatusBar_Fill_Blue.png");
+            _barFillMana = Texture2D.FromStream(device, manaStream);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HUD] Failed to load UI_StatusBar_Fill_Blue: {ex.Message}");
+            _barFillMana = null;
+        }
+
+        try
+        {
             using var staStream = File.OpenRead("assets/Sprites/System/UI Elements/Bars/Status/UI_StatusBar_Fill_Green.png");
             _barFillStamina = Texture2D.FromStream(device, staStream);
         }
@@ -83,23 +95,25 @@ public class HUD
     /// Draws a sprite-based status bar. Returns true if rendered with sprites,
     /// false if either texture is missing (caller should use flat-rect fallback).
     /// </summary>
-    // Native sprite is 395x57 (bg) / 319x39 (fill) — too large at 960x540.
-    // Scale uniformly to match in-game HUD sizing.
-    private const float BarScale = 0.38f;
+    private const float HpBarScale = 0.50f;
+    private const float ManaBarScale = 0.44f;
+    private const float StaminaBarScale = 0.44f;
 
-    private bool DrawSpriteBar(SpriteBatch sb, int x, int y, Texture2D? bg, Texture2D? fill, float pct)
+    private const int FillOffsetXNative = 59;
+    private const int FillOffsetYNative = 10;
+
+    private bool DrawSpriteBar(SpriteBatch sb, int x, int y, Texture2D? bg, Texture2D? fill, float pct, float scale)
     {
         if (bg == null || fill == null) return false;
 
-        int bgW = (int)(bg.Width * BarScale);
-        int bgH = (int)(bg.Height * BarScale);
+        int bgW = (int)(bg.Width * scale);
+        int bgH = (int)(bg.Height * scale);
         sb.Draw(bg, new Rectangle(x, y, bgW, bgH), Color.White);
 
-        // Fill is centered inside bg in source art — preserve that padding when scaling.
-        int padX = (int)((bg.Width - fill.Width) * 0.5f * BarScale);
-        int padY = (int)((bg.Height - fill.Height) * 0.5f * BarScale);
-        int fillFullW = (int)(fill.Width * BarScale);
-        int fillH = (int)(fill.Height * BarScale);
+        int padX = (int)(FillOffsetXNative * scale);
+        int padY = (int)(FillOffsetYNative * scale);
+        int fillFullW = (int)(fill.Width * scale);
+        int fillH = (int)(fill.Height * scale);
 
         int fillW = (int)MathHelper.Clamp(fillFullW * pct, 0, fillFullW);
         if (fillW > 0)
@@ -112,7 +126,7 @@ public class HUD
         return true;
     }
 
-    private int ScaledBgHeight => _barBg != null ? (int)(_barBg.Height * BarScale) : 16;
+    private int ScaledBgHeight(float scale) => _barBg != null ? (int)((_barBg.Height) * scale) : 16;
 
     public void Draw(SpriteBatch spriteBatch, int screenWidth, int screenHeight)
     {
@@ -122,46 +136,52 @@ public class HUD
 
         // (Equipped tool label removed — tools are now hotbar items)
 
-        // === Top-left below day: Player HP Bar (per D-12) ===
-        int hpBarX = 12;
-        int hpBarY = 32;
-        int hpBarWidth = 104;
-        int hpBarHeight = 12;
+        // === Top-left stacked bars: HP → Mana → Stamina ===
+        int barX = 12;
+        int barSpacing = 2;
+        int nextBarY = 32;
+        int fallbackW = 104;
+        int fallbackH = 12;
 
+        // --- HP Bar ---
         float hpFill = _player.MaxHP > 0 ? _player.HP / _player.MaxHP : 0f;
-        bool hpDrawn = DrawSpriteBar(spriteBatch, hpBarX, hpBarY, _barBg, _barFillHP, hpFill);
+        bool hpDrawn = DrawSpriteBar(spriteBatch, barX, nextBarY, _barBg, _barFillHP, hpFill, HpBarScale);
         if (!hpDrawn)
         {
-            // Flat-rect fallback
-            DrawRect(spriteBatch, hpBarX - 1, hpBarY - 1, hpBarWidth + 2, hpBarHeight + 2, Color.Black);
-            DrawRect(spriteBatch, hpBarX, hpBarY, hpBarWidth, hpBarHeight, new Color(40, 40, 40));
-            DrawRect(spriteBatch, hpBarX, hpBarY, (int)(hpBarWidth * hpFill), hpBarHeight, Color.Red);
+            DrawRect(spriteBatch, barX - 1, nextBarY - 1, fallbackW + 2, fallbackH + 2, Color.Black);
+            DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, new Color(40, 40, 40));
+            DrawRect(spriteBatch, barX, nextBarY, (int)(fallbackW * hpFill), fallbackH, Color.Red);
         }
-
-        // HP label — center vertically inside the (scaled) bar
         string hpText = $"HP: {_player.HP:F0}/{_player.MaxHP:F0}";
-        int hpTextY = hpDrawn ? hpBarY + (ScaledBgHeight / 2) - 7 : hpBarY - 1;
-        spriteBatch.DrawString(_font, hpText, new Vector2(hpBarX + 8, hpTextY), Color.White);
+        int hpTextY = hpDrawn ? nextBarY + (ScaledBgHeight(HpBarScale) / 2) - 7 : nextBarY - 1;
+        spriteBatch.DrawString(_font, hpText, new Vector2(barX + 8, hpTextY), Color.White);
+        nextBarY += (hpDrawn ? ScaledBgHeight(HpBarScale) : fallbackH) + barSpacing;
 
-        // === Bottom-left: Stamina Bar ===
-        int barX = 12;
-        int barWidth = 120;
-        int barHeight = 16;
-        int barY = _barBg != null ? screenHeight - ScaledBgHeight - 14 : screenHeight - 30;
+        // --- Mana Bar (placeholder — no mana system yet, shows full blue) ---
+        float manaFill = 1.0f;
+        bool manaDrawn = DrawSpriteBar(spriteBatch, barX, nextBarY, _barBg, _barFillMana, manaFill, ManaBarScale);
+        if (!manaDrawn)
+        {
+            DrawRect(spriteBatch, barX - 1, nextBarY - 1, fallbackW + 2, fallbackH + 2, Color.Black);
+            DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, new Color(40, 40, 40));
+            DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, Color.Blue);
+        }
+        string manaText = "MP: ---/---";
+        int manaTextY = manaDrawn ? nextBarY + (ScaledBgHeight(ManaBarScale) / 2) - 7 : nextBarY - 1;
+        spriteBatch.DrawString(_font, manaText, new Vector2(barX + 8, manaTextY), Color.White);
+        nextBarY += (manaDrawn ? ScaledBgHeight(ManaBarScale) : fallbackH) + barSpacing;
 
-        float fill = _stats.CurrentStamina / _stats.MaxStamina;
-        bool staDrawn = DrawSpriteBar(spriteBatch, barX, barY, _barBg, _barFillStamina, fill);
+        // --- Stamina Bar ---
+        float staFill = _stats.CurrentStamina / _stats.MaxStamina;
+        bool staDrawn = DrawSpriteBar(spriteBatch, barX, nextBarY, _barBg, _barFillStamina, staFill, StaminaBarScale);
         if (!staDrawn)
         {
-            // Flat-rect fallback (preserves color-by-percent legacy behavior)
-            DrawRect(spriteBatch, barX - 1, barY - 1, barWidth + 2, barHeight + 2, Color.Black);
-            Color barColor = fill > 0.5f ? Color.LimeGreen : fill > 0.25f ? Color.Yellow : Color.Red;
-            DrawRect(spriteBatch, barX, barY, (int)(barWidth * fill), barHeight, barColor);
+            DrawRect(spriteBatch, barX - 1, nextBarY - 1, fallbackW + 2, fallbackH + 2, Color.Black);
+            Color barColor = staFill > 0.5f ? Color.LimeGreen : staFill > 0.25f ? Color.Yellow : Color.Red;
+            DrawRect(spriteBatch, barX, nextBarY, (int)(fallbackW * staFill), fallbackH, barColor);
         }
-
-        // Label — center vertically inside the (scaled) bar
         string staminaText = $"STA: {_stats.CurrentStamina:F0}/{_stats.MaxStamina:F0}";
-        int staTextY = staDrawn ? barY + (ScaledBgHeight / 2) - 7 : barY;
+        int staTextY = staDrawn ? nextBarY + (ScaledBgHeight(StaminaBarScale) / 2) - 7 : nextBarY;
         spriteBatch.DrawString(_font, staminaText, new Vector2(barX + 8, staTextY), Color.White);
 
         // === Magic cooldown indicator (per D-09) ===

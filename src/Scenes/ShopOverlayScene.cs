@@ -34,6 +34,11 @@ public class ShopOverlayScene : Scene
         _font = Services.Content.Load<SpriteFont>("DefaultFont");
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
+        if (Services.Theme == null)
+        {
+            Services.Theme = new UITheme();
+            Services.Theme.LoadContent(Services.GraphicsDevice);
+        }
         Console.WriteLine("[ShopOverlayScene] Opened");
     }
 
@@ -54,7 +59,7 @@ public class ShopOverlayScene : Scene
     public override void Draw(SpriteBatch spriteBatch)
     {
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _panel.Draw(spriteBatch, _font, _pixel);
+        _panel.Draw(spriteBatch, _font, _pixel, Services.Theme!);
         _toast.Draw(spriteBatch, _font, _pixel);
         spriteBatch.End();
     }

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Core;
 
@@ -134,15 +135,39 @@ public abstract class Entity
     }
 
     /// <summary>
-    /// Update knockback lerp. Call from subclass Update methods.
+    /// Update knockback lerp. When a TileMap is provided, the new position is
+    /// validated against wall collision and map bounds so entities can never be
+    /// knocked into geometry or off the map.
     /// </summary>
-    protected void UpdateKnockback(float deltaTime)
+    protected void UpdateKnockback(float deltaTime, TileMap? map = null)
     {
         if (_knockbackTimer > 0)
         {
+            var prevPos = Position;
             _knockbackTimer -= deltaTime;
             float t = 1f - Math.Max(0f, _knockbackTimer / KnockbackDuration);
             Position = Vector2.Lerp(Position, _knockbackTarget, t);
+
+            if (map != null)
+            {
+                // Revert if the new position is inside collision geometry
+                if (map.CheckCollision(CollisionBox))
+                {
+                    Position = prevPos;
+                    _knockbackTimer = 0f; // stop knockback immediately
+                    return;
+                }
+
+                // Clamp to map bounds
+                var bounds = map.GetWorldBounds();
+                int fw = FrameWidth > 0 ? FrameWidth : 16;
+                int fh = FrameHeight > 0 ? FrameHeight : 16;
+                float hw = fw / 2f;
+                float hh = fh / 2f;
+                Position = new Vector2(
+                    MathHelper.Clamp(Position.X, hw, bounds.Width - hw),
+                    MathHelper.Clamp(Position.Y, hh, bounds.Height - hh));
+            }
         }
     }
 

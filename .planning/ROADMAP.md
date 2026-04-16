@@ -136,13 +136,15 @@ Plans:
   2. Clearing all enemies in a room opens the door to the next room (visible gate/barrier change)
   3. Optional side rooms contain treasure chests with randomized loot
   4. The final room contains the boss; defeating it completes the dungeon objective
-**Plans:** 4 plans
+**Plans:** 6 plans
 
 Plans:
 - [x] 05-01-PLAN.md — Dungeon infrastructure: test project bootstrap + DungeonState/Registry + CombatLoop extraction + EnemySpawner refactor + GameStateSnapshot fix + save v7→v8 (Wave 1)
 - [x] 05-02-PLAN.md — 6 room TMXs + DungeonDoor entity + village entry trigger + idempotent chest seeding (Wave 2)
 - [x] 05-03-PLAN.md — Boss room TMX + spawn guard + victory handler (quest complete + village return) + BossVictoryTests (Wave 3)
-- [ ] 05-04-PLAN.md — Gap closure: fix pitch-black dungeon rendering in r2/r3/r3a/r4/r4a/boss + defensive Clear color (Wave 1)
+- [x] 05-04-PLAN.md — Gap closure: fix pitch-black dungeon rendering in r2/r3/r3a/r4/r4a/boss + defensive Clear color (Wave 1)
+- [ ] 05-05-PLAN.md — Gap closure: viewport-aware DialogueBox + HUD gold label (Wave 1)
+- [ ] 05-06-PLAN.md — Gap closure: one-time dungeon chest collection (preserve OpenedChestIds across BeginRun + save-before-wipe on death) (Wave 1)
 
 ### Phase 6: Progression & Polish
 **Goal**: The full gameplay loop is connected end-to-end: farm, fight, level up, buy gear, complete the quest -- and it all saves
@@ -175,5 +177,5 @@ Note: Phase 4 depends only on Phase 1 (not Phase 2/3), so it could run after Pha
 | 3. Combat | 3/3 | Complete | - |
 | 3.1. Verification Backfill & Metadata Sync | 3/3 | Complete | - |
 | 4. World & NPCs | 0/4 | Not started | - |
-| 5. Dungeon | 3/4 | In progress (gap closure) | - |
+| 5. Dungeon | 4/6 | In progress (gap closure) | - |
 | 6. Progression & Polish | 0/3 | Not started | - |

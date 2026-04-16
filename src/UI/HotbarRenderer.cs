@@ -15,10 +15,11 @@ namespace stardew_medieval_v3.UI;
 /// </summary>
 public class HotbarRenderer
 {
-    private const int SlotSize = 42;
+    private const int SlotSize = 50;
     private const int Padding = 0;
-    private const int BottomMargin = 8;
+    private const int BottomMargin = 5;
     private const int IconPadding = 1;
+    private const float IconScale = 0.80f;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
@@ -27,8 +28,12 @@ public class HotbarRenderer
     private Texture2D _slotSelected = null!;
     private Texture2D? _handIcon;
     private Texture2D? _panelSlotPane;
+    private Texture2D? _panelSlotPaneShort;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
+
+    // When the Short panel is drawn, consumable slots are repositioned to center inside it.
+    private int _consumablePanelCenterX = -1;
 
     // Drag state for hotbar rearranging
     private bool _isDragging;
@@ -117,6 +122,17 @@ public class HotbarRenderer
         {
             Console.WriteLine($"[HotbarRenderer] Failed to load UI_Panel_SlotPane: {ex.Message}");
             _panelSlotPane = null;
+        }
+
+        try
+        {
+            using var shortStream = File.OpenRead("assets/Sprites/System/UI Elements/Panel/UI_Panel_SlotPane Short.png");
+            _panelSlotPaneShort = Texture2D.FromStream(device, shortStream);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HotbarRenderer] Failed to load UI_Panel_SlotPane Short: {ex.Message}");
+            _panelSlotPaneShort = null;
         }
 
         Console.WriteLine("[HotbarRenderer] Content loaded");
@@ -219,12 +235,49 @@ public class HotbarRenderer
 
     public void Draw(SpriteBatch sb, int screenWidth, int screenHeight)
     {
-        // Draw consumable slots
+        // Draw Short panel behind consumable Q slot(s) — match main panel height.
+        if (_panelSlotPaneShort != null && _panelSlotPane != null && InventoryManager.ConsumableSlotCount > 0)
+        {
+            // Compute main panel height to match
+            var firstMain = GetMainSlotRect(0, screenWidth, screenHeight);
+            var lastMain = GetMainSlotRect(InventoryManager.HotbarSize - 1, screenWidth, screenHeight);
+            float mainScale = (float)((lastMain.Right - firstMain.X) + 56) / _panelSlotPane.Width;
+            int mainPanelH = (int)(_panelSlotPane.Height * mainScale);
+            int mainPanelLeft = firstMain.X - 28;
+
+            // Short panel: force same height, derive width from aspect, anchor right edge with gap
+            int cTargetH = mainPanelH;
+            float cScaleY = (float)cTargetH / _panelSlotPaneShort.Height;
+            int cTargetW = (int)(_panelSlotPaneShort.Width * cScaleY);
+
+            int gap = 8;
+            int cRight = mainPanelLeft - gap;
+            int cLeft = cRight - cTargetW;
+
+            var firstCons = GetConsumableSlotRect(0, screenWidth, screenHeight);
+            int cCenterY = firstCons.Y + firstCons.Height / 2;
+            sb.Draw(_panelSlotPaneShort, new Rectangle(
+                cLeft,
+                cCenterY - cTargetH / 2,
+                cTargetW,
+                cTargetH), Color.White);
+
+            // Reposition consumable slot(s) to center inside the Short panel
+            _consumablePanelCenterX = cLeft + cTargetW / 2;
+        }
+        else
+        {
+            _consumablePanelCenterX = -1;
+        }
+
+        // Draw consumable slots (repositioned to center inside Short panel when present)
         string[] consumableKeys = { "Q" };
         for (int i = 0; i < InventoryManager.ConsumableSlotCount; i++)
         {
             var rect = GetConsumableSlotRect(i, screenWidth, screenHeight);
-            sb.Draw(_slotNormal, rect, Color.White);
+            if (_consumablePanelCenterX > 0)
+                rect.X = _consumablePanelCenterX - rect.Width / 2;
+            sb.Draw(_slotSelected, rect, Color.White);
 
             bool consHidden = (_isDragging && _dragSourceConsumable == i) || _externalDragConsumable == i;
             if (!consHidden)
@@ -277,10 +330,15 @@ public class HotbarRenderer
             {
                 // Empty slot — show the hand as a watermark to hint that an
                 // empty active slot uses the Hand tool (harvest / interact).
+                int hFullW = rect.Width - IconPadding * 2;
+                int hFullH = rect.Height - IconPadding * 2;
+                int hW = (int)(hFullW * IconScale);
+                int hH = (int)(hFullH * IconScale);
+                int hOx = (hFullW - hW) / 2;
+                int hOy = (hFullH - hH) / 2;
                 var iconRect = new Rectangle(
-                    rect.X + IconPadding, rect.Y + IconPadding,
-                    rect.Width - IconPadding * 2, rect.Height - IconPadding * 2);
-                sb.Draw(_handIcon, iconRect, Color.White * 0.28f);
+                    rect.X + IconPadding + hOx, rect.Y + IconPadding + hOy, hW, hH);
+                sb.Draw(_handIcon, iconRect, Color.White * 0.08f);
             }
 
             sb.DrawString(_font, (i + 1).ToString(), new Vector2(rect.X + 2, rect.Y), Color.Gray * 0.7f);
@@ -298,9 +356,15 @@ public class HotbarRenderer
         {
             var srcRect = _atlas.GetRect(def.SpriteId);
             var tex = _atlas.GetTexture(def.SpriteId);
+            int fullW = rect.Width - IconPadding * 2;
+            int fullH = rect.Height - IconPadding * 2;
+            int iconW = (int)(fullW * IconScale);
+            int iconH = (int)(fullH * IconScale);
+            int offsetX = (fullW - iconW) / 2;
+            int offsetY = (fullH - iconH) / 2;
             var destRect = new Rectangle(
-                rect.X + IconPadding, rect.Y + IconPadding,
-                rect.Width - IconPadding * 2, rect.Height - IconPadding * 2);
+                rect.X + IconPadding + offsetX, rect.Y + IconPadding + offsetY,
+                iconW, iconH);
             sb.Draw(tex, destRect, srcRect, Color.White);
         }
 
@@ -349,7 +413,7 @@ public class HotbarRenderer
         int hotbarWidth = InventoryManager.HotbarSize * SlotSize + (InventoryManager.HotbarSize - 1) * Padding;
         int hotbarStartX = (screenWidth - hotbarWidth) / 2;
         // Place consumable slots to the left with ~10% screen width gap
-        int gap = (int)(screenWidth * 0.04f);
+        int gap = (int)(screenWidth * 0.10f);
         int consumableStartX = hotbarStartX - gap - InventoryManager.ConsumableSlotCount * (SlotSize + Padding);
         int startY = screenHeight - SlotSize - BottomMargin;
         return new Rectangle(consumableStartX + index * (SlotSize + Padding), startY, SlotSize, SlotSize);
@@ -368,8 +432,13 @@ public class HotbarRenderer
     public int HitTestConsumable(Point mousePos, int screenWidth, int screenHeight)
     {
         for (int i = 0; i < InventoryManager.ConsumableSlotCount; i++)
-            if (GetConsumableSlotRect(i, screenWidth, screenHeight).Contains(mousePos))
+        {
+            var rect = GetConsumableSlotRect(i, screenWidth, screenHeight);
+            if (_consumablePanelCenterX > 0)
+                rect.X = _consumablePanelCenterX - rect.Width / 2;
+            if (rect.Contains(mousePos))
                 return i;
+        }
         return -1;
     }
 }

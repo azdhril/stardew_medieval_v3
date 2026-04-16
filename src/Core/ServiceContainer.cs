@@ -74,6 +74,13 @@ public class ServiceContainer
     public HotbarRenderer? Hotbar { get; set; }
 
     /// <summary>
+    /// Shared UI theme (9-slice textures + icons). Lazily created by the first
+    /// overlay scene that needs it; reused by subsequent overlays to avoid
+    /// reloading textures.
+    /// </summary>
+    public UITheme? Theme { get; set; }
+
+    /// <summary>
     /// Per-scene chest manager. Owned by whichever scene currently renders chests
     /// (FarmScene, DungeonScene). Read by GameStateSnapshot.SaveNow so manual
     /// saves capture chest contents from any scene.

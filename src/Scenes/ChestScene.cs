@@ -15,11 +15,11 @@ namespace stardew_medieval_v3.Scenes;
 public class ChestScene : Scene
 {
     private const int PanelWidth = 470;
-    private const int PanelHeight = 250;
+    private const int PanelHeight = 290;
     private const int PlayerColumns = 5;
     private const int ChestColumns = 4;
-    private const int ButtonWidth = 90;
-    private const int ButtonHeight = 24;
+    private const int ButtonWidth = 100;
+    private const int ButtonHeight = 28;
     private const float DoubleClickWindow = 0.3f;
 
     private readonly InventoryManager _playerInventory;
@@ -30,6 +30,7 @@ public class ChestScene : Scene
     private ContainerGridRenderer _gridRenderer = null!;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
+    private UITheme _theme = null!;
     private bool _wasMouseDown;
     private float _timeSinceLastClick = float.MaxValue;
     private DragSourceKind _lastClickSource = DragSourceKind.None;
@@ -70,6 +71,13 @@ public class ChestScene : Scene
 
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
+
+        if (Services.Theme == null)
+        {
+            Services.Theme = new UITheme();
+            Services.Theme.LoadContent(Services.GraphicsDevice);
+        }
+        _theme = Services.Theme;
 
         _gridRenderer = new ContainerGridRenderer(_atlas);
         _gridRenderer.LoadContent(device, _font);
@@ -112,16 +120,39 @@ public class ChestScene : Scene
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
-        spriteBatch.Draw(_pixel, new Rectangle(panelX, panelY, PanelWidth, PanelHeight), new Color(35, 28, 24) * 0.97f);
-        spriteBatch.Draw(_pixel, new Rectangle(panelX - 2, panelY - 2, PanelWidth + 4, PanelHeight + 4), Color.Black);
+        NineSlice.Draw(spriteBatch, _theme.PanePopup,
+            new Rectangle(panelX, panelY, PanelWidth, PanelHeight),
+            _theme.PanePopupInsets);
+
+        // Title plaque — centered hanging banner above the panel top edge.
+        const int titlePlaqueW = 200;
+        const int titlePlaqueH = 32;
+        var titleRect = new Rectangle(
+            panelX + (PanelWidth - titlePlaqueW) / 2,
+            panelY - 16,
+            titlePlaqueW, titlePlaqueH);
+        NineSlice.Draw(spriteBatch, _theme.PanelTitle, titleRect, _theme.PanelTitleInsets);
 
         string title = ChestRegistry.Get(_chest.VariantId)?.DisplayName ?? "Chest";
-        spriteBatch.DrawString(_font, title, new Vector2(panelX + 18, panelY + 12), Color.Gold);
-        DrawButton(spriteBatch, GetButtonRect(panelX, panelY, 0), "Pegar Tudo");
-        DrawButton(spriteBatch, GetButtonRect(panelX, panelY, 1), "Enviar Tudo");
+        var titleSize = _font.MeasureString(title);
+        spriteBatch.DrawString(_font, title,
+            new Vector2(titleRect.X + (titleRect.Width - titleSize.X) / 2,
+                        titleRect.Y + (titleRect.Height - titleSize.Y) / 2),
+            Color.White);
+
+        // Action buttons — shorter labels with a drop-shadow so text reads over button texture.
+        DrawButton(spriteBatch, GetButtonRect(panelX, panelY, 0), "Pegar");
+        DrawButton(spriteBatch, GetButtonRect(panelX, panelY, 1), "Enviar");
         DrawButton(spriteBatch, GetButtonRect(panelX, panelY, 2), "Ordenar");
-        spriteBatch.DrawString(_font, "Player Inventory", new Vector2(playerX, panelY + 42), Color.White);
-        spriteBatch.DrawString(_font, "Chest Storage", new Vector2(chestX, panelY + 42), Color.White);
+
+        // Cream slot-pane backgrounds behind each grid — unifies the two grids visually.
+        var playerPaneRect = new Rectangle(playerX - 8, playerY - 8, PlayerColumns * 40 + 16, 4 * 40 + 16);
+        var chestPaneRect  = new Rectangle(chestX  - 8, chestY  - 8, ChestColumns  * 40 + 16, 4 * 40 + 16);
+        NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, playerPaneRect, _theme.PanelSlotPaneInsets);
+        NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, chestPaneRect,  _theme.PanelSlotPaneInsets);
+
+        spriteBatch.DrawString(_font, "Player Inventory", new Vector2(playerX, panelY + 52), Color.LightGoldenrodYellow);
+        spriteBatch.DrawString(_font, "Chest Storage",    new Vector2(chestX,  panelY + 52), Color.LightGoldenrodYellow);
         spriteBatch.DrawString(_font, "Drag items between grids. Press E or Esc to close.", new Vector2(panelX + 18, panelY + PanelHeight - 24), Color.Silver);
 
         int? hiddenPlayer = _dragSource == DragSourceKind.Player ? _dragIndex : null;
@@ -235,14 +266,18 @@ public class ChestScene : Scene
     private void GetLayout(int panelX, int panelY, out int playerX, out int playerY, out int chestX, out int chestY)
     {
         playerX = panelX + 18;
-        playerY = panelY + 62;
+        playerY = panelY + 72;
         chestX = panelX + 250;
-        chestY = panelY + 62;
+        chestY = panelY + 72;
     }
 
     private Rectangle GetButtonRect(int panelX, int panelY, int index)
     {
-        return new Rectangle(panelX + 120 + index * (ButtonWidth + 8), panelY + 10, ButtonWidth, ButtonHeight);
+        // 3 centered buttons in a dedicated header row (below the hanging title plaque).
+        const int gap = 8;
+        int totalW = 3 * ButtonWidth + 2 * gap;
+        int startX = panelX + (PanelWidth - totalW) / 2;
+        return new Rectangle(startX + index * (ButtonWidth + gap), panelY + 18, ButtonWidth, ButtonHeight);
     }
 
     private ButtonAction HitTestButton(Point mousePos, int panelX, int panelY)
@@ -255,13 +290,15 @@ public class ChestScene : Scene
 
     private void DrawButton(SpriteBatch sb, Rectangle rect, string text)
     {
-        sb.Draw(_pixel, new Rectangle(rect.X - 1, rect.Y - 1, rect.Width + 2, rect.Height + 2), Color.Black);
-        sb.Draw(_pixel, rect, new Color(78, 58, 44));
+        NineSlice.Draw(sb, _theme.CommonBtn, rect, _theme.CommonBtnInsets);
 
         var size = _font.MeasureString(text);
         float x = rect.X + (rect.Width - size.X) / 2f;
         float y = rect.Y + (rect.Height - size.Y) / 2f;
-        sb.DrawString(_font, text, new Vector2(x, y), Color.White);
+
+        // Drop shadow so the label reads over the textured button face.
+        sb.DrawString(_font, text, new Vector2(x + 1, y + 1), Color.Black * 0.75f);
+        sb.DrawString(_font, text, new Vector2(x, y), Color.LightGoldenrodYellow);
     }
 
     private void ExecuteButton(ButtonAction action)

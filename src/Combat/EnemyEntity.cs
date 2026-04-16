@@ -71,7 +71,10 @@ public class EnemyEntity : Entity
     /// <param name="deltaTime">Frame time in seconds.</param>
     /// <param name="playerPos">Current player world position for AI calculations.</param>
     /// <param name="projectiles">Projectile manager for ranged attack spawning.</param>
-    public void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles, TileMap? map = null)
+    /// <param name="map">TileMap for collision. Null = no collision constraint.</param>
+    /// <param name="pathfinder">A* pathfinder for smart navigation. Null = direct line movement.</param>
+    public void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles,
+        TileMap? map = null, Pathfinder? pathfinder = null)
     {
         if (!IsAlive) return;
 
@@ -80,8 +83,8 @@ public class EnemyEntity : Entity
         // Update AI state machine
         _ai.Update(deltaTime, Position, playerPos, _data);
 
-        // Move based on AI direction with collision
-        Vector2 moveDir = _ai.GetMoveDirection(Position, playerPos, _data);
+        // Move based on AI direction with collision (pathfinder enables A* navigation)
+        Vector2 moveDir = _ai.GetMoveDirection(Position, playerPos, _data, pathfinder);
         if (moveDir != Vector2.Zero)
         {
             var delta = moveDir * _data.MoveSpeed * deltaTime;
@@ -91,8 +94,8 @@ public class EnemyEntity : Entity
                 Position += delta;
         }
 
-        // Update knockback and flash from Entity base
-        UpdateKnockback(deltaTime);
+        // Update knockback and flash from Entity base (pass map to prevent knockback through walls)
+        UpdateKnockback(deltaTime, map);
         UpdateFlash(deltaTime);
 
         // Handle attack readiness
@@ -221,14 +224,24 @@ public class EnemyEntity : Entity
 
     /// <summary>
     /// Sliding collision: try X, try Y, then wall-slide if both blocked.
-    /// When fully stuck on a corner, tries perpendicular axes so the enemy
-    /// slides around obstacles instead of freezing in place.
+    /// When fully stuck on a corner, tries 8 nudge directions (cardinal +
+    /// diagonal biased toward the intended movement) so the enemy slides
+    /// around obstacles instead of freezing in place.
     /// </summary>
     protected void ApplyCollisionMove(Vector2 delta, TileMap map)
     {
+        if (delta == Vector2.Zero) return;
         var startPos = Position;
 
-        // Try X axis
+        // Try full movement first (common case: no obstacle)
+        Position = startPos + delta;
+        if (!map.CheckCollision(CollisionBox))
+        {
+            ClampToMapBounds(map);
+            return;
+        }
+
+        // Try X axis only
         bool xBlocked = false;
         Position = startPos + new Vector2(delta.X, 0);
         if (map.CheckCollision(CollisionBox))
@@ -237,7 +250,7 @@ public class EnemyEntity : Entity
             xBlocked = true;
         }
 
-        // Try Y axis
+        // Try Y axis only
         bool yBlocked = false;
         var afterX = Position;
         Position = afterX + new Vector2(0, delta.Y);
@@ -247,31 +260,44 @@ public class EnemyEntity : Entity
             yBlocked = true;
         }
 
-        // Wall-slide: when both axes blocked, try perpendicular to escape corners
-        if (xBlocked && yBlocked)
+        // If at least one axis succeeded, we're sliding — done
+        if (!xBlocked || !yBlocked)
         {
-            float speed = MathF.Abs(delta.X) + MathF.Abs(delta.Y);
-            // Try sliding along X (perpendicular to blocked Y)
-            var tryX = startPos + new Vector2(MathF.Sign(delta.X) * speed, 0);
-            Position = tryX;
-            if (!map.CheckCollision(CollisionBox))
-            {
-                ClampToMapBounds(map);
-                return;
-            }
-            // Try sliding along Y (perpendicular to blocked X)
-            var tryY = startPos + new Vector2(0, MathF.Sign(delta.Y) * speed);
-            Position = tryY;
-            if (!map.CheckCollision(CollisionBox))
-            {
-                ClampToMapBounds(map);
-                return;
-            }
-            // Fully stuck — stay put
-            Position = startPos;
+            ClampToMapBounds(map);
+            return;
         }
 
-        ClampToMapBounds(map);
+        // Both axes blocked (convex corner). Try 8 nudge directions to escape.
+        float speed = delta.Length();
+        float sx = MathF.Sign(delta.X);
+        float sy = MathF.Sign(delta.Y);
+        if (sx == 0) sx = 1f;
+        if (sy == 0) sy = 1f;
+
+        ReadOnlySpan<Vector2> nudges = stackalloc Vector2[]
+        {
+            new Vector2(sx * speed, 0),                     // Along intended X
+            new Vector2(0, sy * speed),                     // Along intended Y
+            new Vector2(-sx * speed, 0),                    // Opposite X
+            new Vector2(0, -sy * speed),                    // Opposite Y
+            new Vector2(sx * speed, sy * speed * 0.5f),     // Diagonal bias X
+            new Vector2(sx * speed * 0.5f, sy * speed),     // Diagonal bias Y
+            new Vector2(-sx * speed, sy * speed * 0.5f),    // Counter-diagonal
+            new Vector2(sx * speed * 0.5f, -sy * speed),    // Counter-diagonal
+        };
+
+        foreach (var nudge in nudges)
+        {
+            Position = startPos + nudge;
+            if (!map.CheckCollision(CollisionBox))
+            {
+                ClampToMapBounds(map);
+                return;
+            }
+        }
+
+        // Truly stuck — stay put (A* will route around next frame)
+        Position = startPos;
     }
 
     private void ClampToMapBounds(TileMap map)

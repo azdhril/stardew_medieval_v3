@@ -15,6 +15,8 @@ public class CombatManager
 {
     private const float MeleeHitStaminaCost = 4f;
     private const float SpellHitStaminaCost = 6f;
+    private const float PunchCooldown = 0.7f;
+    private const float PunchDamage = 3f;
 
     private readonly InventoryManager _inventory;
     private readonly MeleeAttack _melee = new();
@@ -82,12 +84,17 @@ public class CombatManager
         if (!input.IsLeftClickPressed) return;
 
         var activeItem = _inventory.GetActiveHotbarItem();
-        if (activeItem == null) return;
+        var itemDef = activeItem != null ? ItemRegistry.Get(activeItem.ItemId) : null;
+        bool isWeapon = itemDef?.Type == ItemType.Weapon;
 
-        var itemDef = ItemRegistry.Get(activeItem.ItemId);
-        if (itemDef?.Type != ItemType.Weapon) return;
+        if (!isWeapon)
+        {
+            if (_melee.TrySwing(PunchCooldown))
+                Console.WriteLine("[CombatManager] Punch (no weapon)");
+            return;
+        }
 
-        bool isSpell = itemDef.Stats.TryGetValue("spell", out float s) && s > 0;
+        bool isSpell = itemDef!.Stats.TryGetValue("spell", out float s) && s > 0;
 
         if (isSpell)
         {
@@ -122,9 +129,12 @@ public class CombatManager
         if (activeItem != null)
         {
             var itemDef = ItemRegistry.Get(activeItem.ItemId);
-            if (itemDef?.Stats != null && itemDef.Stats.TryGetValue("damage", out float dmg))
+            if (itemDef?.Type == ItemType.Weapon && itemDef.Stats.TryGetValue("damage", out float dmg))
                 weaponDamage = dmg;
         }
+
+        if (weaponDamage <= 0f)
+            weaponDamage = PunchDamage;
 
         var (attack, _) = EquipmentData.GetEquipmentStats(_inventory.GetAllEquipment());
         return weaponDamage + attack;

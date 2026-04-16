@@ -112,7 +112,15 @@ public abstract class GameplayScene : Scene
         Pixel = new Texture2D(device, 1, 1);
         Pixel.SetData(new[] { Color.White });
 
-        Font = Services.Content.Load<SpriteFont>("DefaultFont");
+        try
+        {
+            Font = Services.Content.Load<SpriteFont>("NotoSerif");
+        }
+        catch
+        {
+            Console.WriteLine("[GameplayScene] NotoSerif font not found, falling back to DefaultFont");
+            Font = Services.Content.Load<SpriteFont>("DefaultFont");
+        }
 
         Map = new TileMap();
         Map.Load(MapPath, device);
@@ -169,7 +177,7 @@ public abstract class GameplayScene : Scene
         if (input.IsKeyPressed(Keys.F2))
             GrantDebugKit();
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < InventoryManager.HotbarSize; i++)
         {
             if (input.IsKeyPressed(Keys.D1 + i))
                 Services.Inventory?.SetActiveHotbar(i);

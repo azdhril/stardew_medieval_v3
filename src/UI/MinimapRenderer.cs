@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Combat;
@@ -11,30 +12,77 @@ using stardew_medieval_v3.World;
 namespace stardew_medieval_v3.UI;
 
 /// <summary>
-/// Renders a lightweight screen-space minimap using one pixel per world tile.
-/// Static terrain is cached into a texture and dynamic actors are drawn each frame.
+/// Renders a circular screen-space minimap with an ornate frame overlay.
+/// Pre-renders map content to a RenderTarget2D with circular alpha mask,
+/// then composites the result + frame during the HUD pass.
 /// </summary>
 public sealed class MinimapRenderer : IDisposable
 {
-    private const int PanelPadding = 2;
-    private const int BorderThickness = 2;
     private const int ViewTilesWide = 10;
     private const int ViewTilesHigh = 10;
     private const int CachePixelsPerTile = 8;
+    private const int RtSize = 192;
 
     private Texture2D _pixel = null!;
     private Texture2D? _staticMapTexture;
+    private Texture2D? _frameTexture;
+    private Texture2D? _circleMask;
+    private RenderTarget2D? _rt;
     private Point _mapTileSize;
+
+    // Snapshot of last PreRender params so Draw can composite without re-supplying them.
+    private bool _preRendered;
 
     public void LoadContent(GraphicsDevice device)
     {
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
+
+        try
+        {
+            using var frameStream = File.OpenRead("assets/Sprites/System/UI Elements/Frame/UI_Frame_Map.png");
+            _frameTexture = Texture2D.FromStream(device, frameStream);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MinimapRenderer] Failed to load UI_Frame_Map: {ex.Message}");
+        }
+
+        BuildCircleMask(device, RtSize);
+
+        _rt = new RenderTarget2D(device, RtSize, RtSize, false,
+            SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
     }
 
-    /// <summary>
-    /// Rebuilds the static terrain texture. Call when entering a new map.
-    /// </summary>
+    private void BuildCircleMask(GraphicsDevice device, int size)
+    {
+        var data = new Color[size * size];
+        float center = size / 2f;
+        float radius = center - 1;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - center;
+                float dy = y - center;
+                float dist = MathF.Sqrt(dx * dx + dy * dy);
+                if (dist <= radius)
+                    data[y * size + x] = Color.White;
+                else if (dist <= radius + 1.5f)
+                {
+                    float alpha = 1f - (dist - radius) / 1.5f;
+                    data[y * size + x] = Color.White * alpha;
+                }
+                else
+                    data[y * size + x] = Color.Transparent;
+            }
+        }
+
+        _circleMask = new Texture2D(device, size, size);
+        _circleMask.SetData(data);
+    }
+
     public void Rebuild(TileMap map, GraphicsDevice device)
     {
         _staticMapTexture?.Dispose();
@@ -55,31 +103,32 @@ public sealed class MinimapRenderer : IDisposable
         _staticMapTexture.SetData(data);
     }
 
-    public void Draw(
+    /// <summary>
+    /// Pre-render minimap content into a circular RenderTarget. Must be called
+    /// BEFORE any backbuffer drawing so SetRenderTarget(null) doesn't discard it.
+    /// </summary>
+    public void PreRender(
+        GraphicsDevice device,
         SpriteBatch spriteBatch,
-        Rectangle panelArea,
         TileMap map,
-        Camera camera,
         PlayerEntity player,
         IEnumerable<EnemyEntity> enemies,
         BossEntity? boss,
         GridManager? grid = null)
     {
-        if (_staticMapTexture == null)
+        _preRendered = false;
+        if (_staticMapTexture == null || _rt == null || _circleMask == null)
             return;
 
-        DrawRect(spriteBatch, panelArea, Color.Black * 0.9f);
-        DrawRect(
-            spriteBatch,
-            new Rectangle(
-                panelArea.X + BorderThickness,
-                panelArea.Y + BorderThickness,
-                panelArea.Width - (BorderThickness * 2),
-                panelArea.Height - (BorderThickness * 2)),
-            new Color(48, 31, 22));
-
-        var mapArea = GetMapArea(panelArea);
         var sourceArea = GetSourcePixelArea(map, player.Position);
+        var mapArea = new Rectangle(0, 0, RtSize, RtSize);
+
+        device.SetRenderTarget(_rt);
+        device.Clear(Color.Transparent);
+
+        // Draw map content normally
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
+
         spriteBatch.Draw(_staticMapTexture, mapArea, sourceArea, Color.White);
 
         if (grid != null)
@@ -95,12 +144,56 @@ public sealed class MinimapRenderer : IDisposable
             DrawWorldMarker(spriteBatch, mapArea, sourceArea, boss.Position, new Point(5, 5), new Color(255, 140, 64));
 
         DrawWorldMarker(spriteBatch, mapArea, sourceArea, player.Position, new Point(4, 4), new Color(255, 244, 183));
+
+        spriteBatch.End();
+
+        // Multiply by circle mask to zero out alpha outside the circle
+        var multiplyBlend = new BlendState
+        {
+            ColorBlendFunction = BlendFunction.Add,
+            ColorSourceBlend = Blend.Zero,
+            ColorDestinationBlend = Blend.SourceColor,
+            AlphaBlendFunction = BlendFunction.Add,
+            AlphaSourceBlend = Blend.Zero,
+            AlphaDestinationBlend = Blend.SourceAlpha,
+        };
+
+        spriteBatch.Begin(SpriteSortMode.Deferred, multiplyBlend);
+        spriteBatch.Draw(_circleMask, mapArea, Color.White);
+        spriteBatch.End();
+
+        device.SetRenderTarget(null);
+        _preRendered = true;
+    }
+
+    /// <summary>
+    /// Composite the pre-rendered circular minimap + frame onto the screen.
+    /// Called during the HUD SpriteBatch pass.
+    /// </summary>
+    public void Draw(SpriteBatch spriteBatch, Rectangle panelArea)
+    {
+        if (!_preRendered || _rt == null)
+            return;
+
+        int frameMargin = 8;
+        var frameRect = new Rectangle(
+            panelArea.X - frameMargin,
+            panelArea.Y - frameMargin,
+            panelArea.Width + frameMargin * 2,
+            panelArea.Height + frameMargin * 2);
+
+        spriteBatch.Draw(_rt, panelArea, Color.White);
+
+        if (_frameTexture != null)
+            spriteBatch.Draw(_frameTexture, frameRect, Color.White);
     }
 
     public void Dispose()
     {
         _staticMapTexture?.Dispose();
         _pixel?.Dispose();
+        _circleMask?.Dispose();
+        _rt?.Dispose();
     }
 
     private static Color GetTileColor(TileMap map, int x, int y)
@@ -125,28 +218,6 @@ public sealed class MinimapRenderer : IDisposable
             for (int px = 0; px < CachePixelsPerTile; px++)
                 data[row + startX + px] = color;
         }
-    }
-
-    private Rectangle GetMapArea(Rectangle panelArea)
-    {
-        int innerX = panelArea.X + BorderThickness + PanelPadding;
-        int innerY = panelArea.Y + BorderThickness + PanelPadding;
-        int innerW = panelArea.Width - ((BorderThickness + PanelPadding) * 2);
-        int innerH = panelArea.Height - ((BorderThickness + PanelPadding) * 2);
-
-        float mapAspect = _mapTileSize.X / (float)_mapTileSize.Y;
-        float areaAspect = innerW / (float)innerH;
-
-        if (mapAspect > areaAspect)
-        {
-            int drawH = (int)(innerW / mapAspect);
-            int offsetY = (innerH - drawH) / 2;
-            return new Rectangle(innerX, innerY + offsetY, innerW, drawH);
-        }
-
-        int drawW = (int)(innerH * mapAspect);
-        int offsetX = (innerW - drawW) / 2;
-        return new Rectangle(innerX + offsetX, innerY, drawW, innerH);
     }
 
     private Rectangle GetSourcePixelArea(TileMap map, Vector2 playerWorldPosition)

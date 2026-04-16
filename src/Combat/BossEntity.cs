@@ -83,7 +83,10 @@ public class BossEntity : EnemyEntity
     /// <param name="deltaTime">Frame time in seconds.</param>
     /// <param name="playerPos">Current player world position.</param>
     /// <param name="projectiles">Projectile manager (unused by boss, melee only).</param>
-    public new void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles, TileMap? map = null)
+    /// <param name="map">TileMap for collision. Null = no collision constraint.</param>
+    /// <param name="pathfinder">A* pathfinder for smart navigation. Null = direct line movement.</param>
+    public new void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles,
+        TileMap? map = null, Pathfinder? pathfinder = null)
     {
         if (!IsAlive) return;
 
@@ -95,7 +98,7 @@ public class BossEntity : EnemyEntity
         // Move based on AI direction (stop moving during wind-up)
         if (!_isWindingUp)
         {
-            Vector2 moveDir = AI.GetMoveDirection(Position, playerPos, Data);
+            Vector2 moveDir = AI.GetMoveDirection(Position, playerPos, Data, pathfinder);
             if (moveDir != Vector2.Zero)
             {
                 var delta = moveDir * Data.MoveSpeed * deltaTime;
@@ -106,8 +109,8 @@ public class BossEntity : EnemyEntity
             }
         }
 
-        // Update knockback and flash from Entity base
-        UpdateKnockback(deltaTime);
+        // Update knockback and flash from Entity base (pass map to prevent knockback through walls)
+        UpdateKnockback(deltaTime, map);
         UpdateFlash(deltaTime);
 
         // Handle telegraphed attack: intercept the normal melee attack ready

@@ -36,8 +36,8 @@ public class PlayerEntity : Entity
 
     public void Update(float deltaTime, Vector2 input, bool isRunning, TileMap map, IEnumerable<Entity>? solids = null)
     {
-        // Update combat timers (knockback, flash)
-        UpdateKnockback(deltaTime);
+        // Update combat timers (knockback, flash) — pass map to prevent knockback through walls
+        UpdateKnockback(deltaTime, map);
         UpdateFlash(deltaTime);
 
         if (IFrameTimer > 0)

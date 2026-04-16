@@ -33,6 +33,7 @@ public class DungeonScene : GameplayScene
     private readonly List<EnemyEntity> _enemies = new();
     private readonly List<DungeonDoor> _doors = new();
     private readonly List<ItemDropEntity> _itemDrops = new();
+    private Pathfinder? _pathfinder;
     private BossEntity? _boss;
     private bool _bossVictoryHandled;
     private ChestInstance? _promptChest;
@@ -97,6 +98,10 @@ public class DungeonScene : GameplayScene
         }
 
         BossHealthBar.LoadContent(Services.GraphicsDevice);
+
+        // Build A* walkability grid from map collision polygons
+        _pathfinder = new Pathfinder();
+        _pathfinder.BuildGrid(Map);
 
         // Per-scene combat systems mirror FarmScene composition (independent state).
         _combat = new CombatManager(Services.Inventory!);
@@ -269,6 +274,7 @@ public class DungeonScene : GameplayScene
             Combat = _combat,
             LootRng = _lootRng,
             Map = Map,
+            Pathfinder = _pathfinder,
             SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(Services.Dungeon?.BossDefeated ?? false),
             OnBossDefeated = _ =>

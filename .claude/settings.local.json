@@ -25,7 +25,10 @@
       "Bash(dotnet test *)",
       "Bash(awk '{print $6, $7, $8, $9}')",
       "Skill(gsd-quick)",
-      "Skill(gsd-quick:*)"
+      "Skill(gsd-quick:*)",
+      "Bash(py -c ' *)",
+      "Bash(powershell -Command '\\(New-Object System.Drawing.Text.InstalledFontCollection\\).Families | Where-Object { $_.Name -like '\\\\''*Noto*'\\\\'' } | Select-Object -ExpandProperty Name')",
+      "Bash(git reset *)"
     ]
   }
 }

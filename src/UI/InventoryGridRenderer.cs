@@ -21,17 +21,15 @@ public class InventoryGridRenderer
     private const int SlotSize = 40;
     private const int Padding = 0;
     private const int IconPadding = 1;
-    private const int EquipSlotSize = 36;
+    private const int EquipSlotSize = 32;
+    private const int EquipGap = 4;
+    private const int EquipStride = EquipSlotSize + EquipGap;
 
     private static readonly EquipSlot[] EquipSlots = {
         EquipSlot.Helmet, EquipSlot.Necklace,
         EquipSlot.Armor, EquipSlot.Shield,
         EquipSlot.Ring, EquipSlot.Legs,
         EquipSlot.Boots
-    };
-
-    private static readonly string[] EquipLabels = {
-        "Hlm", "Nck", "Arm", "Shd", "Rng", "Leg", "Bts"
     };
 
     private readonly InventoryManager _inventory;
@@ -43,6 +41,7 @@ public class InventoryGridRenderer
     private Texture2D _slotSelected = null!;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
+    private UITheme? _theme;
 
     // Drag state
     private bool _isDragging;
@@ -67,6 +66,9 @@ public class InventoryGridRenderer
         _screenWidth = screenWidth;
         _screenHeight = screenHeight;
     }
+
+    /// <summary>Inject the shared <see cref="UITheme"/> so the equipment silhouette can be wrapped in a 9-slice frame.</summary>
+    public void SetTheme(UITheme theme) => _theme = theme;
 
     public void CancelDrag()
     {
@@ -287,14 +289,18 @@ public class InventoryGridRenderer
 
     private void DrawEquipment(SpriteBatch sb, int offsetX, int offsetY)
     {
-        // Silhouette
-        sb.Draw(_pixel, new Rectangle(offsetX + 20, offsetY + 25, 40, 70), Color.Gray * 0.3f);
-        sb.Draw(_pixel, new Rectangle(offsetX + 28, offsetY + 8, 24, 22), Color.Gray * 0.3f);
+        // Thumbnail frame around the Tibia-style 3-column equipment cluster.
+        // Cluster is 3 * 32 + 2 * 4 = 104 wide, 4 * 32 + 3 * 4 = 140 tall.
+        // Frame wraps it with breathing room + reserves a strip below for ATK/DEF.
+        if (_theme != null)
+        {
+            var thumbRect = new Rectangle(offsetX - 14, offsetY - 12, 132, 196);
+            NineSlice.Draw(sb, _theme.PanelThumbnail, thumbRect, NineSlice.Insets.Uniform(12));
+        }
 
         for (int i = 0; i < EquipSlots.Length; i++)
         {
             var rect = GetEquipRect(i, offsetX, offsetY);
-            sb.DrawString(_font, EquipLabels[i], new Vector2(rect.X, rect.Y - 12), Color.LightGray);
             sb.Draw(_slotNormal, rect, Color.White);
 
             if (_isDragging && _dragSourceEquip == EquipSlots[i]) continue;
@@ -311,13 +317,54 @@ public class InventoryGridRenderer
                         srcRect, Color.White);
                 }
             }
+            else if (_theme != null)
+            {
+                // Empty-slot watermark icon (Tibia-style). Very faint so the slot reads as empty
+                // while still hinting at what belongs there.
+                var watermark = GetEquipWatermark(EquipSlots[i], _theme);
+                if (watermark != null)
+                {
+                    int icon = 18;
+                    var iconRect = new Rectangle(
+                        rect.X + (EquipSlotSize - icon) / 2,
+                        rect.Y + (EquipSlotSize - icon) / 2,
+                        icon, icon);
+                    sb.Draw(watermark, iconRect, Color.White * 0.28f);
+                }
+            }
         }
 
+        // ATK / DEF stats row below the cluster: [iconAtk][n] [iconDef][n]
         var (attack, defense) = EquipmentData.GetEquipmentStats(_inventory.GetAllEquipment());
-        int statsY = offsetY + 100;
-        sb.DrawString(_font, $"ATK:{attack:F0}", new Vector2(offsetX, statsY), Color.OrangeRed);
-        sb.DrawString(_font, $"DEF:{defense:F0}", new Vector2(offsetX, statsY + 16), Color.CornflowerBlue);
+        int statsY = offsetY + 150;
+        string atkText = $"{attack:F0}";
+        string defText = $"{defense:F0}";
+
+        if (_theme != null)
+        {
+            sb.Draw(_theme.IconAttack, new Rectangle(offsetX + 8, statsY, 16, 16), Color.White);
+            sb.DrawString(_font, atkText, new Vector2(offsetX + 28, statsY + 1), new Color(255, 205, 100));
+            sb.Draw(_theme.IconDefense, new Rectangle(offsetX + 58, statsY, 16, 16), Color.White);
+            sb.DrawString(_font, defText, new Vector2(offsetX + 78, statsY + 1), new Color(190, 220, 255));
+        }
+        else
+        {
+            sb.DrawString(_font, $"ATK:{attack:F0}", new Vector2(offsetX, statsY), Color.OrangeRed);
+            sb.DrawString(_font, $"DEF:{defense:F0}", new Vector2(offsetX, statsY + 16), Color.CornflowerBlue);
+        }
     }
+
+    private static Texture2D? GetEquipWatermark(EquipSlot slot, UITheme theme) => slot switch
+    {
+        EquipSlot.Helmet   => theme.IconEquipHelmet,
+        EquipSlot.Necklace => theme.IconEquipNecklace,
+        EquipSlot.Armor    => theme.IconEquipArmor,
+        EquipSlot.Shield   => theme.IconEquipShield,
+        EquipSlot.Ring     => theme.IconEquipRing,
+        EquipSlot.Legs     => theme.IconEquipLegs,
+        EquipSlot.Boots    => theme.IconEquipBoots,
+        _ => null
+    };
 
     private void DrawSlotContents(SpriteBatch sb, ItemStack? stack, Rectangle slotRect)
     {
@@ -425,16 +472,21 @@ public class InventoryGridRenderer
 
     private Rectangle GetEquipRect(int index, int offsetX, int offsetY)
     {
+        // Tibia-style 3-column layout (columns 0/1/2 × rows 0..3), 32px slots + 4px gaps:
+        //   [ · ][Hlm][ · ]
+        //   [Nck][Arm][Shd]
+        //   [Rng][Leg][ · ]
+        //   [ · ][Bts][ · ]
         int s = EquipSlotSize;
         return index switch
         {
-            0 => new Rectangle(offsetX + 22, offsetY - 5, s, s),   // Helmet
-            1 => new Rectangle(offsetX - 15, offsetY + 15, s, s),  // Necklace
-            2 => new Rectangle(offsetX + 22, offsetY + 35, s, s),  // Armor
-            3 => new Rectangle(offsetX + 62, offsetY + 20, s, s),  // Shield
-            4 => new Rectangle(offsetX - 15, offsetY + 55, s, s),  // Ring
-            5 => new Rectangle(offsetX + 22, offsetY + 70, s, s),  // Legs
-            6 => new Rectangle(offsetX + 22, offsetY + 105, s, s), // Boots
+            0 => new Rectangle(offsetX + EquipStride,     offsetY,                     s, s), // Helmet (col 1 row 0)
+            1 => new Rectangle(offsetX,                   offsetY + EquipStride,       s, s), // Necklace (col 0 row 1)
+            2 => new Rectangle(offsetX + EquipStride,     offsetY + EquipStride,       s, s), // Armor (col 1 row 1)
+            3 => new Rectangle(offsetX + EquipStride * 2, offsetY + EquipStride,       s, s), // Shield (col 2 row 1)
+            4 => new Rectangle(offsetX,                   offsetY + EquipStride * 2,   s, s), // Ring (col 0 row 2)
+            5 => new Rectangle(offsetX + EquipStride,     offsetY + EquipStride * 2,   s, s), // Legs (col 1 row 2)
+            6 => new Rectangle(offsetX + EquipStride,     offsetY + EquipStride * 3,   s, s), // Boots (col 1 row 3)
             _ => Rectangle.Empty
         };
     }

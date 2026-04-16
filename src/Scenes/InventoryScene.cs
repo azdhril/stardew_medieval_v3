@@ -16,8 +16,8 @@ namespace stardew_medieval_v3.Scenes;
 /// </summary>
 public class InventoryScene : Scene
 {
-    private const int PanelWidth = 380;
-    private const int PanelHeight = 220;
+    private const int PanelWidth = 420;
+    private const int PanelHeight = 260;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
@@ -26,6 +26,7 @@ public class InventoryScene : Scene
     private InventoryGridRenderer _gridRenderer = null!;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
+    private UITheme _theme = null!;
     private bool _wasMouseDown;
 
     public InventoryScene(ServiceContainer services, InventoryManager inventory, SpriteAtlas atlas, HotbarRenderer hotbar)
@@ -44,8 +45,16 @@ public class InventoryScene : Scene
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
+        if (Services.Theme == null)
+        {
+            Services.Theme = new UITheme();
+            Services.Theme.LoadContent(Services.GraphicsDevice);
+        }
+        _theme = Services.Theme;
+
         _gridRenderer = new InventoryGridRenderer(_inventory, _atlas);
         _gridRenderer.LoadContent(device, _font);
+        _gridRenderer.SetTheme(_theme);
 
         var viewport = device.Viewport;
         _gridRenderer.SetHotbar(_hotbar, viewport.Width, viewport.Height);
@@ -67,10 +76,10 @@ public class InventoryScene : Scene
 
         int panelX, panelY;
         GetPanelPosition(out panelX, out panelY);
-        int equipX = panelX + 30;
-        int equipY = panelY + 35;
-        int gridX = panelX + 125;
-        int gridY = panelY + 30;
+        int equipX = panelX + 28;
+        int equipY = panelY + 30;
+        int gridX = panelX + 160;
+        int gridY = panelY + 35;
 
         bool mouseDown = Mouse.GetState().LeftButton == ButtonState.Pressed;
         Point mousePos = input.MousePosition;
@@ -103,27 +112,35 @@ public class InventoryScene : Scene
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
-        // Panel background
-        spriteBatch.Draw(_pixel,
+        // Window frame (9-slice)
+        NineSlice.Draw(spriteBatch, _theme.PanePopup,
             new Rectangle(panelX, panelY, PanelWidth, PanelHeight),
-            Color.DarkSlateGray * 0.9f);
+            _theme.PanePopupInsets);
 
-        // Title
+        // Title plaque (9-slice, horizontal) centered at the top of the panel
+        const int titlePlaqueW = 180;
+        const int titlePlaqueH = 28;
+        var titleRect = new Rectangle(
+            panelX + (PanelWidth - titlePlaqueW) / 2,
+            panelY - 6,                 // slightly overlapping the top edge
+            titlePlaqueW, titlePlaqueH);
+        NineSlice.Draw(spriteBatch, _theme.PanelTitle, titleRect, _theme.PanelTitleInsets);
+
         string title = "Inventory";
         var titleSize = _font.MeasureString(title);
         spriteBatch.DrawString(_font, title,
-            new Vector2(panelX + (PanelWidth - titleSize.X) / 2, panelY + 6),
+            new Vector2(titleRect.X + (titleRect.Width - titleSize.X) / 2,
+                        titleRect.Y + (titleRect.Height - titleSize.Y) / 2),
             Color.White);
 
-        // Divider
-        spriteBatch.Draw(_pixel,
-            new Rectangle(panelX + 115, panelY + 25, 1, PanelHeight - 35),
-            Color.Gray * 0.5f);
+        // Divider between equipment cluster (left) and inventory grid (right).
+        NineSlice.DrawStretched(spriteBatch, _theme.ImageDeco,
+            new Rectangle(panelX + 150, panelY + 25, 1, PanelHeight - 45));
 
-        int equipX = panelX + 30;
-        int equipY = panelY + 35;
-        int gridX = panelX + 125;
-        int gridY = panelY + 30;
+        int equipX = panelX + 28;
+        int equipY = panelY + 30;
+        int gridX = panelX + 160;
+        int gridY = panelY + 35;
 
         _gridRenderer.Draw(spriteBatch, gridX, gridY, equipX, equipY);
 

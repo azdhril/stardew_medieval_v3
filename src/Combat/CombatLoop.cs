@@ -45,6 +45,9 @@ public class CombatLoopContext
 
     /// <summary>TileMap for enemy/boss collision. Null = no collision constraint.</summary>
     public TileMap? Map { get; init; }
+
+    /// <summary>A* pathfinder for enemy navigation. Null = direct line movement.</summary>
+    public Pathfinder? Pathfinder { get; init; }
 }
 
 /// <summary>
@@ -94,7 +97,7 @@ public static class CombatLoop
         for (int i = ctx.Enemies.Count - 1; i >= 0; i--)
         {
             var enemy = ctx.Enemies[i];
-            enemy.Update(deltaTime, ctx.Player.Position, ctx.Projectiles, ctx.Map);
+            enemy.Update(deltaTime, ctx.Player.Position, ctx.Projectiles, ctx.Map, ctx.Pathfinder);
 
             if (enemy.IsMeleeAttackReady)
             {
@@ -118,7 +121,7 @@ public static class CombatLoop
         // Boss (mirrors FarmScene boss tick — telegraph, summon phases, melee, loot).
         if (ctx.Boss != null && ctx.Boss.IsAlive)
         {
-            ctx.Boss.Update(deltaTime, ctx.Player.Position, ctx.Projectiles, ctx.Map);
+            ctx.Boss.Update(deltaTime, ctx.Player.Position, ctx.Projectiles, ctx.Map, ctx.Pathfinder);
 
             var minions = ctx.Boss.CheckSummonPhase();
             if (minions != null)
