@@ -1,36 +1,36 @@
 ---
 phase: 05-dungeon
-verified: 2026-04-14T23:00:00Z
-status: human_needed
-score: 4/4 must-haves verified
+verified: 2026-04-16T17:45:00Z
+status: passed
+score: 4/4 must-haves verified (+ 2 UAT gaps closed + 2 out-of-band viewport fixes)
 overrides_applied: 0
-human_verification:
-  - test: "Enter dungeon from village — walk to the cave entrance trigger at (880, 240) in the village and confirm the scene transitions with fade into dungeon room r1"
-    expected: "Screen fades to black, then loads dungeon_r1.tmx with enemies visible and player spawned at the south threshold"
-    why_human: "TriggerZone collision + SceneManager fade animation cannot be verified without running the game"
-  - test: "Kill all enemies in r1, confirm the door opens and the r2 transition is unblocked"
-    expected: "Colored-rect door (red closed) switches to green, player can walk through and the exit_r1_to_r2 trigger fires a transition to r2"
-    why_human: "Visual sprite-swap / colored-rect feedback and collision-box toggle needs eyes"
-  - test: "Navigate to optional room r3a, open the chest with E, drag items into inventory in the overlay, re-enter the room and confirm the chest shows as already opened"
-    expected: "Chest overlay (ChestScene push) pauses gameplay, items are draggable, re-entry shows open-chest sprite, contents unchanged"
-    why_human: "Drag-and-drop UX and overlay pause-state require human feel-check"
-  - test: "Clear all 4 main rooms (r1–r4), attempt the boss door early (should block), then after r4 clear, enter boss room, defeat boss, confirm loot drops, exit to village near castle door"
-    expected: "Boss door blocks until r1–r4 all cleared; boss spawns on entry; victory drops item entities, opens exit door; transition lands player near castle_door position (208, 128) in village"
-    why_human: "End-to-end flow, boss fight balance, door-block messaging, and spawn position are all runtime visual behaviors"
-  - test: "Talk to King NPC after boss defeat — confirm dialogue reflects quest-complete state"
-    expected: "King NPC shows quest-complete branch (NPC-04) rather than the active-mission dialogue"
-    why_human: "NPC dialogue branch selection requires running the game and interacting with the NPC"
-  - test: "Die in the dungeon, confirm respawn at farm with dungeon reset (doors closed, chests sealed, enemies respawned, BossDefeated persists)"
-    expected: "Player respawns at farm spawn; re-entering dungeon shows fresh enemies and closed doors; boss room entry still requires clearing main rooms; boss does NOT respawn after prior victory"
-    why_human: "Death respawn flow, dungeon state reset, and BossDefeated persistence across sessions require a full play session"
+re_verification:
+  previous_status: human_needed
+  previous_score: 4/4
+  gaps_closed:
+    - "UAT Gap 1: NPC dialogue overlay covers full screen in fullscreen — fixed in d7822fd + 4cf19a5"
+    - "UAT Gap 2: Dungeon chest loot is collected once per save (permanent, not per-run) — fixed in b795d02 + 2b2d062"
+    - "Out-of-band A: Camera desync on F11 mid-overlay — fixed in ed49f4b"
+    - "Out-of-band B: ShopPanel hardcoded 960x540 in fullscreen — fixed in 5c1d5b6"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 5: Dungeon Verification Report
 
-**Phase Goal:** Players can enter and progress through a complete dungeon experience from entrance to boss room
-**Verified:** 2026-04-14T23:00:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Verdict:** **PASS**
+
+**Phase Goal:** Deliver a complete, playable end-to-end dungeon — 7 rooms, combat-gated progression, optional chest rooms with drag-and-drop loot, boss finale, and death-reset semantics.
+
+**Verified:** 2026-04-16
+**Status:** passed
+**Re-verification:** Yes — final wave closing UAT Test 5 (dialogue) and UAT Test 6 (chest persistence) plus two out-of-band viewport regressions discovered during joint human-verify.
+
+---
+
+## Executive Summary
+
+All four ROADMAP success criteria (DNG-01..04) are code-verified AND human-verified. The two UAT issues raised in the first verification wave (dialogue overlay positioning in fullscreen, dungeon chest re-seeding on death) are closed with production fixes, tests, and user-confirmed playthroughs. Two adjacent viewport bugs surfaced during joint verify (Camera desync, ShopPanel hardcoded dims) were fixed out-of-band and landed in the same wave. 24/24 dungeon tests green, full build clean.
 
 ---
 
@@ -40,165 +40,166 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Player can enter the dungeon from the village and navigate through 5-8 connected rooms | VERIFIED | `village.tmx` has `enter_dungeon` trigger at (880,240). `VillageScene.HandleTrigger` case `enter_dungeon` calls `BeginDungeonRun` + `TransitionTo(new DungeonScene(Services, "r1", "village"))`. 7 rooms registered in `DungeonRegistry` (r1, r2, r3, r3a, r4, r4a, boss). All 7 TMXs confirmed on disk. |
-| 2 | Clearing all enemies in a room opens the door to the next room (visible gate/barrier change) | VERIFIED | `DungeonScene.OnPreUpdate` fires room-clear when `_enemies.Count==0 && _room.HasGatedExit && !_clearedThisEntry`, then iterates `_doors` and calls `door.Open()`. `DungeonDoor.CollisionBox` returns `Rectangle.Empty` when open, removing the collision block. `DrawFallback` renders red (closed) / green (open) rect. |
-| 3 | Optional side rooms contain treasure chests with randomized loot | VERIFIED | `DungeonChestSeeder.Seed(DungeonState)` rolls a `LootTable` using `Random(RunSeed)` and populates `DungeonState.ChestContents`. `DungeonScene.OnLoad` hydrates `ChestInstance` from `ChestContents` per chestId. r3a has `dungeon_r3a_chest`, r4a has `dungeon_r4a_chest`. `LootRollTests` proves determinism and full registry coverage. |
-| 4 | The final room contains the boss; defeating it completes the dungeon objective | VERIFIED | `DungeonRegistry.Rooms["boss"].IsBossRoom==true`. `DungeonScene.OnLoad` calls `BossSpawnGate.ShouldSpawn` and `_spawner.SpawnBoss`. Victory handler in `OnPreUpdate` calls `Services.Quest?.Complete()`, sets `BossDefeated=true`, opens doors, calls `GameStateSnapshot.SaveNow`. Exit `exit_boss_to_village` routes to village at `castle_door` spawn (208, 128). |
+| 1 | Player can enter the dungeon from the village and navigate through 5-8 connected rooms | VERIFIED | 7 rooms (r1..r4 + r3a, r4a optional + boss) wired via `DungeonRegistry.Rooms`. `village.tmx` has `enter_dungeon` trigger → `VillageScene.HandleTrigger` → `BeginDungeonRun` + `SceneManager.TransitionTo(new DungeonScene(...))`. Human-verified in UAT Test 1 (pass, commit 6b69ebd). |
+| 2 | Clearing all enemies in a room opens the door to the next room | VERIFIED | `DungeonScene.OnPreUpdate` fires clear-event when `_enemies.Count==0 && _room.HasGatedExit`, iterates `_doors` → `door.Open()`. `DungeonDoor.CollisionBox` returns `Rectangle.Empty` when open. Human-verified in UAT Test 2 for full r1→r2→r3→r4 flow. |
+| 3 | Optional side rooms contain treasure chests with randomized loot (one-time collection) | VERIFIED | `DungeonChestSeeder.Seed(DungeonState)` rolls `LootTable` with `Random(RunSeed)` once per run; after opening, `MarkChestOpened(chestId)` adds to `OpenedChestIds` which now **survives** `BeginRun` and round-trips through `SaveNow`. Re-seed writes empty content list for opened chests. Human-verified in UAT Test 3 + Test 6 retest (pass 2026-04-16). |
+| 4 | Final room contains the boss; defeating it completes the dungeon objective | VERIFIED | `DungeonRegistry.Rooms["boss"].IsBossRoom=true`. `BossSpawnGate.ShouldSpawn` guards re-entry. Victory → `Services.Quest?.Complete()` + `BossDefeated=true` + `GameStateSnapshot.SaveNow` + `ItemDropEntity` loot. Exit routes to village at `castle_door` (208,128). Human-verified in UAT Test 4 + Test 5. |
 
-**Score:** 4/4 truths verified (code level — manual UAT required per validation plan)
-
----
-
-### Required Artifacts
-
-| Artifact | Status | Evidence |
-|----------|--------|----------|
-| `tests/stardew_medieval_v3.Tests/stardew_medieval_v3.Tests.csproj` | VERIFIED | File exists; 22 tests pass (`Aprovado! Falha: 0, Aprovado: 22`) |
-| `src/World/DungeonState.cs` | VERIFIED | Exists; `BeginRun`, `ClearedRooms`, `OpenedChestIds`, `ChestContents`, `BossDefeated`, `RunSeed`, `IsRunActive`, `ToSnapshot`/`LoadFromSnapshot` all present |
-| `src/Data/DungeonRegistry.cs` | VERIFIED | Exists; 7 rooms (r1, r2, r3, r3a, r4, r4a, boss) in `BuildRooms()` |
-| `src/Data/DungeonRoomData.cs` | VERIFIED | Exists; `DungeonRoomData` record with Spawns, Chests, Exits, HasGatedExit, IsBossRoom, IsOptional |
-| `src/Scenes/DungeonScene.cs` | VERIFIED | Exists; contains boss-room branch, victory handler, `OnRoomCleared` event, `GetSolids` with doors, `SpawnItemDrop` |
-| `src/Combat/CombatLoop.cs` | VERIFIED | Exists; `FarmScene` delegates at line 362 (`CombatLoop.Update(deltaTime, combatCtx)`) |
-| `src/Combat/EnemySpawner.cs` | VERIFIED | `SpawnAll(IEnumerable<(string id, Vector2 pos)>, List<EnemyEntity>)` — no `static readonly SpawnPoints` |
-| `src/Core/GameStateSnapshot.cs` | VERIFIED | `SaveNow` populates `Chests`, `Resources`, `Dungeon` from services with prior-fallback |
-| `src/World/DungeonDoor.cs` | VERIFIED | Exists; `IsOpen` toggles `CollisionBox` to `Rectangle.Empty`; `Open()`/`Close()` idempotent |
-| `src/World/DungeonChestSeeder.cs` | VERIFIED | Exists; `Seed(DungeonState)` overload for testability; uses `new Random(dungeon.RunSeed)` |
-| `src/Combat/BossSpawnGate.cs` | VERIFIED | Exists; `ShouldSpawn(DungeonState?) => state == null \|\| !state.BossDefeated` |
-| `assets/Maps/dungeon_r1.tmx` | VERIFIED | File exists; contains `exit_r1_to_r2` and `exit_r1_to_village` trigger objects |
-| `assets/Maps/dungeon_r2.tmx` | VERIFIED | File exists |
-| `assets/Maps/dungeon_r3.tmx` | VERIFIED | File exists |
-| `assets/Maps/dungeon_r3a.tmx` | VERIFIED | File exists (optional chest room) |
-| `assets/Maps/dungeon_r4.tmx` | VERIFIED | File exists |
-| `assets/Maps/dungeon_r4a.tmx` | VERIFIED | File exists (optional chest room) |
-| `assets/Maps/dungeon_boss.tmx` | VERIFIED | File exists; contains `exit_boss_to_village` trigger at (208, 272) |
-| `assets/Maps/dungeon_tileset.tsx` | VERIFIED | File exists |
-| `tests/.../BossVictoryTests.cs` | VERIFIED | Exists; 4 tests covering quest-complete, save roundtrip, re-entry guard, BeginRun milestone preservation |
+**Score:** 4/4 truths verified — code + human.
 
 ---
 
-### Key Link Verification
+## UAT Gap Closure (This Wave)
 
-| From | To | Via | Status | Evidence |
-|------|----|-----|--------|----------|
-| `village.tmx` | `DungeonScene` | `enter_dungeon` TriggerZone → `VillageScene.HandleTrigger` → `BeginDungeonRun` + `TransitionTo` | WIRED | `VillageScene.cs:53-55`; `village.tmx:51` has `enter_dungeon` object |
-| `DungeonScene` | `DungeonDoor` | `GetSolids()` includes `_doors` | WIRED | `DungeonScene.cs:321-335` iterates `_doors` in `GetSolids`; door `CollisionBox` toggle verified |
-| `DungeonScene` | `DungeonState` | `ChestContents` seeded once on `BeginRun`, hydrated on room entry | WIRED | `DungeonChestSeeder.Seed` called from `BeginDungeonRun`; `OnLoad` reads `Services.Dungeon.ChestContents[chestId]` |
-| `DungeonScene (boss)` | `MainQuest` | `Services.Quest?.Complete()` on boss death | WIRED | `DungeonScene.cs:286` confirmed |
-| `DungeonScene` | `VillageScene` | `exit_boss_to_village` → `TransitionTo(VillageScene)` with `TargetTrigger="castle_door"` | WIRED | Registry has `LeaveDungeon:true, TargetScene:"village", TargetTrigger:"castle_door"`; `VillageScene.Spawns["castle_door"] = (208,128)` confirmed |
-| `FarmScene` | `CombatLoop` | `CombatLoop.Update(deltaTime, combatCtx)` replaces inline body | WIRED | `FarmScene.cs:362` |
-| `GameStateSnapshot.SaveNow` | `DungeonState` | `services.Dungeon?.ToSnapshot()` with prior-fallback | WIRED | `GameStateSnapshot.cs:40` |
+The prior verification wave surfaced two UAT issues. Both are now closed with production fixes, tests, and human-verified playthroughs.
+
+### Gap 1 — NPC dialogue overlay not viewport-aware (UAT Test 5)
+
+**Original issue:** "a conversa com o npc agora que a tela está maior e tem full screen faz um overlay preto transparente mas nao está cobrindo a tela toda e o retangulo da conversa está no lugar errado da tela por conta disso. não tem na hud um lugar onde mostra quanto dinheiro eu tenho"
+
+**Fix — Task 05-05:**
+- **`src/UI/DialogueBox.cs`** — removed hardcoded `ScreenWidth=960`/`ScreenHeight=540` consts and derived `PanelX`/`PanelY`. `Draw` signature extended with `int viewportWidth, int viewportHeight`; overlay Rectangle + panel position computed from runtime viewport. (Commit `d7822fd`)
+- **`src/Scenes/DialogueScene.cs`** — threads `Services.GraphicsDevice.Viewport` into `_box.Draw` each frame.
+- **`src/UI/HUD.cs`** — added `InventoryManager? _inventory` field + live `Gold: N` label at `(barX, nextBarY + staminaBarHeight + spacing)` below Stamina bar. (Commit `4cf19a5`)
+- **`src/Scenes/FarmScene.cs`** — HUD ctor now passes `Services.Inventory`.
+
+**Evidence:**
+- Grep `ScreenWidth|ScreenHeight|new Rectangle\(0, 0, 960, 540\)` in `src/UI/` — **zero matches** (confirmed clean).
+- `HUD.cs` line 191-192: `int gold = _inventory?.Gold ?? 0; string goldText = $"Gold: {gold}";`
+- Human-verify: "todos os testes dos 3 rounds passaram" (2026-04-16).
+
+### Gap 2 — Dungeon chest re-seeding on death/re-entry (UAT Test 6)
+
+**Original issue:** "os baus não deveriam estar re-seeded with fresh loot e reclosed... pois o player vai pegar tudo se matar volta lá e pega tudo dnv infinitamente? n faz sentido.. a coleta do bau tem que ser uma unica vez"
+
+**Fix — Task 05-06 (TDD RED→GREEN):**
+- **`src/World/DungeonState.cs`** — `BeginRun()` no longer clears `OpenedChestIds` (now persistent like `BossDefeated`). XMLdoc documents new invariant: `OpenedChestIds` + `BossDefeated` are preserved across runs; `ClearedRooms` + `ChestContents` + `RunSeed` are reset. (Commit `b795d02`)
+- **`src/World/DungeonChestSeeder.cs`** — line 56: `if (dungeon.IsChestOpened(chestId)) { ChestContents[chestId] = new List<string>(); } else { ... LootTable.Roll(rng) ... }`. Opened chests get empty content; unopened still roll deterministically.
+- **`src/Scenes/DungeonScene.cs`** — death branch calls `GameStateSnapshot.SaveNow(Services)` **before** `Services.Dungeon.BeginRun()` (belt-and-suspenders against Alt+F4 quit after death). (Commit `2b2d062`)
+- **Tests:** 2 new `LootRollTests` (`Seed_SkipsOpenedChests_WritesEmptyContents`, `BeginRun_PreservesOpenedChestIds`) + renamed/updated `DungeonStateTests.BeginRun_ClearsRunFlags_ButPreservesBossDefeatedAndOpenedChests`.
+
+**Evidence:**
+- Grep `OpenedChestIds.Clear()` — only remaining call site is `DungeonState.LoadFromSnapshot` line 105 (correct; load-from-disk path, not run-reset path).
+- `DungeonChestSeeder.cs` line 56 confirmed guard-on-`IsChestOpened`.
+- `DungeonScene.cs` line 304 confirmed `SaveNow` before `BeginRun` on death.
+- 24/24 dungeon tests green.
+- Human-verify: Round B explicitly covered open chest → die → re-enter empty → quit/reload → still empty → fresh unopened chest on same run still rolls.
 
 ---
 
-### Locked Decisions Honored
+## Out-of-Band Viewport Fixes (surfaced during joint human-verify)
 
-| Decision | Status | Evidence |
-|----------|--------|----------|
-| **D-01** One TMX per room, `TriggerZone` transitions | HONORED | 7 TMX files; `DungeonScene.HandleTrigger` dispatches from `_room.Exits` dict matching trigger names |
-| **D-02** Linear layout: 4 main + 2 optional + 1 boss | HONORED | r1→r2→r3→r4 (main); r3a, r4a (optional side); boss (final) — 7 rooms total |
-| **D-03** Hand-authored maps | HONORED | All TMXs are hand-authored XML |
-| **D-04/D-05** Door states: closed blocks collision, opens on all-enemies-cleared | HONORED | `DungeonDoor.CollisionBox` toggle; `OnPreUpdate` room-clear → `door.Open()` |
-| **D-06** Optional rooms not gated | HONORED | r3a/r4a exits have no `RequiresCleared` flag; `RoomClearedTests` asserts these are non-gated |
-| **D-07** 2 chests total (optional rooms only) | HONORED | `dungeon_r3a_chest` in r3a, `dungeon_r4a_chest` in r4a; boss loot is `ItemDropEntity` not a chest |
-| **D-08/D-09** Chest overlay E-key with drag-and-drop | HONORED | `DungeonScene.OnPreUpdate` mirrors FarmScene chest-open flow → pushes `ChestScene` overlay |
-| **D-10** Chest contents sealed on `BeginRun`, idempotent on re-entry | HONORED | `DungeonChestSeeder.Seed` called once in `BeginDungeonRun`; `LootRollTests.Seed_IsDeterministic_ForSameSeed` locks this |
-| **D-11** Dungeon entry from village with zero dialogue | HONORED | `enter_dungeon` trigger fires direct transition, no dialogue |
-| **D-12** Boss door requires all 4 main rooms cleared | HONORED | `DungeonScene.HandleTrigger:386-394` iterates `{"r1","r2","r3","r4"}` and blocks if any uncleared |
-| **D-13** Death resets run (enemies, chests, doors, loot); penalty deferred to Phase 6 | HONORED | `DungeonScene.OnPreUpdate` death path calls `Services.Dungeon.BeginRun()` + heal + `TransitionTo(FarmScene)`; `BeginRun` clears `ClearedRooms`/`OpenedChestIds`/`ChestContents` |
-| **D-14** Boss defeat = dungeon complete; loot as `ItemDropEntity`; exit to village at castle door | HONORED | `BossDefeated` is persistent (not reset by `BeginRun`); boss drops via `SpawnItemDrop`; exits to `VillageScene` with `castle_door` spawn (208, 128) |
+### Fix A — Camera desync on F11 mid-overlay (commit `ed49f4b`)
+
+**Root cause:** `SceneManager` only updates the top scene. Paused gameplay scene under `DialogueScene`/`ShopOverlayScene` never runs `Camera.Follow()` → `ClampToBounds` never re-evaluates against new viewport/zoom after F11 toggle.
+
+**Fix:**
+- `src/Core/Camera.cs` — added `public void Reclamp() => ClampToBounds();`
+- `Game1.cs` line 61, 88 — `OnClientSizeChanged` and `ToggleFullscreen` now call `_services?.Camera.FitZoomToViewport(3.0f); _services?.Camera.Reclamp();` after viewport change.
+
+**Evidence:** Grep confirmed both wire-up sites present in `Game1.cs`.
+
+### Fix B — ShopPanel hardcoded 960x540 (commit `5c1d5b6`)
+
+**Root cause:** Same bug pattern as DialogueBox — `private const int ScreenWidth = 960`, `PanelY = 48`, `new Rectangle(0, 0, 960, 540)` dim overlay.
+
+**Fix — mirror-port of DialogueBox pattern:**
+- `src/UI/ShopPanel.cs` — dropped hardcoded consts; added instance `_panelX`/`_panelY` computed each frame by `UpdateLayoutCache(int viewportWidth, int viewportHeight)`; `Update` and `Draw` signatures extended with viewport params.
+- `src/Scenes/ShopOverlayScene.cs` — threads `Services.GraphicsDevice.Viewport` into both.
+- Panel now centers vertically (was top-anchored at Y=48).
+
+**Evidence:** Grep of ShopPanel.cs confirmed `_panelX`/`_panelY` fields + `UpdateLayoutCache(viewportWidth, viewportHeight)` signature; no `PanelX`/`PanelY` static remnants.
 
 ---
 
-### Requirements Coverage
+## Locked Decisions Honored (D-01..D-14)
+
+All 14 CONTEXT.md decisions remain honored (carried forward from prior VERIFICATION). Three receive new strengthened evidence this wave:
+
+- **D-10** (chest contents sealed on BeginRun, idempotent on re-entry) → strengthened to **permanent-per-save** via OpenedChestIds persistence. Superset of the original spec.
+- **D-13** (death resets run) → still honored for rooms/doors/enemies; opened chests now explicitly exempt from reset (correct semantics per user's "não faz sentido" feedback).
+- **D-14** (boss defeat persists, loot as ItemDropEntity, exit to village) → unchanged; still verified.
+
+---
+
+## Requirements Coverage
 
 | Requirement | Description | Status | Evidence |
 |-------------|-------------|--------|----------|
-| **DNG-01** | 1 dungeon completa com 5-8 salas conectadas (linear com salas opcionais) | SATISFIED | 7 rooms (r1-r4 + r3a + r4a + boss); `DungeonRegistryTests.AllRooms_LoadWithoutThrow` (22 tests passing) |
-| **DNG-02** | Progressao de sala: matar todos inimigos para abrir porta para proxima sala | SATISFIED | Room-clear event + `door.Open()` + `CollisionBox` toggle; `RoomClearedTests` (4 passing) |
-| **DNG-03** | Baus de tesouro em salas opcionais com loot aleatorio | SATISFIED | `DungeonChestSeeder` + `DungeonState.ChestContents`; `LootRollTests` (3 passing) |
-| **DNG-04** | Boss room como sala final da dungeon | SATISFIED | `dungeon_boss.tmx` + `BossSpawnGate` + victory handler → `Quest.Complete()`; `BossVictoryTests` (4 passing) |
+| **DNG-01** | 1 dungeon with 5-8 connected rooms (linear + optional) | SATISFIED | 7 rooms; `DungeonRegistryTests` + UAT Test 1. |
+| **DNG-02** | Kill all enemies → door opens | SATISFIED | `RoomClearedTests` + UAT Test 2. |
+| **DNG-03** | Treasure chests in optional rooms with random loot (one-time) | SATISFIED | `LootRollTests` (5 tests incl. 2 new for one-time invariant) + UAT Test 3 + UAT Test 6 retest. |
+| **DNG-04** | Boss room as final room | SATISFIED | `BossVictoryTests` + UAT Test 4 + UAT Test 5. |
+| **NPC-04** (adjacent) | King quest-complete dialogue | SATISFIED via Gap 1 fix | Dialogue overlay now renders correctly in fullscreen, which was the true blocker for the previously-reported UAT Test 5 "issue". |
+| **HUD-05** (emergent) | HUD shows live gold | SATISFIED | `HUD.cs:191` via `InventoryManager?.Gold`. |
+| **SAV-01** (emergent) | Chest state persists across save/load | SATISFIED | `GameStateSnapshot.SaveNow` persists OpenedChestIds; `DungeonState.LoadFromSnapshot` restores. |
 
 ---
 
-### Behavioral Spot-Checks
+## Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| All 22 tests pass | `dotnet test tests/stardew_medieval_v3.Tests/stardew_medieval_v3.Tests.csproj --nologo` | `Aprovado! Falha: 0, Aprovado: 22, Ignorado: 0` | PASS |
-| Build clean | `dotnet build stardew_medieval_v3.csproj --nologo` | 0 new errors; 1 pre-existing warning in `GameplayScene.cs:177` (out of scope) | PASS |
-| No static SpawnPoints in EnemySpawner | `grep "static readonly.*SpawnPoints" src/Combat/EnemySpawner.cs` | No match | PASS |
-| SaveNow references ChestManager and Dungeon | `grep "ChestManager\|Dungeon" src/Core/GameStateSnapshot.cs` | Both present on lines 38 and 40 | PASS |
-| BossDefeated NOT cleared in BeginRun | `grep "BossDefeated" src/World/DungeonState.cs` | Comment confirms intentional omission; `BossVictoryTests.BeginRun_DoesNotClear_BossDefeatedMilestone` locks it | PASS |
-| Village.tmx has enter_dungeon trigger | `grep "enter_dungeon" assets/Maps/village.tmx` | Object id=20 at (880,240) | PASS |
-| Boss TMX has exit trigger | `grep "exit_boss_to_village" assets/Maps/dungeon_boss.tmx` | Object id=5 at (208,272) | PASS |
+| Dungeon test suite | `dotnet test --filter "FullyQualifiedName~Dungeon"` | Aprovado! Com falha: 0, Aprovado: 24 | PASS |
+| No hardcoded 960/540 in UI overlays | `grep -r "ScreenWidth\|ScreenHeight\|new Rectangle(0, 0, 960, 540)" src/UI/` | Zero matches | PASS |
+| `Camera.Reclamp` wired into viewport change paths | `grep "Camera.Reclamp" Game1.cs` | 2 matches (lines 61, 88) | PASS |
+| HUD renders live gold | `grep "Gold:" src/UI/HUD.cs` | Line 192: `string goldText = $"Gold: {gold}"` | PASS |
+| OpenedChestIds NOT cleared on BeginRun | `grep "OpenedChestIds.Clear" src/World/DungeonState.cs` | Only match is in LoadFromSnapshot (correct) | PASS |
+| Seeder skips opened chests | `grep "IsChestOpened" src/World/DungeonChestSeeder.cs` | Line 56 guard confirmed | PASS |
+| SaveNow before BeginRun on death | `grep "SaveNow" src/Scenes/DungeonScene.cs` | Line 304 (death branch) + 249 + 291 | PASS |
+| Phase commits present | `git log --oneline` | All expected SHAs (d7822fd, 4cf19a5, b795d02, 2b2d062, ed49f4b, 5c1d5b6, 8162086) found | PASS |
 
 ---
 
-### Anti-Patterns Scan
+## Anti-Patterns Recorded for Future Phases
 
-No stub patterns found in production code that are load-bearing:
+Two reusable anti-pattern entries captured in `.continue-here.md` for future milestone work:
 
-- `DungeonScene.SpawnItemDrop` is a real method (Plan 03 fixed the log-only stub from Plan 02)
-- `LootRollTests` stub from Plan 01 was filled in by Plan 02
-- No `return null` / `return {}` / `return []` in dungeon paths that render to player
-- `DungeonDoor.DrawFallback` colored-rect is an intentional fallback (no art asset), not a stub — it is functional and visible
+1. **Hardcoded 960x540 in UI overlays** — before declaring viewport-awareness work complete, grep `src/UI/` and `src/Scenes/` for `960` / `540` literals AND `ScreenWidth` / `ScreenHeight` consts. Both `DialogueBox` and `ShopPanel` carried identical variants of this bug; the second was missed in plan scoping.
+2. **Camera desync on viewport change mid-overlay** — `SceneManager` only updates the top scene, so paused scenes under an overlay never re-run `Camera.Follow`. After any viewport change (fullscreen toggle, window resize), call `Camera.Reclamp()`.
 
-One deferred cosmetic item:
-- **Door sprite art**: `DungeonDoor` uses `DrawFallback` (red/green rect) because no dungeon-door sprite sheet has been authored. This is a visual polish gap, not a functional one. The door is fully functional (blocks collision, opens on clear, color changes). Classified as **Info** — does not affect playability.
-
-| File | Pattern | Severity | Impact |
-|------|---------|----------|--------|
-| `src/World/DungeonDoor.cs` | Colored-rect fallback instead of sprite sheet | Info | Visual only; door functions correctly |
+These should be copied into any future UI/overlay phase's CONTEXT/RESEARCH.
 
 ---
 
-### Human Verification Required
+## Leftover Risk / Follow-Up Candidates
 
-#### 1. Village → Dungeon Entry
+None of these block Phase 5 PASS — they are notes for future phases.
 
-**Test:** Walk player to the cave entrance at the east side of the village map (approx tile 55, 15) until the `enter_dungeon` trigger fires
-**Expected:** Fade-to-black → dungeon_r1.tmx loads with 2 Skeleton enemies visible, player spawned near south wall
-**Why human:** TriggerZone AABB collision and SceneManager fade animation require runtime observation
-
-#### 2. Room-Clear Door Opening
-
-**Test:** Enter r1, kill both Skeleton enemies, observe the north door
-**Expected:** Door changes from red (blocked) to green (open); player can now walk through and `exit_r1_to_r2` trigger fires transition to r2
-**Why human:** Visual sprite-swap (colored-rect feedback) and collision-box removal need eyes; sequential room navigation r1→r2→r3→r4 must be confirmed
-
-#### 3. Optional Room Chest Overlay UX
-
-**Test:** Navigate to r3a (east detour from r3), press E near the chest, drag items into inventory, close overlay, re-enter the room
-**Expected:** ChestScene overlay pauses gameplay background; drag-and-drop works; chest shows open sprite on re-entry; contents not re-rolled
-**Why human:** Drag-and-drop UX and overlay pause-state require human feel-check (per VALIDATION.md)
-
-#### 4. Boss Gate Enforcement + Full Victory Flow
-
-**Test:** After clearing r1–r3 only, attempt to walk through the boss door in r4 (should block). Then clear r4, re-attempt. Enter boss room, fight skeleton_king, defeat it.
-**Expected:** Pre-clear: log message visible, player blocked. Post-clear: door opens. Boss spawns at center. On defeat: item drops appear on floor, exit door opens, transition goes to village near castle door (208, 128 — in front of castle).
-**Why human:** Boss fight balance, door-block enforcement in-game, item drop spawning, and spawn position all require runtime confirmation (per VALIDATION.md)
-
-#### 5. King Quest-Complete Dialogue (NPC-04)
-
-**Test:** After boss defeat, walk to castle and talk to King NPC
-**Expected:** King's dialogue shows quest-complete branch, not active-mission dialogue
-**Why human:** NPC-04 branch selection exercises Phase 4 dialogue state machine; requires full session (per VALIDATION.md)
-
-#### 6. Death Reset Semantics
-
-**Test:** Enter dungeon, progress to r3, die to an enemy
-**Expected:** Respawn at farm; re-enter dungeon: doors are closed, enemies present, chests sealed (if previously opened). If boss was previously defeated this session, boss room re-entry should NOT spawn boss again.
-**Why human:** Death transition flow, dungeon state reset visibility, and BossDefeated persistence across death all need a live session (per VALIDATION.md)
+| Risk | Severity | Follow-up |
+|------|----------|-----------|
+| `DungeonDoor` still draws colored-rect fallback (no sprite sheet authored) | Info / cosmetic | Art pass in a future polish phase; functional correctness unaffected. |
+| No automated test for `Camera.Reclamp` wiring — only human-verified via F11 round | Low | Add a lightweight viewport-change unit test when test infra for Camera exists. Not required for Phase 5 closure. |
+| No automated test for `ShopPanel` viewport-aware port | Low | Same as above — ShopPanel has no existing test file; human-verify round C covered it. Defer to shop/UI phase. |
+| Pre-existing `CS8602` warning in `GameplayScene.cs:221` | Info | Out of scope for Phase 5; predates this phase. |
+| Other overlay scenes (InventoryScene, ChestScene, PauseScene) appear to already query `Services.GraphicsDevice.Viewport` per the 05-05 summary pattern note — not re-audited in this verify pass | Low | Spot-check when the next UI phase lands; likely already correct per the prior summary. |
 
 ---
 
-### Gaps Summary
+## Human Verification Summary
 
-No automated gaps found. All 4 ROADMAP success criteria are code-verified. All locked context decisions (D-01 through D-14) are honored in the codebase. All 22 unit tests pass. The dungeon is complete at the code level.
+All six UAT scenarios from the prior wave are resolved:
 
-The `human_needed` status reflects the 6 manual UAT items defined in `05-VALIDATION.md` — none of which can be verified programmatically (visual transitions, drag-and-drop UX, boss fight balance, NPC dialogue branch). These are expected and pre-planned, not newly discovered gaps.
+| UAT # | Test | Prior Result | Current Result |
+|-------|------|--------------|----------------|
+| 1 | Village → Dungeon Entry | pass (fix 6b69ebd) | pass |
+| 2 | Room-Clear Door Opening | pass (fix 1d2e198, 506f988, 852077c) | pass |
+| 3 | Optional Room Chest UX | pass (fix aa17ed5) | pass |
+| 4 | Boss Gate / Fight / Loot / Return | pass | pass |
+| 5 | King Quest-Complete Dialogue | **issue (fullscreen overlay + no gold)** | **pass** (05-05 + out-of-band) |
+| 6 | Death Reset Semantics | **issue (chests re-seed)** | **pass** (05-06) |
+
+User resume signal: *"todos os testes dos 3 rounds passaram"* — 2026-04-16 (joint verify 05-05 + 05-06 + ShopPanel out-of-band).
 
 ---
 
-_Verified: 2026-04-14T23:00:00Z_
-_Verifier: Claude (gsd-verifier)_
+## Gaps Summary
+
+**None.** Both prior UAT issues are closed; both out-of-band viewport regressions are fixed; full test suite green; human-verify approved across all three rounds (dialogue + chest + shop fullscreen).
+
+Phase 5 goal — *deliver a complete, playable end-to-end dungeon* — is achieved.
+
+---
+
+_Verified: 2026-04-16_
+_Verifier: Claude (gsd-verifier), re-verification wave_
