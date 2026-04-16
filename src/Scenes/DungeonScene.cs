@@ -268,6 +268,7 @@ public class DungeonScene : GameplayScene
             Projectiles = _projectiles,
             Combat = _combat,
             LootRng = _lootRng,
+            Map = Map,
             SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(Services.Dungeon?.BossDefeated ?? false),
             OnBossDefeated = _ =>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Player;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Combat;
 
@@ -41,6 +42,9 @@ public class CombatLoopContext
 
     /// <summary>Optional slash effect trigger (run on melee swing start).</summary>
     public Action<Vector2, Direction>? OnMeleeSwingStart { get; init; }
+
+    /// <summary>TileMap for enemy/boss collision. Null = no collision constraint.</summary>
+    public TileMap? Map { get; init; }
 }
 
 /// <summary>
@@ -90,7 +94,7 @@ public static class CombatLoop
         for (int i = ctx.Enemies.Count - 1; i >= 0; i--)
         {
             var enemy = ctx.Enemies[i];
-            enemy.Update(deltaTime, ctx.Player.Position, ctx.Projectiles);
+            enemy.Update(deltaTime, ctx.Player.Position, ctx.Projectiles, ctx.Map);
 
             if (enemy.IsMeleeAttackReady)
             {
@@ -114,7 +118,7 @@ public static class CombatLoop
         // Boss (mirrors FarmScene boss tick — telegraph, summon phases, melee, loot).
         if (ctx.Boss != null && ctx.Boss.IsAlive)
         {
-            ctx.Boss.Update(deltaTime, ctx.Player.Position, ctx.Projectiles);
+            ctx.Boss.Update(deltaTime, ctx.Player.Position, ctx.Projectiles, ctx.Map);
 
             var minions = ctx.Boss.CheckSummonPhase();
             if (minions != null)

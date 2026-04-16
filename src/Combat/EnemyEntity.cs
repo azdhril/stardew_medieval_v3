@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Combat;
 
@@ -70,7 +71,7 @@ public class EnemyEntity : Entity
     /// <param name="deltaTime">Frame time in seconds.</param>
     /// <param name="playerPos">Current player world position for AI calculations.</param>
     /// <param name="projectiles">Projectile manager for ranged attack spawning.</param>
-    public void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles)
+    public void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles, TileMap? map = null)
     {
         if (!IsAlive) return;
 
@@ -79,11 +80,32 @@ public class EnemyEntity : Entity
         // Update AI state machine
         _ai.Update(deltaTime, Position, playerPos, _data);
 
-        // Move based on AI direction
+        // Move based on AI direction with collision
         Vector2 moveDir = _ai.GetMoveDirection(Position, playerPos, _data);
         if (moveDir != Vector2.Zero)
         {
-            Position += moveDir * _data.MoveSpeed * deltaTime;
+            var delta = moveDir * _data.MoveSpeed * deltaTime;
+            if (map != null)
+            {
+                var oldPos = Position;
+                Position = oldPos + new Vector2(delta.X, 0);
+                if (map.CheckCollision(CollisionBox))
+                    Position = new Vector2(oldPos.X, Position.Y);
+
+                oldPos = Position;
+                Position = oldPos + new Vector2(0, delta.Y);
+                if (map.CheckCollision(CollisionBox))
+                    Position = new Vector2(Position.X, oldPos.Y);
+
+                var bounds = map.GetWorldBounds();
+                Position = new Vector2(
+                    MathHelper.Clamp(Position.X, _data.Width / 2f, bounds.Width - _data.Width / 2f),
+                    MathHelper.Clamp(Position.Y, _data.Height / 2f, bounds.Height - _data.Height / 2f));
+            }
+            else
+            {
+                Position += delta;
+            }
         }
 
         // Update knockback and flash from Entity base

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Combat;
 
@@ -82,7 +83,7 @@ public class BossEntity : EnemyEntity
     /// <param name="deltaTime">Frame time in seconds.</param>
     /// <param name="playerPos">Current player world position.</param>
     /// <param name="projectiles">Projectile manager (unused by boss, melee only).</param>
-    public new void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles)
+    public new void Update(float deltaTime, Vector2 playerPos, ProjectileManager projectiles, TileMap? map = null)
     {
         if (!IsAlive) return;
 
@@ -97,7 +98,28 @@ public class BossEntity : EnemyEntity
             Vector2 moveDir = AI.GetMoveDirection(Position, playerPos, Data);
             if (moveDir != Vector2.Zero)
             {
-                Position += moveDir * Data.MoveSpeed * deltaTime;
+                var delta = moveDir * Data.MoveSpeed * deltaTime;
+                if (map != null)
+                {
+                    var oldPos = Position;
+                    Position = oldPos + new Vector2(delta.X, 0);
+                    if (map.CheckCollision(CollisionBox))
+                        Position = new Vector2(oldPos.X, Position.Y);
+
+                    oldPos = Position;
+                    Position = oldPos + new Vector2(0, delta.Y);
+                    if (map.CheckCollision(CollisionBox))
+                        Position = new Vector2(Position.X, oldPos.Y);
+
+                    var bounds = map.GetWorldBounds();
+                    Position = new Vector2(
+                        MathHelper.Clamp(Position.X, Data.Width / 2f, bounds.Width - Data.Width / 2f),
+                        MathHelper.Clamp(Position.Y, Data.Height / 2f, bounds.Height - Data.Height / 2f));
+                }
+                else
+                {
+                    Position += delta;
+                }
             }
         }
 

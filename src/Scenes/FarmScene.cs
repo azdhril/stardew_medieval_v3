@@ -160,6 +160,7 @@ public class FarmScene : GameplayScene
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat);
         _hud.LoadContent(device, Font);
         _hud.SetQuest(_mainQuest);
+        BossHealthBar.LoadContent(device);
 
         _minimap = new MinimapRenderer();
         _minimap.LoadContent(device);
@@ -173,6 +174,8 @@ public class FarmScene : GameplayScene
         _spriteAtlas.RegisterTools(toolSheet);
         var handTex = LoadTexture(device, "assets/Sprites/Items/Tools/hand.png");
         _spriteAtlas.RegisterHand(handTex);
+        var potionSheet = LoadTexture(device, "assets/Sprites/Items/Consumables/potions.png");
+        _spriteAtlas.RegisterPotions(potionSheet);
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, Font);
         Services.Atlas = _spriteAtlas;
@@ -352,6 +355,7 @@ public class FarmScene : GameplayScene
             Projectiles = _projectiles,
             Combat = _combat,
             LootRng = _lootRng,
+            Map = Map,
             SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(_loadedState?.BossKilled ?? false),
             OnBossDefeated = _ =>
@@ -416,6 +420,13 @@ public class FarmScene : GameplayScene
                 _itemDrops.RemoveAt(i);
             }
         }
+    }
+
+    public override void Draw(SpriteBatch sb)
+    {
+        _minimap.PreRender(
+            Services.GraphicsDevice, sb, Map, Player, _enemies, _boss, _gridManager);
+        base.Draw(sb);
     }
 
     protected override void OnDrawWorld(SpriteBatch sb, Rectangle viewArea)
@@ -497,15 +508,7 @@ public class FarmScene : GameplayScene
             _chestPrompt.Draw(sb, Font, Pixel, screenPos, "Press E to open chest");
         }
 
-        _minimap.Draw(
-            sb,
-            new Rectangle(viewportWidth - 174, 38, 160, 160),
-            Map,
-            Services.Camera,
-            Player,
-            _enemies,
-            _boss,
-            _gridManager);
+        _minimap.Draw(sb, new Rectangle(viewportWidth - 174, 38, 160, 160));
 
         if (_boss != null && _boss.IsAlive)
         {
