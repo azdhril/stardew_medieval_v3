@@ -131,8 +131,10 @@ public class DialogueScene : Scene
         bool showAdvance = _state == DialogueState.WaitingAdvance;
         bool pulseOn = ((int)(_advancePulse * 4)) % 2 == 0; // 2 Hz pulse
 
+        var vp = Services.GraphicsDevice.Viewport;
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _box.Draw(spriteBatch, _font, _pixel, _npc.Portrait, revealed, showAdvance, pulseOn);
+        _box.Draw(spriteBatch, _font, _pixel, _npc.Portrait, revealed, showAdvance, pulseOn,
+            vp.Width, vp.Height);
         spriteBatch.End();
     }
 
