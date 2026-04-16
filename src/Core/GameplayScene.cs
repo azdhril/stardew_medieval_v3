@@ -360,5 +360,13 @@ public abstract class GameplayScene : Scene
                 Console.WriteLine($"[{SceneName}Scene] Debug kit: {id} partial ({added}/{qty}), inventory full");
         }
         Console.WriteLine($"[{SceneName}Scene] Debug kit granted ({granted}/{kit.Length} item types). F2 again to repeat.");
+
+        // Full restore of HP and Stamina (admin convenience).
+        if (Player != null)
+        {
+            Player.HP = Player.MaxHP;
+            Player.Stats.RestoreStamina(Player.Stats.MaxStamina);
+            Console.WriteLine($"[{SceneName}Scene] Debug heal: HP {Player.HP:F0}/{Player.MaxHP:F0}, Stamina {Player.Stats.CurrentStamina:F0}/{Player.Stats.MaxStamina:F0}");
+        }
     }
 }

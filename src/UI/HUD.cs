@@ -83,20 +83,36 @@ public class HUD
     /// Draws a sprite-based status bar. Returns true if rendered with sprites,
     /// false if either texture is missing (caller should use flat-rect fallback).
     /// </summary>
+    // Native sprite is 395x57 (bg) / 319x39 (fill) — too large at 960x540.
+    // Scale uniformly to match in-game HUD sizing.
+    private const float BarScale = 0.38f;
+
     private bool DrawSpriteBar(SpriteBatch sb, int x, int y, Texture2D? bg, Texture2D? fill, float pct)
     {
         if (bg == null || fill == null) return false;
 
-        sb.Draw(bg, new Vector2(x, y), Color.White);
-        int fillW = (int)MathHelper.Clamp(fill.Width * pct, 0, fill.Width);
+        int bgW = (int)(bg.Width * BarScale);
+        int bgH = (int)(bg.Height * BarScale);
+        sb.Draw(bg, new Rectangle(x, y, bgW, bgH), Color.White);
+
+        // Fill is centered inside bg in source art — preserve that padding when scaling.
+        int padX = (int)((bg.Width - fill.Width) * 0.5f * BarScale);
+        int padY = (int)((bg.Height - fill.Height) * 0.5f * BarScale);
+        int fillFullW = (int)(fill.Width * BarScale);
+        int fillH = (int)(fill.Height * BarScale);
+
+        int fillW = (int)MathHelper.Clamp(fillFullW * pct, 0, fillFullW);
         if (fillW > 0)
         {
-            var src = new Rectangle(0, 0, fillW, fill.Height);
-            var dest = new Rectangle(x, y, fillW, fill.Height);
+            int srcW = (int)MathHelper.Clamp(fill.Width * pct, 0, fill.Width);
+            var src = new Rectangle(0, 0, srcW, fill.Height);
+            var dest = new Rectangle(x + padX, y + padY, fillW, fillH);
             sb.Draw(fill, dest, src, Color.White);
         }
         return true;
     }
+
+    private int ScaledBgHeight => _barBg != null ? (int)(_barBg.Height * BarScale) : 16;
 
     public void Draw(SpriteBatch spriteBatch, int screenWidth, int screenHeight)
     {
@@ -122,16 +138,16 @@ public class HUD
             DrawRect(spriteBatch, hpBarX, hpBarY, (int)(hpBarWidth * hpFill), hpBarHeight, Color.Red);
         }
 
-        // HP label
+        // HP label — center vertically inside the (scaled) bar
         string hpText = $"HP: {_player.HP:F0}/{_player.MaxHP:F0}";
-        int hpTextY = hpDrawn && _barBg != null ? hpBarY + (_barBg.Height / 2) - 6 : hpBarY - 1;
-        spriteBatch.DrawString(_font, hpText, new Vector2(hpBarX + 4, hpTextY), Color.White);
+        int hpTextY = hpDrawn ? hpBarY + (ScaledBgHeight / 2) - 7 : hpBarY - 1;
+        spriteBatch.DrawString(_font, hpText, new Vector2(hpBarX + 8, hpTextY), Color.White);
 
         // === Bottom-left: Stamina Bar ===
         int barX = 12;
         int barWidth = 120;
         int barHeight = 16;
-        int barY = _barBg != null ? screenHeight - _barBg.Height - 14 : screenHeight - 30;
+        int barY = _barBg != null ? screenHeight - ScaledBgHeight - 14 : screenHeight - 30;
 
         float fill = _stats.CurrentStamina / _stats.MaxStamina;
         bool staDrawn = DrawSpriteBar(spriteBatch, barX, barY, _barBg, _barFillStamina, fill);
@@ -143,9 +159,10 @@ public class HUD
             DrawRect(spriteBatch, barX, barY, (int)(barWidth * fill), barHeight, barColor);
         }
 
-        // Label
+        // Label — center vertically inside the (scaled) bar
         string staminaText = $"STA: {_stats.CurrentStamina:F0}/{_stats.MaxStamina:F0}";
-        spriteBatch.DrawString(_font, staminaText, new Vector2(barX + 4, barY), Color.White);
+        int staTextY = staDrawn ? barY + (ScaledBgHeight / 2) - 7 : barY;
+        spriteBatch.DrawString(_font, staminaText, new Vector2(barX + 8, staTextY), Color.White);
 
         // === Magic cooldown indicator (per D-09) ===
         DrawFireballCooldown(spriteBatch, screenWidth, screenHeight);

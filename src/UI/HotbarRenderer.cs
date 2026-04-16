@@ -241,15 +241,21 @@ public class HotbarRenderer
         // (purely visual — does not intercept input; slot sprites render on top below)
         if (_panelSlotPane != null)
         {
+            // Native panel is 605x201 (aspect ~3.01). Scale uniformly so width
+            // matches hotbar + horizontal trim, then center the panel on the
+            // slot row vertically — keeps decorative borders un-squished.
             var firstSlot = GetMainSlotRect(0, screenWidth, screenHeight);
             var lastSlot = GetMainSlotRect(InventoryManager.HotbarSize - 1, screenWidth, screenHeight);
-            const int PadX = 6;
-            const int PadY = 6;
+            const int PadX = 28;
+            int targetW = (lastSlot.Right - firstSlot.X) + PadX * 2;
+            float scale = (float)targetW / _panelSlotPane.Width;
+            int targetH = (int)(_panelSlotPane.Height * scale);
+            int slotCenterY = firstSlot.Y + firstSlot.Height / 2;
             var panelRect = new Rectangle(
                 firstSlot.X - PadX,
-                firstSlot.Y - PadY,
-                (lastSlot.Right - firstSlot.X) + PadX * 2,
-                firstSlot.Height + PadY * 2);
+                slotCenterY - targetH / 2,
+                targetW,
+                targetH);
             sb.Draw(_panelSlotPane, panelRect, Color.White);
         }
 
