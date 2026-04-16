@@ -26,6 +26,7 @@ public class HotbarRenderer
     private Texture2D _slotNormal = null!;
     private Texture2D _slotSelected = null!;
     private Texture2D? _handIcon;
+    private Texture2D? _panelSlotPane;
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
 
@@ -105,6 +106,17 @@ public class HotbarRenderer
         {
             Console.WriteLine($"[HotbarRenderer] Failed to load hand.png: {ex.Message}");
             _handIcon = null;
+        }
+
+        try
+        {
+            using var paneStream = File.OpenRead("assets/Sprites/System/UI Elements/Panel/UI_Panel_SlotPane.png");
+            _panelSlotPane = Texture2D.FromStream(device, paneStream);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HotbarRenderer] Failed to load UI_Panel_SlotPane: {ex.Message}");
+            _panelSlotPane = null;
         }
 
         Console.WriteLine("[HotbarRenderer] Content loaded");
@@ -223,6 +235,22 @@ public class HotbarRenderer
             }
 
             sb.DrawString(_font, consumableKeys[i], new Vector2(rect.X + 2, rect.Y), Color.Gray * 0.7f);
+        }
+
+        // Draw decorative slot-pane panel BEHIND the 8 main hotbar slots
+        // (purely visual — does not intercept input; slot sprites render on top below)
+        if (_panelSlotPane != null)
+        {
+            var firstSlot = GetMainSlotRect(0, screenWidth, screenHeight);
+            var lastSlot = GetMainSlotRect(InventoryManager.HotbarSize - 1, screenWidth, screenHeight);
+            const int PadX = 6;
+            const int PadY = 6;
+            var panelRect = new Rectangle(
+                firstSlot.X - PadX,
+                firstSlot.Y - PadY,
+                (lastSlot.Right - firstSlot.X) + PadX * 2,
+                firstSlot.Height + PadY * 2);
+            sb.Draw(_panelSlotPane, panelRect, Color.White);
         }
 
         // Draw main hotbar
