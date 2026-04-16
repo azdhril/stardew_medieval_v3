@@ -96,6 +96,8 @@ public class DungeonScene : GameplayScene
             DungeonChestSeeder.Seed(Services);
         }
 
+        BossHealthBar.LoadContent(Services.GraphicsDevice);
+
         // Per-scene combat systems mirror FarmScene composition (independent state).
         _combat = new CombatManager(Services.Inventory!);
         _projectiles = new ProjectileManager();
@@ -357,6 +359,15 @@ public class DungeonScene : GameplayScene
             EnemyHealthBar.Draw(sb, Pixel, _boss.Position, _boss.Data.Height, _boss.HP, _boss.MaxHP);
         }
         _projectiles.Draw(sb, Pixel);
+    }
+
+    protected override void OnDrawScreen(SpriteBatch sb, int viewportWidth, int viewportHeight)
+    {
+        if (_boss != null && _boss.IsAlive)
+        {
+            BossHealthBar.Draw(sb, Pixel, Font,
+                "Skeleton King", _boss.HP, _boss.MaxHP, viewportWidth, viewportHeight);
+        }
     }
 
     /// <summary>Spawn an item drop entity at the given world position.</summary>
