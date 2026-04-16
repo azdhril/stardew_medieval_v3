@@ -16,7 +16,7 @@ public class VillageScene : GameplayScene
     private static readonly Dictionary<string, Vector2> Spawns = new()
     {
         ["Farm"]              = new Vector2(96, 270),
-        ["Castle"]            = new Vector2(208, 128),
+        ["Castle"]            = new Vector2(214, 192),
         ["Shop"]              = new Vector2(736, 128),
         // Returning from dungeon lands just outside the cave entrance so the
         // player can see where they came from. Matches `enter_dungeon` AABB
@@ -26,7 +26,7 @@ public class VillageScene : GameplayScene
         // Plan 05-03 D-14: returning from the boss room drops the player at
         // the castle door so the King quest-complete dialogue (NPC-04) is the
         // natural next beat. Reuses the existing Castle-return position.
-        ["castle_door"]       = new Vector2(208, 128),
+        ["castle_door"]       = new Vector2(214, 192),
     };
 
     public VillageScene(ServiceContainer services, string fromScene) : base(services, fromScene) { }
