@@ -100,26 +100,9 @@ public class BossEntity : EnemyEntity
             {
                 var delta = moveDir * Data.MoveSpeed * deltaTime;
                 if (map != null)
-                {
-                    var oldPos = Position;
-                    Position = oldPos + new Vector2(delta.X, 0);
-                    if (map.CheckCollision(CollisionBox))
-                        Position = new Vector2(oldPos.X, Position.Y);
-
-                    oldPos = Position;
-                    Position = oldPos + new Vector2(0, delta.Y);
-                    if (map.CheckCollision(CollisionBox))
-                        Position = new Vector2(Position.X, oldPos.Y);
-
-                    var bounds = map.GetWorldBounds();
-                    Position = new Vector2(
-                        MathHelper.Clamp(Position.X, Data.Width / 2f, bounds.Width - Data.Width / 2f),
-                        MathHelper.Clamp(Position.Y, Data.Height / 2f, bounds.Height - Data.Height / 2f));
-                }
+                    ApplyCollisionMove(delta, map);
                 else
-                {
                     Position += delta;
-                }
             }
         }
 

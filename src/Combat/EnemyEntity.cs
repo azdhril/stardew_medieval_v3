@@ -86,26 +86,9 @@ public class EnemyEntity : Entity
         {
             var delta = moveDir * _data.MoveSpeed * deltaTime;
             if (map != null)
-            {
-                var oldPos = Position;
-                Position = oldPos + new Vector2(delta.X, 0);
-                if (map.CheckCollision(CollisionBox))
-                    Position = new Vector2(oldPos.X, Position.Y);
-
-                oldPos = Position;
-                Position = oldPos + new Vector2(0, delta.Y);
-                if (map.CheckCollision(CollisionBox))
-                    Position = new Vector2(Position.X, oldPos.Y);
-
-                var bounds = map.GetWorldBounds();
-                Position = new Vector2(
-                    MathHelper.Clamp(Position.X, _data.Width / 2f, bounds.Width - _data.Width / 2f),
-                    MathHelper.Clamp(Position.Y, _data.Height / 2f, bounds.Height - _data.Height / 2f));
-            }
+                ApplyCollisionMove(delta, map);
             else
-            {
                 Position += delta;
-            }
         }
 
         // Update knockback and flash from Entity base
@@ -234,5 +217,70 @@ public class EnemyEntity : Entity
     public override void Draw(SpriteBatch spriteBatch)
     {
         // Use Draw(spriteBatch, pixel) instead
+    }
+
+    /// <summary>
+    /// Sliding collision: try X, try Y, then wall-slide if both blocked.
+    /// When fully stuck on a corner, tries perpendicular axes so the enemy
+    /// slides around obstacles instead of freezing in place.
+    /// </summary>
+    protected void ApplyCollisionMove(Vector2 delta, TileMap map)
+    {
+        var startPos = Position;
+
+        // Try X axis
+        bool xBlocked = false;
+        Position = startPos + new Vector2(delta.X, 0);
+        if (map.CheckCollision(CollisionBox))
+        {
+            Position = new Vector2(startPos.X, Position.Y);
+            xBlocked = true;
+        }
+
+        // Try Y axis
+        bool yBlocked = false;
+        var afterX = Position;
+        Position = afterX + new Vector2(0, delta.Y);
+        if (map.CheckCollision(CollisionBox))
+        {
+            Position = new Vector2(Position.X, afterX.Y);
+            yBlocked = true;
+        }
+
+        // Wall-slide: when both axes blocked, try perpendicular to escape corners
+        if (xBlocked && yBlocked)
+        {
+            float speed = MathF.Abs(delta.X) + MathF.Abs(delta.Y);
+            // Try sliding along X (perpendicular to blocked Y)
+            var tryX = startPos + new Vector2(MathF.Sign(delta.X) * speed, 0);
+            Position = tryX;
+            if (!map.CheckCollision(CollisionBox))
+            {
+                ClampToMapBounds(map);
+                return;
+            }
+            // Try sliding along Y (perpendicular to blocked X)
+            var tryY = startPos + new Vector2(0, MathF.Sign(delta.Y) * speed);
+            Position = tryY;
+            if (!map.CheckCollision(CollisionBox))
+            {
+                ClampToMapBounds(map);
+                return;
+            }
+            // Fully stuck — stay put
+            Position = startPos;
+        }
+
+        ClampToMapBounds(map);
+    }
+
+    private void ClampToMapBounds(TileMap map)
+    {
+        var bounds = map.GetWorldBounds();
+        float hw = FrameWidth / 2f;
+        float hh = FrameHeight / 2f;
+        Position = new Vector2(
+            MathHelper.Clamp(Position.X, hw, bounds.Width - hw),
+            MathHelper.Clamp(Position.Y, hh, bounds.Height - hh));
     }
 }
