@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 Phase: 05 (dungeon) — EXECUTING
 Plan: 4 of 4 (gap-closure 05-04 complete; awaiting UAT re-run for Tests 2-6)
 Status: Executing Phase 05
-Last activity: 2026-04-15 -- Phase 05 Plan 04 (dungeon rendering gap closure) complete
+Last activity: 2026-04-16 - Completed quick task 260415-uq9: HUD HP/Stamina sprite swap + hotbar panel
 
 Progress: [█████████░] 89%
 
@@ -89,6 +89,12 @@ None yet.
 
 - Asset availability for enemies, dungeon tilesets, and UI elements is an open question (from research)
 - MonoGame.Extended 4.x exact version needs verification on NuGet before use
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260415-uq9 | Substituir barras de HP e Stamina planas por sprites e adicionar painel decorativo atras da hotbar | 2026-04-16 | 4d9e188 | [260415-uq9-substituir-barras-de-hp-e-stamina-planas](./quick/260415-uq9-substituir-barras-de-hp-e-stamina-planas/) |
 
 ## Session Continuity
 
