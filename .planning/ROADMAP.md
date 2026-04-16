@@ -156,13 +156,13 @@ Plans:
   3. Dying causes the player to lose 10% gold and possibly one item, then respawn at the farm
   4. The HUD displays HP bar, stamina bar, hotbar icons, clock/day, and active quest tracker -- all graphical (no raw text)
   5. Save/load preserves all state: inventory, equipment, XP, level, gold, quest progress, current scene
-**Plans**: TBD
+**Plans:** 3 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
-- [ ] 06-03: TBD
+- [ ] 06-01-PLAN.md — XP/leveling data layer + gold coin drops + save v9 migration + unit tests (Wave 1)
+- [ ] 06-02-PLAN.md — Death penalty + periodic auto-save + level-up/death visual feedback (Wave 2)
+- [ ] 06-03-PLAN.md — HUD graphical polish: XP bar, NineSlice panels, bar text cleanup (Wave 3)
 
 ## Progress
 
