@@ -42,7 +42,13 @@ expected: |
   the run).
 result: pending
 was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
-notes: "Unblocked. Awaiting user re-run."
+notes: |
+  First re-run FAILED: chest respawned with fresh loot on re-entry. Root
+  cause — DungeonScene hydration seeded from ChestContents on every room
+  load without consulting DungeonState.IsChestOpened. Fixed in commit
+  aa17ed5: guard seed branch with IsChestOpened + render chest in
+  FrameOpen state on re-entry (new ChestInstance.SetOpenedInstant).
+  Awaiting user re-verification.
 
 ### 4. Boss Gate, Fight, Loot, Return
 expected: |
@@ -87,6 +93,7 @@ skipped: 0
 
 [resolved: Test 1 previously reported crash is fixed (commit 6b69ebd) and now passes]
 [resolved: Test 2 dark-rendering + invisible-enemies gap closed by plan 05-04 (commits 1d2e198, 506f988, 852077c); human-verify approved]
+[resolved: Test 3 chest respawn-on-re-entry fixed in commit aa17ed5 (DungeonScene now checks IsChestOpened before seeding contents; chest renders in opened frame on re-entry). Awaiting user re-verification.]
 
 - truth: "Dungeon room is visible (lit) and does not continuously damage the player on entry"
   status: resolved
