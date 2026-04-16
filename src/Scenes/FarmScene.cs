@@ -11,6 +11,7 @@ using stardew_medieval_v3.Entities;
 using stardew_medieval_v3.Farming;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Inventory;
+using stardew_medieval_v3.Progression;
 using stardew_medieval_v3.Quest;
 using stardew_medieval_v3.UI;
 using stardew_medieval_v3.World;
@@ -142,10 +143,20 @@ public class FarmScene : GameplayScene
             _mainQuest = Services.Quest!;
         }
 
+        // Progression — create once, reuse on Farm re-entry (same pattern as Inventory/Quest)
+        if (Services.Progression == null)
+        {
+            Services.Progression = new ProgressionManager(pl, pl.Stats);
+        }
+
         _toolController = new ToolController(_gridManager, _cropManager, pl, _inventory, SpawnItemDrop, TryUseWorldTool);
 
         // Combat
         _combat = new CombatManager(_inventory);
+        _combat.DamageBonus = Services.Progression?.BaseDamageBonus ?? 0;
+        // Keep damage bonus in sync with level-ups during this scene
+        if (Services.Progression != null)
+            Services.Progression.OnLevelUp += (_) => _combat.DamageBonus = Services.Progression.BaseDamageBonus;
         _projectiles = new ProjectileManager();
         _projectiles.OnPlayerHit = (damage) => _combat.TryPlayerTakeDamage(pl, damage);
         _projectiles.OnEnemyHit = () => _combat.OnPlayerSpellHit(pl);
@@ -183,6 +194,8 @@ public class FarmScene : GameplayScene
         _spriteAtlas.RegisterPotions(potionSheet);
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, Font);
+        var goldCoinTex = LoadTexture(device, "assets/Sprites/System/UI Elements/Icons/System/UI_Icon_Sys_Gold.png");
+        _spriteAtlas.RegisterGoldCoin(goldCoinTex);
         Services.Atlas = _spriteAtlas;
         Services.Hud = _hud;
         Services.Hotbar = _hotbar;
@@ -202,6 +215,7 @@ public class FarmScene : GameplayScene
                 pl.Stats.SetStamina(save.StaminaCurrent);
                 _inventory.LoadFromState(save);
                 _mainQuest.LoadFromState(save);
+                Services.Progression?.LoadFromState(save);
                 Console.WriteLine($"[FarmScene] MainQuest state loaded: {_mainQuest.State}");
             }
             else
@@ -364,6 +378,12 @@ public class FarmScene : GameplayScene
             Pathfinder = _pathfinder,
             SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(_loadedState?.BossKilled ?? false),
+            OnEnemyKilled = (enemy) =>
+            {
+                Services.Progression?.AwardXP(enemy.Data.Id);
+                int gold = ProgressionManager.RollGold(enemy.Data.Id, _lootRng);
+                SpawnItemDrop("Gold_Coin", gold, enemy.Position);
+            },
             OnBossDefeated = _ =>
             {
                 if (_loadedState != null) _loadedState.BossKilled = true;

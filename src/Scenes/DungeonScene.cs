@@ -6,6 +6,7 @@ using stardew_medieval_v3.Combat;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Entities;
+using stardew_medieval_v3.Progression;
 using stardew_medieval_v3.UI;
 using stardew_medieval_v3.World;
 
@@ -105,6 +106,9 @@ public class DungeonScene : GameplayScene
 
         // Per-scene combat systems mirror FarmScene composition (independent state).
         _combat = new CombatManager(Services.Inventory!);
+        _combat.DamageBonus = Services.Progression?.BaseDamageBonus ?? 0;
+        if (Services.Progression != null)
+            Services.Progression.OnLevelUp += (_) => _combat.DamageBonus = Services.Progression.BaseDamageBonus;
         _projectiles = new ProjectileManager();
         _projectiles.OnPlayerHit = (damage) => _combat.TryPlayerTakeDamage(Services.Player!, damage);
         _projectiles.OnEnemyHit = () => _combat.OnPlayerSpellHit(Services.Player!);
@@ -277,6 +281,12 @@ public class DungeonScene : GameplayScene
             Pathfinder = _pathfinder,
             SpawnItemDrop = SpawnItemDrop,
             BossFirstKill = !(Services.Dungeon?.BossDefeated ?? false),
+            OnEnemyKilled = (enemy) =>
+            {
+                Services.Progression?.AwardXP(enemy.Data.Id);
+                int gold = ProgressionManager.RollGold(enemy.Data.Id, _lootRng);
+                SpawnItemDrop("Gold_Coin", gold, enemy.Position);
+            },
             OnBossDefeated = _ =>
             {
                 if (_bossVictoryHandled) return;

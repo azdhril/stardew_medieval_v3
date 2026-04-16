@@ -47,6 +47,9 @@ public class CombatManager
     /// <summary>Maximum fireball cooldown duration for the last cast (depends on equipped staff).</summary>
     public float FireballCooldownMax => _fireballCooldownMax;
 
+    /// <summary>Flat damage bonus from progression (leveling). Added to melee damage.</summary>
+    public int DamageBonus { get; set; } = 0;
+
     /// <summary>Access the melee attack component.</summary>
     public MeleeAttack Melee => _melee;
 
@@ -137,7 +140,7 @@ public class CombatManager
             weaponDamage = PunchDamage;
 
         var (attack, _) = EquipmentData.GetEquipmentStats(_inventory.GetAllEquipment());
-        return weaponDamage + attack;
+        return weaponDamage + attack + DamageBonus;
     }
 
     /// <summary>Consumes stamina when a melee hit actually connects.</summary>
