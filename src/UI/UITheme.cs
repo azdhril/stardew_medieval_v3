@@ -66,6 +66,13 @@ public sealed class UITheme
     public Texture2D IconEquipLegs     { get; private set; } = null!;
     public Texture2D IconEquipBoots    { get; private set; } = null!;
 
+    // HUD icons and progress bars
+    public Texture2D GoldIcon   { get; private set; } = null!;
+    public Texture2D ClockIcon  { get; private set; } = null!;
+    public Texture2D XPBarBg    { get; private set; } = null!;
+    public Texture2D XPBarFill  { get; private set; } = null!;
+    public Texture2D PanelSmall { get; private set; } = null!;
+
     // 9-slice insets (tune these during visual review; start with conservative defaults
     // suitable for typical pixel-art medieval UI assets).
     public NineSlice.Insets PanePopupInsets      = NineSlice.Insets.Uniform(16);
@@ -77,6 +84,7 @@ public sealed class UITheme
     public NineSlice.Insets YellowBtnSmallInsets = NineSlice.Insets.Uniform(10);
     public NineSlice.Insets PanelCurrencyInsets  = new(24, 16, 24, 16);
     public NineSlice.Insets PanelSlotPaneInsets  = NineSlice.Insets.Uniform(16);
+    public NineSlice.Insets PanelSmallInsets     = NineSlice.Insets.Uniform(8);
 
     private bool _loaded;
 
@@ -115,6 +123,13 @@ public sealed class UITheme
         IconEquipRing     = Load(device, "Icons/Icon_dot.png",          "IconEquipRing",     Color.White);
         IconEquipLegs     = Load(device, "Icons/Icon_columns.png",      "IconEquipLegs",     Color.White);
         IconEquipBoots    = Load(device, "Icons/Icon_chevron-down.png", "IconEquipBoots",    Color.White);
+
+        // HUD icons and XP progress bar
+        GoldIcon   = Load(device, "Icons/System/UI_Icon_Sys_Gold.png",                "GoldIcon",   Color.Gold);
+        ClockIcon  = Load(device, "Icons/System/UI_Icon_Sys_Alarm.png",               "ClockIcon",  Color.White);
+        XPBarBg    = Load(device, "Bars/Progress/UI_Progress_Style1_Bg.png",           "XPBarBg",    new Color(40, 30, 25));
+        XPBarFill  = Load(device, "Bars/Progress/UI_Progress_Style1_Fill_Yellow.png",  "XPBarFill",  Color.Gold);
+        PanelSmall = Load(device, "Panel/UI_Panel_Title.png",                          "PanelSmall", new Color(60, 40, 30));
 
         _loaded = true;
         Console.WriteLine("[UITheme] Content loaded");

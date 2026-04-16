@@ -176,6 +176,16 @@ public class FarmScene : GameplayScene
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat, _inventory);
         _hud.LoadContent(device, Font);
         _hud.SetQuest(_mainQuest);
+        _hud.SetProgression(Services.Progression);
+
+        // Ensure UITheme is loaded early so HUD NineSlice panels render from frame 1
+        if (Services.Theme == null)
+        {
+            Services.Theme = new UITheme();
+            Services.Theme.LoadContent(device);
+        }
+        _hud.SetTheme(Services.Theme);
+
         BossHealthBar.LoadContent(device);
 
         _minimap = new MinimapRenderer();

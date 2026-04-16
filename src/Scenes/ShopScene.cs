@@ -113,7 +113,7 @@ public class ShopScene : GameplayScene
         }
 
         var qstate = Services.Quest?.State ?? MainQuestState.NotStarted;
-        HUD.DrawQuestTracker(sb, Font, Pixel, qstate, viewportWidth);
+        HUD.DrawQuestTracker(sb, Font, Pixel, qstate, viewportWidth, Services.Theme);
     }
 
     protected override bool HandleTrigger(string triggerName)
