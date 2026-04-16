@@ -298,6 +298,10 @@ public class DungeonScene : GameplayScene
         if (!Player.IsAlive)
         {
             Console.WriteLine($"[DungeonScene:{_room.Id}] Player died -- resetting run");
+            // Persist BEFORE wiping: opened chests now survive BeginRun in memory, but we
+            // must also flush them to disk so a crash-after-death does not forget them.
+            // (05-UAT Gap 2 hardening -- belt-and-suspenders over the in-memory fix.)
+            GameStateSnapshot.SaveNow(Services);
             Services.Dungeon!.BeginRun();
             DungeonChestSeeder.Seed(Services);
             Player.HP = Player.MaxHP;
