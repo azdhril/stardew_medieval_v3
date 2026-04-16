@@ -1,14 +1,14 @@
 ---
-status: pending
+status: complete
 phase: 05-dungeon
 source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-VALIDATION.md]
 started: 2026-04-14T20:16:53-03:00
-updated: 2026-04-15T00:00:00-03:00
+updated: 2026-04-16T00:00:00-03:00
 ---
 
 ## Current Test
 
-[ready for re-run — Test 2 gap closed by plan 05-04; Tests 2-6 pending user re-attempt]
+[testing complete]
 
 ## Tests
 
@@ -40,15 +40,14 @@ expected: |
   feels smooth and matches the village chest UX. Leave and re-enter the optional
   room — the chest stays empty (state persisted across room re-entries within
   the run).
-result: pending
-was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
+result: pass
 notes: |
   First re-run FAILED: chest respawned with fresh loot on re-entry. Root
   cause — DungeonScene hydration seeded from ChestContents on every room
   load without consulting DungeonState.IsChestOpened. Fixed in commit
   aa17ed5: guard seed branch with IsChestOpened + render chest in
   FrameOpen state on re-entry (new ChestInstance.SetOpenedInstant).
-  Awaiting user re-verification.
+  Re-verified by user: chest stays open + empty across re-entries.
 
 ### 4. Boss Gate, Fight, Loot, Return
 expected: |
@@ -56,18 +55,16 @@ expected: |
   loot drops as ItemDropEntity (pickupable on the floor, not a chest). MainQuest
   flips to Complete. Exit trigger returns the player to the village, spawning at
   the castle door at (208, 128).
-result: pending
-was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
-notes: "Unblocked. Awaiting user re-run."
+result: pass
 
 ### 5. King Quest-Complete Dialogue
 expected: |
   After returning from the boss victory, walk to the King NPC in the village
   and talk to him. The NPC-04 quest-complete dialogue branch fires (different
   from the pre-quest dialogue) and acknowledges the dungeon being cleared.
-result: pending
-was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
-notes: "Unblocked. Awaiting user re-run."
+result: issue
+reported: "nao sei direito como saber se funcionou ou não... pontos pra ajeitar.. a conversa com o npc agora que a tela está maior e tem full screen faz um overlay preto transparente mas nao está cobrindo a tela toda e o retangulo da conversa está no lugar errado da tela por conta disso. não tem na hud um lugar onde mostra quanto dinheiro eu tenho"
+severity: major
 
 ### 6. Death Reset Semantics
 expected: |
@@ -76,16 +73,16 @@ expected: |
   doors are closed again, chests are reclosed and re-seeded with fresh loot
   (RunSeed reroll), but if you had already defeated the boss in a prior run,
   BossDefeated remains true (the boss-cleared milestone persists across deaths).
-result: pending
-was_blocked_by: "Test 2 rendering gap (resolved by 05-04)"
-notes: "Unblocked. Awaiting user re-run."
+result: issue
+reported: "os baus não deveriam estar re-seeded with fresh loot e reclosed... pois o player vai pegar tudo se matar volta lá e pega tudo dnv infinitamente? n faz sentido.. a coleta do bau tem que ser uma unica vez"
+severity: major
 
 ## Summary
 
 total: 6
-passed: 1
-issues: 0
-pending: 5
+passed: 4
+issues: 2
+pending: 0
 blocked: 0
 skipped: 0
 
@@ -115,3 +112,23 @@ skipped: 0
     - "Re-author every dungeon room Ground CSV to reference a real floor GID from the props sheet (primary fix), OR swap dungeon_tileset.tsx to a tileset whose GID 1 is a floor"
     - "Optional hardening: fallback floor color or non-black Clear so future 'all transparent tiles' regressions are visible rather than pitch-black"
   debug_session: .planning/debug/dungeon-dark-and-damage.md
+
+- truth: "NPC dialogue overlay covers full screen and dialogue box is positioned correctly in fullscreen/larger window"
+  status: failed
+  reason: "User reported: a conversa com o npc agora que a tela está maior e tem full screen faz um overlay preto transparente mas nao está cobrindo a tela toda e o retangulo da conversa está no lugar errado da tela por conta disso. não tem na hud um lugar onde mostra quanto dinheiro eu tenho"
+  severity: major
+  test: 5
+  root_cause: ""
+  artifacts: []
+  missing: []
+  debug_session: ""
+
+- truth: "Dungeon chest loot is collected once per save — chests stay empty permanently after being opened"
+  status: failed
+  reason: "User reported: os baus não deveriam estar re-seeded with fresh loot e reclosed... pois o player vai pegar tudo se matar volta lá e pega tudo dnv infinitamente? n faz sentido.. a coleta do bau tem que ser uma unica vez"
+  severity: major
+  test: 6
+  root_cause: ""
+  artifacts: []
+  missing: []
+  debug_session: ""
