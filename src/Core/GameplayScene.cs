@@ -25,6 +25,15 @@ public abstract class GameplayScene : Scene
     protected SpriteFont Font = null!;
     protected string FromScene { get; }
 
+    /// <summary>Periodic auto-save interval in seconds.</summary>
+    private const float AutoSaveInterval = 30f;
+
+    /// <summary>Accumulator for periodic auto-save timer.</summary>
+    private float _autoSaveAccumulator;
+
+    /// <summary>Guard flag to prevent duplicate OnLevelUp save subscriptions.</summary>
+    private bool _levelUpSaveSubscribed;
+
     /// <summary>TMX path loaded in LoadContent (e.g., "assets/Maps/village.tmx").</summary>
     protected abstract string MapPath { get; }
 
@@ -145,6 +154,17 @@ public abstract class GameplayScene : Scene
         // Lazily create the shared toast so death/level-up messages survive scene transitions.
         Services.Toast ??= new UI.Toast();
 
+        // Subscribe to level-up for auto-save (once per GameplayScene lifetime).
+        if (!_levelUpSaveSubscribed && Services.Progression != null)
+        {
+            Services.Progression.OnLevelUp += (_) =>
+            {
+                GameStateSnapshot.SaveNow(Services);
+                Console.WriteLine($"[{SceneName}Scene] Auto-save (level-up)");
+            };
+            _levelUpSaveSubscribed = true;
+        }
+
         Console.WriteLine($"[{SceneName}Scene] Entered from {FromScene}, spawn ({Player.Position.X},{Player.Position.Y})");
     }
 
@@ -159,6 +179,17 @@ public abstract class GameplayScene : Scene
         {
             GameStateSnapshot.SaveNow(Services);
             Console.WriteLine($"[{SceneName}Scene] F5 manual save");
+        }
+
+        // Periodic auto-save (D-20, D-21)
+        _autoSaveAccumulator += deltaTime;
+        if (_autoSaveAccumulator >= AutoSaveInterval)
+        {
+            _autoSaveAccumulator = 0f;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            GameStateSnapshot.SaveNow(Services);
+            sw.Stop();
+            Console.WriteLine($"[{SceneName}Scene] Auto-save (periodic, {sw.ElapsedMilliseconds}ms)");
         }
 
         if (input.IsKeyPressed(Keys.Escape))
