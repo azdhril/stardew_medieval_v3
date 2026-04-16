@@ -36,6 +36,15 @@ public abstract class GameplayScene : Scene
         FromScene = fromScene;
     }
 
+    /// <summary>Preferred zoom when map is larger than viewport (scales up to fit otherwise).</summary>
+    protected virtual float PreferredZoom => 3.0f;
+
+    /// <summary>
+    /// Set camera zoom to max(PreferredZoom, minZoomToFillViewport). Guarantees
+    /// no black bars when the window/viewport exceeds the map dimensions.
+    /// </summary>
+    private void ApplyFitZoom() => Services.Camera.FitZoomToViewport(PreferredZoom);
+
     /// <summary>Spawn position for this entry. Default keeps current player position.</summary>
     protected virtual Vector2 GetSpawn(string fromScene) => Services.Player?.Position ?? Vector2.Zero;
 
@@ -118,8 +127,8 @@ public abstract class GameplayScene : Scene
 
         Player.Position = GetSpawn(FromScene);
 
-        Services.Camera.Zoom = 3f;
         Services.Camera.Bounds = Map.GetWorldBounds();
+        ApplyFitZoom();
         Services.Camera.SnapTo(Player.Position);
 
         if (Services.GameState != null)
@@ -192,6 +201,9 @@ public abstract class GameplayScene : Scene
 
         Services.Hotbar?.Update(input.MousePosition, viewport.Width, viewport.Height);
 
+        // Keep zoom large enough to fill viewport (handles fullscreen/resize).
+        ApplyFitZoom();
+
         // --- Time and subclass pre-update ---
         Services.Time.Update(deltaTime);
 
@@ -216,6 +228,17 @@ public abstract class GameplayScene : Scene
     public override void Draw(SpriteBatch sb)
     {
         var device = Services.GraphicsDevice;
+
+        // Force the viewport to match the backbuffer every frame — some paths
+        // (fullscreen toggle during a paused overlay) leave Viewport stale for
+        // a frame, which manifests as black bars around the world.
+        int bbW = device.PresentationParameters.BackBufferWidth;
+        int bbH = device.PresentationParameters.BackBufferHeight;
+        if (device.Viewport.Width != bbW || device.Viewport.Height != bbH)
+            device.Viewport = new Viewport(0, 0, bbW, bbH);
+
+        ApplyFitZoom();
+
         var viewport = device.Viewport;
         var transform = Services.Camera.GetTransformMatrix();
 

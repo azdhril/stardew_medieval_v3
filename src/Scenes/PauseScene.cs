@@ -12,17 +12,18 @@ namespace stardew_medieval_v3.Scenes;
 /// </summary>
 public class PauseScene : Scene
 {
-    private const int PanelWidth = 200;
-    private const int PanelHeight = 160;
-    private const int ButtonWidth = 160;
+    private const int PanelWidth = 220;
+    private const int PanelHeight = 210;
+    private const int ButtonWidth = 180;
     private const int ButtonHeight = 30;
     private const int ButtonSpacing = 10;
 
-    private static readonly string[] Options = { "Resume", "Settings", "Quit" };
+    private static readonly string[] Options = { "Resume", "Fullscreen", "Settings", "Quit" };
 
     private SpriteFont _font = null!;
     private Texture2D _pixel = null!;
     private int _hoveredIndex = -1;
+    private bool _mouseWasDown;
 
     public PauseScene(ServiceContainer services) : base(services) { }
 
@@ -64,20 +65,38 @@ public class PauseScene : Scene
             }
         }
 
-        // Click handling
-        if (Mouse.GetState().LeftButton == ButtonState.Pressed && _hoveredIndex >= 0)
+        // Edge-detected click
+        bool mouseDown = Mouse.GetState().LeftButton == ButtonState.Pressed;
+        bool clicked = mouseDown && !_mouseWasDown;
+        _mouseWasDown = mouseDown;
+
+        if (clicked && _hoveredIndex >= 0)
         {
             switch (_hoveredIndex)
             {
                 case 0: // Resume
                     Services.SceneManager.PopImmediate();
                     return;
-                case 1: // Settings (mocked - just log)
+                case 1: // Fullscreen
+                    // Close and reopen the menu around the toggle. Workaround for a
+                    // DesktopGL quirk where the first IsFullScreen flip while an
+                    // overlay scene is on top leaves the SDL window slightly
+                    // mis-sized (visible as black bars). Popping to the gameplay
+                    // scene first lets its Update/Draw commit the new state, then
+                    // we re-push the menu so the user doesn't see a flash.
+                    Services.SceneManager.PopImmediate();
+                    Services.ToggleFullscreen?.Invoke();
+                    // Defer the re-push so GameplayScene gets real Update frames
+                    // while the OS commits the window resize. Synchronous push
+                    // here leaves black bars on first fullscreen entry.
+                    Services.SceneManager.PushAfter(new PauseScene(Services), 0.25f);
+                    return;
+                case 2: // Settings (mocked - just log)
                     Console.WriteLine("[PauseScene] Settings not yet implemented");
                     break;
-                case 2: // Quit
-                    Console.WriteLine("[PauseScene] Quit requested");
-                    break;
+                case 3: // Quit
+                    Services.QuitGame?.Invoke();
+                    return;
             }
         }
     }

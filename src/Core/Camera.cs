@@ -41,10 +41,32 @@ public class Camera
         float halfW = viewport.Width / (2f * Zoom);
         float halfH = viewport.Height / (2f * Zoom);
         var b = Bounds.Value;
-        Position = new Vector2(
-            MathHelper.Clamp(Position.X, b.Left + halfW, b.Right - halfW),
-            MathHelper.Clamp(Position.Y, b.Top + halfH, b.Bottom - halfH)
-        );
+
+        // When the visible area exceeds the map on an axis, center on that axis
+        // instead of inverting the clamp (which would snap the camera off-map).
+        float x = (halfW * 2f >= b.Width)
+            ? b.Center.X
+            : MathHelper.Clamp(Position.X, b.Left + halfW, b.Right - halfW);
+        float y = (halfH * 2f >= b.Height)
+            ? b.Center.Y
+            : MathHelper.Clamp(Position.Y, b.Top + halfH, b.Bottom - halfH);
+
+        Position = new Vector2(x, y);
+    }
+
+    /// <summary>
+    /// Ensure Zoom is at least enough to fill the viewport with the current Bounds
+    /// (no black bars). Keeps <paramref name="preferred"/> when it already covers.
+    /// </summary>
+    public void FitZoomToViewport(float preferred)
+    {
+        if (!Bounds.HasValue) { Zoom = preferred; return; }
+        var vp = _graphics.Viewport;
+        var b = Bounds.Value;
+        if (b.Width <= 0 || b.Height <= 0) { Zoom = preferred; return; }
+        float minX = vp.Width / (float)b.Width;
+        float minY = vp.Height / (float)b.Height;
+        Zoom = MathHelper.Max(preferred, MathHelper.Max(minX, minY));
     }
 
     public Matrix GetTransformMatrix()

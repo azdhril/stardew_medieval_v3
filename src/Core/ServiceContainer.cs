@@ -92,4 +92,10 @@ public class ServiceContainer
     /// or fresh dungeon entry via <see cref="DungeonState.BeginRun"/>.
     /// </summary>
     public DungeonState? Dungeon { get; set; }
+
+    /// <summary>Wired by Game1 so menus can toggle fullscreen without holding a GraphicsDeviceManager.</summary>
+    public System.Action? ToggleFullscreen { get; set; }
+
+    /// <summary>Wired by Game1 so menus can request a clean exit.</summary>
+    public System.Action? QuitGame { get; set; }
 }

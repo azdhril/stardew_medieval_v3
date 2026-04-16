@@ -25,15 +25,64 @@ public class Game1 : Game
         Content.RootDirectory = "assets";
         IsMouseVisible = true;
 
-        _graphics.PreferredBackBufferWidth = 960;
-        _graphics.PreferredBackBufferHeight = 540;
+        _graphics.PreferredBackBufferWidth = 1280;
+        _graphics.PreferredBackBufferHeight = 720;
     }
 
     protected override void Initialize()
     {
         Window.Title = "Stardew Medieval v3 (MonoGame)";
+        Window.AllowUserResizing = true;
+        Window.ClientSizeChanged += OnClientSizeChanged;
         _input = new InputManager();
         base.Initialize();
+    }
+
+    private int _windowedW = 1280;
+    private int _windowedH = 720;
+
+    private void OnClientSizeChanged(object? sender, EventArgs e)
+    {
+        // Don't resync backbuffer while fullscreen — would clobber the restore size.
+        if (_graphics.IsFullScreen) return;
+
+        int w = Math.Max(320, Window.ClientBounds.Width);
+        int h = Math.Max(180, Window.ClientBounds.Height);
+        if (_graphics.PreferredBackBufferWidth == w &&
+            _graphics.PreferredBackBufferHeight == h) return;
+
+        _graphics.PreferredBackBufferWidth = w;
+        _graphics.PreferredBackBufferHeight = h;
+        _graphics.ApplyChanges();
+        GraphicsDevice.Viewport = new Viewport(0, 0, w, h);
+        _windowedW = w;
+        _windowedH = h;
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (!_graphics.IsFullScreen)
+        {
+            _windowedW = _graphics.PreferredBackBufferWidth;
+            _windowedH = _graphics.PreferredBackBufferHeight;
+            _graphics.HardwareModeSwitch = false;
+            _graphics.PreferredBackBufferWidth = GraphicsDevice.Adapter.CurrentDisplayMode.Width;
+            _graphics.PreferredBackBufferHeight = GraphicsDevice.Adapter.CurrentDisplayMode.Height;
+            _graphics.IsFullScreen = true;
+        }
+        else
+        {
+            _graphics.IsFullScreen = false;
+            _graphics.PreferredBackBufferWidth = _windowedW;
+            _graphics.PreferredBackBufferHeight = _windowedH;
+        }
+        _graphics.ApplyChanges();
+
+        GraphicsDevice.Viewport = new Viewport(
+            0, 0,
+            _graphics.PreferredBackBufferWidth,
+            _graphics.PreferredBackBufferHeight);
+        _services?.Camera.FitZoomToViewport(3.0f);
     }
 
     protected override void LoadContent()
@@ -57,6 +106,8 @@ public class Game1 : Game
             Content = Content,
         };
         _services.SceneManager = _sceneManager;
+        _services.ToggleFullscreen = ToggleFullscreen;
+        _services.QuitGame = Exit;
 
         // Push initial scene
         _sceneManager.PushImmediate(new FarmScene(_services));
@@ -67,6 +118,9 @@ public class Game1 : Game
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         _input.Update();
+
+        if (_input.IsKeyPressed(Keys.F11))
+            ToggleFullscreen();
 
 #if DEBUG
         // F9: force-advance main quest state (D-12 dev hook).

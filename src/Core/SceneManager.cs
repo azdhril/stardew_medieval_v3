@@ -95,6 +95,21 @@ public class SceneManager
         Console.WriteLine("[SceneManager] Scene popped (immediate)");
     }
 
+    private Scene? _deferredPush;
+    private float _deferredPushTimer;
+
+    /// <summary>
+    /// Push a scene after <paramref name="delaySeconds"/> real time. Used to
+    /// re-open the pause menu a moment after a fullscreen toggle so the OS
+    /// can commit the window resize (pop + toggle + push synchronously in
+    /// one frame leaves black bars on first fullscreen entry).
+    /// </summary>
+    public void PushAfter(Scene scene, float delaySeconds)
+    {
+        _deferredPush = scene;
+        _deferredPushTimer = delaySeconds;
+    }
+
     /// <summary>
     /// Update the transition state machine and active scene.
     /// During transitions, no scene receives Update.
@@ -102,6 +117,17 @@ public class SceneManager
     /// </summary>
     public void Update(float deltaTime)
     {
+        if (_deferredPush != null)
+        {
+            _deferredPushTimer -= deltaTime;
+            if (_deferredPushTimer <= 0f)
+            {
+                var s = _deferredPush;
+                _deferredPush = null;
+                PushImmediate(s);
+            }
+        }
+
         switch (_state)
         {
             case TransitionState.FadingOut:
