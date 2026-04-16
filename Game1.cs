@@ -57,6 +57,8 @@ public class Game1 : Game
         GraphicsDevice.Viewport = new Viewport(0, 0, w, h);
         _windowedW = w;
         _windowedH = h;
+        _services?.Camera.FitZoomToViewport(3.0f);
+        _services?.Camera.Reclamp();
     }
 
     private void ToggleFullscreen()
@@ -83,6 +85,7 @@ public class Game1 : Game
             _graphics.PreferredBackBufferWidth,
             _graphics.PreferredBackBufferHeight);
         _services?.Camera.FitZoomToViewport(3.0f);
+        _services?.Camera.Reclamp();
     }
 
     protected override void LoadContent()
