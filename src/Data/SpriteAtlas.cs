@@ -200,4 +200,10 @@ public class SpriteAtlas
     {
         RegisterOn(potionSheet, "consumable_health_potion", 3, 0);
     }
+
+    /// <summary>Register the Gold_Coin icon from a standalone texture (full rect).</summary>
+    public void RegisterGoldCoin(Texture2D goldTexture)
+    {
+        RegisterRect(goldTexture, "Gold_Coin", new Rectangle(0, 0, goldTexture.Width, goldTexture.Height));
+    }
 }

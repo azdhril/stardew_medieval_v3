@@ -100,6 +100,12 @@ public class ServiceContainer
     /// </summary>
     public DungeonState? Dungeon { get; set; }
 
+    /// <summary>
+    /// Progression manager tracking XP, level, and damage bonus.
+    /// Set by FarmScene after player creation; read by GameStateSnapshot.
+    /// </summary>
+    public Progression.ProgressionManager? Progression { get; set; }
+
     /// <summary>Wired by Game1 so menus can toggle fullscreen without holding a GraphicsDeviceManager.</summary>
     public System.Action? ToggleFullscreen { get; set; }
 

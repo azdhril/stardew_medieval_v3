@@ -34,6 +34,9 @@ public class CombatLoopContext
     /// <summary>Callback to spawn an item drop at a world position. Scene-owned.</summary>
     public required Action<string, int, Vector2> SpawnItemDrop { get; init; }
 
+    /// <summary>Optional callback fired when any enemy (or boss) is killed. Used for XP/gold drops.</summary>
+    public Action<EnemyEntity>? OnEnemyKilled { get; init; }
+
     /// <summary>Optional callback fired once the boss dies (returns boss loot list).</summary>
     public Action<BossEntity>? OnBossDefeated { get; init; }
 
@@ -108,6 +111,8 @@ public static class CombatLoop
 
             if (!enemy.IsAlive)
             {
+                ctx.OnEnemyKilled?.Invoke(enemy);
+
                 var drops = enemy.Data.Loot.Roll(ctx.LootRng);
                 foreach (var (itemId, quantity) in drops)
                 {
@@ -157,6 +162,8 @@ public static class CombatLoop
 
             if (!ctx.Boss.IsAlive)
             {
+                ctx.OnEnemyKilled?.Invoke(ctx.Boss);
+
                 var bossLoot = ctx.Boss.GetBossLoot(ctx.BossFirstKill == false);
                 foreach (var (itemId, quantity) in bossLoot)
                 {

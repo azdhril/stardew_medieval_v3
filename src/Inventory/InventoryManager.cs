@@ -500,6 +500,17 @@ public class InventoryManager : IItemSlotCollection
         return true;
     }
 
+    /// <summary>
+    /// Force-remove equipment from a slot without returning it to inventory.
+    /// Used by death penalty system. Returns true if an item was actually removed.
+    /// </summary>
+    public bool ForceRemoveEquipment(EquipSlot slot)
+    {
+        bool removed = _equipment.Remove(slot);
+        if (removed) OnInventoryChanged?.Invoke();
+        return removed;
+    }
+
     /// <summary>Unequip item to the first empty inventory slot.</summary>
     public bool TryUnequipToEmpty(EquipSlot equipSlot)
     {

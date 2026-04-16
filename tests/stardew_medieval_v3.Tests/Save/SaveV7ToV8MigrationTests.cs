@@ -26,11 +26,16 @@ public class SaveV7ToV8MigrationTests
         Assert.NotNull(method);
         method!.Invoke(null, new object?[] { state });
 
-        Assert.Equal(8, state!.SaveVersion);
+        // After full migration chain (v7->v8->v9), final version is 9
+        Assert.Equal(9, state!.SaveVersion);
         Assert.NotNull(state.Dungeon);
         Assert.Empty(state.Dungeon.ClearedRooms);
         Assert.Empty(state.Dungeon.OpenedChestIds);
         Assert.False(state.Dungeon.BossDefeated);
+        // v9 fields derived from Level=1 default
+        Assert.Equal(100, state.MaxHP);
+        Assert.Equal(100, state.MaxStamina);
+        Assert.Equal(0, state.BaseDamageBonus);
     }
 
     [Fact]

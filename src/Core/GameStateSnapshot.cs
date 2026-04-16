@@ -40,6 +40,18 @@ public static class GameStateSnapshot
             Dungeon = services.Dungeon?.ToSnapshot() ?? prior?.Dungeon ?? new World.DungeonStateSnapshot(),
         };
 
+        // v9: progression stats
+        if (services.Progression != null)
+            services.Progression.SaveToState(state);
+        else
+        {
+            state.XP = prior?.XP ?? 0;
+            state.Level = prior?.Level ?? 1;
+            state.MaxHP = (int)(services.Player?.MaxHP ?? (prior?.MaxHP ?? 100));
+            state.MaxStamina = (int)(services.Player?.Stats.MaxStamina ?? (prior?.MaxStamina ?? 100));
+            state.BaseDamageBonus = prior?.BaseDamageBonus ?? 0;
+        }
+
         services.Inventory?.SaveToState(state);
         services.Quest?.SaveToState(state);
 

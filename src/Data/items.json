@@ -109,6 +109,8 @@
     { "Id": "Bones", "Name": "Bones", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 10, "SpriteId": "loot_bones", "Stats": {} },
     { "Id": "Mana_Crystal", "Name": "Mana Crystal", "Type": "Loot", "Rarity": "Uncommon", "StackLimit": 99, "BasePrice": 50, "SpriteId": "loot_mana_crystal", "Stats": {} },
     { "Id": "Stone_Chunk", "Name": "Stone Chunk", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 5, "SpriteId": "loot_stone", "Stats": {} },
-    { "Id": "Wood", "Name": "Wood", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 8, "SpriteId": "loot_wood", "Stats": {} }
+    { "Id": "Wood", "Name": "Wood", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 8, "SpriteId": "loot_wood", "Stats": {} },
+
+    { "Id": "Gold_Coin", "Name": "Gold Coin", "Type": "Currency", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "Gold_Coin", "Stats": {} }
   ]
 }

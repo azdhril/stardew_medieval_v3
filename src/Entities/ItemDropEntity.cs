@@ -112,6 +112,15 @@ public class ItemDropEntity : Entity
         // Pickup check
         if (dist <= PickupRange)
         {
+            // Currency items (e.g. Gold_Coin) go directly to gold balance, no slot used
+            var def = ItemRegistry.Get(_itemId);
+            if (def?.Type == ItemType.Currency)
+            {
+                inventory.AddGold(Quantity);
+                IsCollected = true;
+                return;
+            }
+
             int remaining = inventory.TryAdd(_itemId, Quantity);
             if (remaining == 0)
             {
