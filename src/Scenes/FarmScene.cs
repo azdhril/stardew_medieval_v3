@@ -397,6 +397,8 @@ public class FarmScene : GameplayScene
         // Player death respawn (Farm-local: penalty + heal + recenter).
         if (!Player.IsAlive)
         {
+            _deathBanner.Show();
+
             // Don't re-apply penalty if coming from DungeonDeath (already applied there).
             if (FromScene != "DungeonDeath")
             {

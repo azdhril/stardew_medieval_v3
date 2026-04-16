@@ -34,6 +34,15 @@ public abstract class GameplayScene : Scene
     /// <summary>Guard flag to prevent duplicate OnLevelUp save subscriptions.</summary>
     private bool _levelUpSaveSubscribed;
 
+    /// <summary>Level-up golden banner (screen-space, top-center).</summary>
+    private readonly UI.LevelUpBanner _levelUpBanner = new();
+
+    /// <summary>Level-up gold particle burst (world-space, on player).</summary>
+    private readonly UI.LevelUpParticles _levelUpParticles = new();
+
+    /// <summary>Red "You died" banner (screen-space, center). Protected so subclasses can trigger on death.</summary>
+    protected readonly UI.DeathBanner _deathBanner = new();
+
     /// <summary>TMX path loaded in LoadContent (e.g., "assets/Maps/village.tmx").</summary>
     protected abstract string MapPath { get; }
 
@@ -154,13 +163,16 @@ public abstract class GameplayScene : Scene
         // Lazily create the shared toast so death/level-up messages survive scene transitions.
         Services.Toast ??= new UI.Toast();
 
-        // Subscribe to level-up for auto-save (once per GameplayScene lifetime).
+        // Subscribe to level-up for auto-save + visual feedback (once per GameplayScene lifetime).
         if (!_levelUpSaveSubscribed && Services.Progression != null)
         {
-            Services.Progression.OnLevelUp += (_) =>
+            Services.Progression.OnLevelUp += (level) =>
             {
+                _levelUpBanner.Show(level);
+                if (Player != null)
+                    _levelUpParticles.Spawn(Player.Position);
                 GameStateSnapshot.SaveNow(Services);
-                Console.WriteLine($"[{SceneName}Scene] Auto-save (level-up)");
+                Console.WriteLine($"[{SceneName}Scene] Auto-save (level-up to {level})");
             };
             _levelUpSaveSubscribed = true;
         }
@@ -268,6 +280,11 @@ public abstract class GameplayScene : Scene
 
         // Shared toast (death penalty, level-up, etc.)
         Services.Toast?.Update(deltaTime);
+
+        // Visual feedback overlays (banners + particles)
+        _levelUpBanner.Update(deltaTime);
+        _levelUpParticles.Update(deltaTime);
+        _deathBanner.Update(deltaTime);
     }
 
     public override void Draw(SpriteBatch sb)
@@ -308,6 +325,7 @@ public abstract class GameplayScene : Scene
         foreach (var decor in Map.Decor)
             decor.DrawAfterPlayer(sb, Player);
         OnDrawWorldAfterPlayer(sb, viewArea);
+        _levelUpParticles.Draw(sb, Pixel); // world-space particles
         DrawTriggerMarkers(sb);
 
         sb.End();
@@ -326,6 +344,8 @@ public abstract class GameplayScene : Scene
         Services.Hud?.Draw(sb, viewport.Width, viewport.Height);
         Services.Hotbar?.Draw(sb, viewport.Width, viewport.Height);
         Services.Toast?.Draw(sb, Font, Pixel);
+        _levelUpBanner.Draw(sb, Font, viewport.Width);
+        _deathBanner.Draw(sb, Font, viewport.Width, viewport.Height);
         OnDrawScreen(sb, viewport.Width, viewport.Height);
         sb.End();
     }
