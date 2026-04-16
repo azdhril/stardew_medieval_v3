@@ -162,7 +162,7 @@ public class FarmScene : GameplayScene
         _pathfinder.BuildGrid(Map);
 
         // HUD
-        _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat);
+        _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat, _inventory);
         _hud.LoadContent(device, Font);
         _hud.SetQuest(_mainQuest);
         BossHealthBar.LoadContent(device);

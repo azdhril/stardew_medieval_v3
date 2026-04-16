@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Combat;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Farming;
+using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Quest;
 
@@ -29,15 +30,17 @@ public class HUD
     private readonly ToolController _tools;
     private readonly PlayerEntity _player;
     private readonly CombatManager _combat;
+    private InventoryManager? _inventory;
 
     public HUD(TimeManager time, PlayerStats stats, ToolController tools,
-        PlayerEntity player, CombatManager combat)
+        PlayerEntity player, CombatManager combat, InventoryManager? inventory = null)
     {
         _time = time;
         _stats = stats;
         _tools = tools;
         _player = player;
         _combat = combat;
+        _inventory = inventory;
     }
 
     public void LoadContent(GraphicsDevice device, SpriteFont font)
@@ -183,6 +186,14 @@ public class HUD
         string staminaText = $"STA: {_stats.CurrentStamina:F0}/{_stats.MaxStamina:F0}";
         int staTextY = staDrawn ? nextBarY + (ScaledBgHeight(StaminaBarScale) / 2) - 7 : nextBarY;
         spriteBatch.DrawString(_font, staminaText, new Vector2(barX + 8, staTextY), Color.White);
+
+        // === Gold label (under stamina bar, matches bar column) ===
+        int gold = _inventory?.Gold ?? 0;
+        string goldText = $"Gold: {gold}";
+        int goldY = nextBarY + (staDrawn ? ScaledBgHeight(StaminaBarScale) : fallbackH) + barSpacing + 2;
+        // Subtle black outline for readability on bright tiles: draw text at (+1,+1) in black, then gold on top.
+        spriteBatch.DrawString(_font, goldText, new Vector2(barX + 1, goldY + 1), Color.Black);
+        spriteBatch.DrawString(_font, goldText, new Vector2(barX, goldY), Color.Gold);
 
         // === Magic cooldown indicator (per D-09) ===
         DrawFireballCooldown(spriteBatch, screenWidth, screenHeight);
