@@ -270,34 +270,20 @@ public class DungeonScene : GameplayScene
             BossFirstKill = !(Services.Dungeon?.BossDefeated ?? false),
             OnBossDefeated = _ =>
             {
+                if (_bossVictoryHandled) return;
+                _bossVictoryHandled = true;
+                Console.WriteLine("[DungeonScene:boss] Boss defeated!");
+
                 if (Services.Dungeon != null) Services.Dungeon.BossDefeated = true;
+                Services.Quest?.Complete();
+
+                foreach (var door in _doors) door.Open();
+
+                GameStateSnapshot.SaveNow(Services);
             },
         };
         CombatLoop.Update(deltaTime, ctx);
         _boss = ctx.Boss;
-
-        // Boss victory handler (Plan 03). Fires once per boss kill: drops loot,
-        // flips MainQuest to Complete, opens the exit door, and persists the
-        // milestone to disk so the save reflects quest-complete even if the
-        // player quits before leaving the dungeon.
-        if (_room.IsBossRoom && !_bossVictoryHandled && _boss != null && !_boss.IsAlive)
-        {
-            _bossVictoryHandled = true;
-            Console.WriteLine("[DungeonScene:boss] Boss defeated!");
-
-            bool firstKill = !(Services.Dungeon?.BossDefeated ?? false);
-            var loot = _boss.GetBossLoot(bossAlreadyKilled: !firstKill);
-            foreach (var (id, qty) in loot)
-                SpawnItemDrop(id, qty, _boss.Position);
-
-            if (Services.Dungeon != null) Services.Dungeon.BossDefeated = true;
-            Services.Quest?.Complete();
-
-            foreach (var door in _doors) door.Open();
-
-            GameStateSnapshot.SaveNow(Services);
-            _boss = null;
-        }
 
         // Death -> reset run + transition back to farm.
         if (!Player.IsAlive)
