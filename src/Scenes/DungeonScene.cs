@@ -155,8 +155,11 @@ public class DungeonScene : GameplayScene
             var tile = new Point(c.Bounds.X / TileMap.TileSize, c.Bounds.Y / TileMap.TileSize);
             var chest = new ChestInstance(chestId, variant, tile);
 
-            // Seed contents from the run-scoped ChestContents (D-10 idempotency).
-            if (Services.Dungeon.ChestContents.TryGetValue(chestId, out var items))
+            if (Services.Dungeon.IsChestOpened(chestId))
+            {
+                chest.SetOpenedInstant();
+            }
+            else if (Services.Dungeon.ChestContents.TryGetValue(chestId, out var items))
             {
                 foreach (var itemId in items)
                     chest.Container.TryAdd(itemId, 1);

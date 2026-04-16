@@ -92,6 +92,13 @@ public class ChestInstance : Entity
         _opening = true;
     }
 
+    public void SetOpenedInstant()
+    {
+        _opening = false;
+        _closing = false;
+        Frame = ChestRegistry.FrameOpen;
+    }
+
     public void BeginClose()
     {
         _opening = false;
