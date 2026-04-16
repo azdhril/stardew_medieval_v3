@@ -44,7 +44,8 @@ public class ShopOverlayScene : Scene
 
     public override void Update(float deltaTime)
     {
-        if (_panel.Update(deltaTime, Services.Input, out var toastReq))
+        var vp = Services.GraphicsDevice.Viewport;
+        if (_panel.Update(deltaTime, Services.Input, vp.Width, vp.Height, out var toastReq))
         {
             Console.WriteLine("[ShopOverlayScene] Closed -> SaveNow");
             GameStateSnapshot.SaveNow(Services);
@@ -58,8 +59,9 @@ public class ShopOverlayScene : Scene
 
     public override void Draw(SpriteBatch spriteBatch)
     {
+        var vp = Services.GraphicsDevice.Viewport;
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _panel.Draw(spriteBatch, _font, _pixel, Services.Theme!);
+        _panel.Draw(spriteBatch, _font, _pixel, Services.Theme!, vp.Width, vp.Height);
         _toast.Draw(spriteBatch, _font, _pixel);
         spriteBatch.End();
     }

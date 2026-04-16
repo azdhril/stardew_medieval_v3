@@ -20,11 +20,14 @@ public class ShopPanel
     // Layout (UI-SPEC §Component Inventory)
     private const int PanelWidth = 720;
     private const int PanelHeight = 400;
-    private const int ScreenWidth = 960;
-    private static readonly int PanelX = (ScreenWidth - PanelWidth) / 2; // 120
-    private const int PanelY = 48;
     private const int RowHeight = 40;
     private const int VisibleRows = 8;
+
+    // Runtime anchors computed from the current viewport inside UpdateLayoutCache
+    // (replaces the old hardcoded-960x540 constants so the panel centers correctly
+    // in fullscreen / any non-960x540 window size).
+    private int _panelX;
+    private int _panelY;
 
     // Colors (design fingerprint)
     private static readonly Color Dim = Color.Black * 0.55f;
@@ -72,7 +75,7 @@ public class ShopPanel
     /// Drive input. Returns <c>true</c> if the user pressed Escape (the overlay should close).
     /// <paramref name="toast"/> is set when a transaction completed.
     /// </summary>
-    public bool Update(float dt, InputManager input, out ToastRequest? toast)
+    public bool Update(float dt, InputManager input, int viewportWidth, int viewportHeight, out ToastRequest? toast)
     {
         toast = null;
 
@@ -87,7 +90,7 @@ public class ShopPanel
             _scrollOffset = Math.Clamp(_scrollOffset - Math.Sign(wheel), 0, maxScroll);
         }
 
-        UpdateLayoutCache();
+        UpdateLayoutCache(viewportWidth, viewportHeight);
         int visible = Math.Min(rows, VisibleRows);
 
         var mp = input.MousePosition;
@@ -190,8 +193,12 @@ public class ShopPanel
     /// (so hit-test reflects current state) and defensively from Draw (in case Draw is invoked
     /// without a preceding Update). Pure layout — no input or rendering side effects.
     /// </summary>
-    private void UpdateLayoutCache()
+    private void UpdateLayoutCache(int viewportWidth, int viewportHeight)
     {
+        // Center the panel in the current viewport (was hardcoded to 960x540 origin).
+        _panelX = (viewportWidth - PanelWidth) / 2;
+        _panelY = (viewportHeight - PanelHeight) / 2;
+
         int rows = GetRowCount();
         int visible = Math.Min(rows, VisibleRows);
 
@@ -205,17 +212,17 @@ public class ShopPanel
 
         int scroll = _scrollOffset;
 
-        _panelRect = new Rectangle(PanelX, PanelY, PanelWidth, PanelHeight);
+        _panelRect = new Rectangle(_panelX, _panelY, PanelWidth, PanelHeight);
 
-        int tabY = PanelY + 40;
-        _buyTabRect  = new Rectangle(PanelX + 16,      tabY, 80, 32);
-        _sellTabRect = new Rectangle(PanelX + 16 + 88, tabY, 80, 32);
+        int tabY = _panelY + 40;
+        _buyTabRect  = new Rectangle(_panelX + 16,      tabY, 80, 32);
+        _sellTabRect = new Rectangle(_panelX + 16 + 88, tabY, 80, 32);
 
         // Close X button — 20x20 at top-right of header
-        _closeRect = new Rectangle(PanelX + PanelWidth - 28, PanelY + 8, 20, 20);
+        _closeRect = new Rectangle(_panelX + PanelWidth - 28, _panelY + 8, 20, 20);
 
         // Row + action-button rects
-        int listX = PanelX + 16;
+        int listX = _panelX + 16;
         int listY = tabY + 48;
         int width = PanelWidth - 32;
         for (int i = 0; i < VisibleRows; i++)
@@ -246,7 +253,7 @@ public class ShopPanel
         int trackH = VisibleRows * RowHeight;
         if (rows > VisibleRows)
         {
-            _scrollTrackRect = new Rectangle(PanelX + PanelWidth - 20, listY, 8, trackH);
+            _scrollTrackRect = new Rectangle(_panelX + PanelWidth - 20, listY, 8, trackH);
             int thumbH = Math.Max(16, trackH * VisibleRows / rows);
             int thumbY = listY + (int)((trackH - thumbH) * ((float)scroll / Math.Max(1, rows - VisibleRows)));
             _scrollThumbRect = new Rectangle(_scrollTrackRect.X, thumbY, 8, thumbH);
@@ -443,13 +450,14 @@ public class ShopPanel
     // ================= Draw =================
 
     /// <summary>Render panel + rows + header + disabled reason.</summary>
-    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel, UITheme theme)
+    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel, UITheme theme,
+        int viewportWidth, int viewportHeight)
     {
         // Defensive: ensure cached layout matches current state even if Draw runs without a preceding Update.
-        UpdateLayoutCache();
+        UpdateLayoutCache(viewportWidth, viewportHeight);
 
-        // Full-screen dim
-        sb.Draw(pixel, new Rectangle(0, 0, 960, 540), Dim);
+        // Full-screen dim — covers the entire real viewport, not a fixed 960x540.
+        sb.Draw(pixel, new Rectangle(0, 0, viewportWidth, viewportHeight), Dim);
 
         // Panel chrome (9-slice frame replaces outline + solid fill)
         NineSlice.Draw(sb, theme.PanePopup, _panelRect, theme.PanePopupInsets);
@@ -457,14 +465,14 @@ public class ShopPanel
         // Header strip — title plaque + centered "Shop" label
         const int titlePlaqueW = 160;
         const int titlePlaqueH = 30;
-        var titleRect = new Rectangle(PanelX + 16, PanelY - 8, titlePlaqueW, titlePlaqueH);
+        var titleRect = new Rectangle(_panelX + 16, _panelY - 8, titlePlaqueW, titlePlaqueH);
         NineSlice.Draw(sb, theme.PanelTitle, titleRect, theme.PanelTitleInsets);
         var shopSize = font.MeasureString("Shop");
         sb.DrawString(font, "Shop",
             new Vector2(titleRect.X + (titleRect.Width - shopSize.X) / 2,
                         titleRect.Y + (titleRect.Height - shopSize.Y) / 2),
             Color.White);
-        int headerY = PanelY + 8;
+        int headerY = _panelY + 8;
 
         // Gold label inside a currency pouch
         string goldText = $"Gold: {_inv.Gold}";
@@ -472,7 +480,7 @@ public class ShopPanel
         const int pouchPad = 14;
         int pouchW = (int)goldSize.X + pouchPad * 2;
         int pouchH = 24;
-        int pouchX = PanelX + PanelWidth - 40 - pouchW;  // leaves room for X button
+        int pouchX = _panelX + PanelWidth - 40 - pouchW;  // leaves room for X button
         int pouchY = headerY - 4;
         NineSlice.Draw(sb, theme.PanelCurrency,
             new Rectangle(pouchX, pouchY, pouchW, pouchH),
@@ -487,7 +495,7 @@ public class ShopPanel
         string escHint = "Esc or click outside to close";
         var escSize = font.MeasureString(escHint);
         sb.DrawString(font, escHint,
-            new Vector2(PanelX + PanelWidth - 16 - escSize.X, PanelY + PanelHeight - 8 - escSize.Y),
+            new Vector2(_panelX + PanelWidth - 16 - escSize.X, _panelY + PanelHeight - 8 - escSize.Y),
             Color.Gray * 0.7f);
 
         // Tab strip — driven by cached rects
@@ -497,7 +505,7 @@ public class ShopPanel
 
         // Divider below tabs (thin gold deco line)
         NineSlice.DrawStretched(sb, theme.ImageDeco,
-            new Rectangle(PanelX + 8, tabY + 40, PanelWidth - 16, 4));
+            new Rectangle(_panelX + 8, tabY + 40, PanelWidth - 16, 4));
 
         // Item list region
         int listY = tabY + 48;
@@ -508,7 +516,7 @@ public class ShopPanel
             string empty = _tab == Tab.Sell ? "Your inventory is empty" : "Shop is closed";
             var sz = font.MeasureString(empty);
             sb.DrawString(font, empty,
-                new Vector2(PanelX + (PanelWidth - sz.X) / 2, listY + 80),
+                new Vector2(_panelX + (PanelWidth - sz.X) / 2, listY + 80),
                 Color.Gray * 0.7f);
             return;
         }
