@@ -8,11 +8,13 @@ namespace stardew_medieval_v3.World;
 /// <summary>
 /// Renders a single Tiled tile-object from a "Decor" object layer with the
 /// split-sprite fade-when-behind trick. Purely visual — owns no collision.
-/// Per-tile <c>occlusion_y</c> is the pixel row (relative to sprite top)
-/// where the trunk begins / canopy ends. Rows above <c>occlusion_y</c> are
-/// the canopy: drawn on top of the player at 50% alpha when the player is
-/// behind. Rows below are the trunk base: drawn behind the player so the
-/// player walks in front of it.
+/// Per-tile <c>occlusion_y</c> is pixels from top of sprite to the base of
+/// the canopy / top of the trunk. Rows 0..occlusion_y are the canopy: drawn
+/// AFTER the player at 50% alpha when the player is behind (covers head,
+/// semi-transparent). Rows occlusion_y..height are the trunk: drawn BEFORE
+/// the player so the player walks in front of the trunk base.
+/// Note: ResourceNode uses the inverse convention (top=back, bottom=front)
+/// and is intentionally left untouched — existing POC depends on it.
 /// </summary>
 public class DecorOccluder
 {
@@ -44,53 +46,75 @@ public class DecorOccluder
     }
 
     /// <summary>
-    /// Draw full sprite when player isn't behind, or just the trunk half
-    /// (rows <c>occlusion_y..height</c>) when player IS behind. The canopy
-    /// (rows <c>0..occlusion_y</c>) is drawn by <see cref="DrawAfterPlayer"/>
-    /// at 50% alpha so it covers the player's head semi-transparently.
+    /// Draw pass before the player. Three cases, selected by per-decor Y-sort
+    /// against player feet:
+    ///  1. Player is in front (feet.Y >= anchor.Y) → draw full sprite here.
+    ///  2. Player is behind AND standing within footprint (split case) →
+    ///     draw trunk only; canopy at 50% alpha in <see cref="DrawAfterPlayer"/>.
+    ///  3. Player is behind but outside footprint (pure Y-sort, e.g. fence one
+    ///     row below) → draw nothing here; full sprite drawn after player.
     /// </summary>
     public void DrawBeforePlayer(SpriteBatch sb, PlayerEntity? player)
     {
-        if (player == null || !ShouldUseFrontOccluder(player))
+        if (player == null || IsPlayerInFront(player))
         {
-            sb.Draw(_texture, _destRect, _sourceRect, Color.White, 0f, Vector2.Zero, _flipEffects, 0f);
+            DrawFull(sb);
             return;
         }
 
-        int trunkH = _sourceRect.Height - _occlusionY;
-        if (trunkH > 0)
+        if (ShouldSplitOcclude(player))
         {
-            var trunkSrc = new Rectangle(_sourceRect.X, _sourceRect.Y + _occlusionY, _sourceRect.Width, trunkH);
-            var trunkDest = new Rectangle(_destRect.X, _destRect.Y + _occlusionY, _destRect.Width, trunkH);
-            sb.Draw(_texture, trunkDest, trunkSrc, Color.White, 0f, Vector2.Zero, _flipEffects, 0f);
+            int trunkH = _sourceRect.Height - _occlusionY;
+            if (trunkH > 0)
+            {
+                var trunkSrc = new Rectangle(_sourceRect.X, _sourceRect.Y + _occlusionY, _sourceRect.Width, trunkH);
+                var trunkDest = new Rectangle(_destRect.X, _destRect.Y + _occlusionY, _destRect.Width, trunkH);
+                sb.Draw(_texture, trunkDest, trunkSrc, Color.White, 0f, Vector2.Zero, _flipEffects, 0f);
+            }
         }
+        // else: case 3 — drawn in DrawAfterPlayer.
     }
 
     /// <summary>
-    /// When player is behind, draws the canopy (rows <c>0..occlusion_y</c>)
-    /// on top of the player at 50% alpha. No-op otherwise.
+    /// Draw pass after the player. Mirror of <see cref="DrawBeforePlayer"/>:
+    /// case 2 paints canopy at 50% over the player; case 3 paints the full
+    /// sprite so it occludes the player (pure Y-sort). No-op when player
+    /// is in front.
     /// </summary>
     public void DrawAfterPlayer(SpriteBatch sb, PlayerEntity player)
     {
-        if (!ShouldUseFrontOccluder(player)) return;
-        if (_occlusionY <= 0) return;
+        if (IsPlayerInFront(player)) return;
 
-        var canopySrc = new Rectangle(_sourceRect.X, _sourceRect.Y, _sourceRect.Width, _occlusionY);
-        var canopyDest = new Rectangle(_destRect.X, _destRect.Y, _destRect.Width, _occlusionY);
-        sb.Draw(_texture, canopyDest, canopySrc, Color.White * 0.5f, 0f, Vector2.Zero, _flipEffects, 0f);
+        if (ShouldSplitOcclude(player))
+        {
+            if (_occlusionY <= 0) return;
+            var canopySrc = new Rectangle(_sourceRect.X, _sourceRect.Y, _sourceRect.Width, _occlusionY);
+            var canopyDest = new Rectangle(_destRect.X, _destRect.Y, _destRect.Width, _occlusionY);
+            sb.Draw(_texture, canopyDest, canopySrc, Color.White * 0.5f, 0f, Vector2.Zero, _flipEffects, 0f);
+        }
+        else
+        {
+            DrawFull(sb);
+        }
     }
 
+    private void DrawFull(SpriteBatch sb)
+        => sb.Draw(_texture, _destRect, _sourceRect, Color.White, 0f, Vector2.Zero, _flipEffects, 0f);
+
+    /// <summary>Player is in front when their feet are at or below this decor's anchor.</summary>
+    private bool IsPlayerInFront(PlayerEntity player)
+        => player.GetFootPosition().Y >= _worldAnchor.Y;
+
     /// <summary>
-    /// Player is "behind" this decor when: they horizontally overlap it (with
-    /// an 8px inset), vertically reach into the canopy band, and their feet
-    /// are above the sort line (worldAnchor.Y).
+    /// True when the player is standing within this decor's footprint so the
+    /// trunk/canopy split is visually needed (feet hidden behind trunk, head
+    /// under faded canopy). Horizontal overlap (8px inset) + canopy band.
     /// </summary>
-    private bool ShouldUseFrontOccluder(PlayerEntity player)
+    private bool ShouldSplitOcclude(PlayerEntity player)
     {
         Rectangle pb = player.CollisionBox;
         bool overlapsH = pb.Right > _destRect.Left + 8 && pb.Left < _destRect.Right - 8;
         bool reachesCanopy = pb.Top < _destRect.Top + _occlusionY && pb.Bottom > _destRect.Top;
-        bool feetBehind = player.GetFootPosition().Y < _worldAnchor.Y - 1f;
-        return overlapsH && reachesCanopy && feetBehind;
+        return overlapsH && reachesCanopy;
     }
 }
