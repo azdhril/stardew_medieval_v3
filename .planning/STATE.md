@@ -64,6 +64,7 @@ Progress: [█████████░] 89%
 ### Roadmap Evolution
 
 - Phase 04.1 inserted after Phase 4: Shop UX & Save Gap Closure — save persistence BLOCKER + shop mouse nav + scroll-wheel regression fix (URGENT, absorbs stale quick-task 260413-ueq handoff)
+- Phase 7 added: Animation System & Mana Seed Integration — refactor Entity/animation system to support named animations with variable per-frame timing, paper-doll layered sprites (body/hair/outfit/weapon/etc.), and integrate Mana Seed pack (8x8 64x64 sheets) replacing current 4x4 hardcoded layout. Enables idle/walk/run with correct timing, weapon-specific attacks (sword/bow/staff), and base for character customization (skin/hair/clothing). Post-v1.0 visual refactor — runs after Phase 5 (dungeon) and Phase 6 (polish) close.
 
 ### Decisions
 
