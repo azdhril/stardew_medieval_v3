@@ -28,16 +28,10 @@ expected: |
   (sprite swap or color change from closed → open) and becomes walkable. Walk
   through r1 → r2 → r3 → r4 in sequence; each clears its own enemies and opens
   its exit independently.
-result: pending
-resolved_by: 05-04-SUMMARY.md
+result: pass
 notes: |
-  Gap resolved. Plan 05-04 re-authored the Ground layer of all 6 remaining
-  dungeon rooms (r2, r3, r3a, r4, r4a, boss) to use a visible floor GID=4554
-  mirroring r1 (commit 1d2e198), added a defensive dark-grey Clear fallback
-  in Game1 (506f988), and — discovered during human-verify — restored the
-  missing enemy/boss draw block in DungeonScene so skeletons are visible
-  while they aggro (852077c). Human-verify returned "approved". Test 2
-  full end-to-end (clear all 4 rooms + door opens) now awaits user re-run.
+  Re-run after plan 05-04 (commits 1d2e198, 506f988, 852077c). User confirmed
+  full r1→r2→r3→r4 clear flow with doors opening on room clear.
 
 ### 3. Optional Room Chest UX
 expected: |
