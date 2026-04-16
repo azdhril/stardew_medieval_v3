@@ -118,9 +118,13 @@ skipped: 0
   reason: "User reported: a conversa com o npc agora que a tela está maior e tem full screen faz um overlay preto transparente mas nao está cobrindo a tela toda e o retangulo da conversa está no lugar errado da tela por conta disso. não tem na hud um lugar onde mostra quanto dinheiro eu tenho"
   severity: major
   test: 5
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "DialogueBox.cs uses hardcoded ScreenWidth=960, ScreenHeight=540 constants. Overlay draws a fixed 960x540 rectangle regardless of actual viewport. Other UI scenes (PauseScene, InventoryScene, ChestScene) correctly query Services.GraphicsDevice.Viewport but DialogueBox does not have access to GraphicsDevice."
+  artifacts:
+    - path: "src/UI/DialogueBox.cs"
+      issue: "Lines 14-15: hardcoded ScreenWidth=960, ScreenHeight=540; Line 43: overlay draws fixed 960x540 rect"
+  missing:
+    - "Pass viewport dimensions to DialogueBox.Draw() or give it GraphicsDevice access"
+    - "Add gold/money display to HUD"
   debug_session: ""
 
 - truth: "Dungeon chest loot is collected once per save — chests stay empty permanently after being opened"
@@ -128,7 +132,13 @@ skipped: 0
   reason: "User reported: os baus não deveriam estar re-seeded with fresh loot e reclosed... pois o player vai pegar tudo se matar volta lá e pega tudo dnv infinitamente? n faz sentido.. a coleta do bau tem que ser uma unica vez"
   severity: major
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "On death, DungeonScene.OnPreUpdate() calls BeginRun() which clears OpenedChestIds and ChestContents, then DungeonChestSeeder.Seed() re-rolls all chests. SaveNow() is never called between death and the wipe, so opened-chest state is lost. Chest opened state is per-run, not per-save — needs to be permanent."
+  artifacts:
+    - path: "src/Scenes/DungeonScene.cs"
+      issue: "Lines 298-302: death handler calls BeginRun() which wipes chest state before any save"
+    - path: "src/Combat/DungeonState.cs"
+      issue: "Lines 43-52: BeginRun() clears OpenedChestIds and ChestContents unconditionally"
+  missing:
+    - "Move opened chests to permanent GameState persistence (not per-run)"
+    - "Either save before BeginRun() on death, or preserve opened chest IDs across runs"
   debug_session: ""
