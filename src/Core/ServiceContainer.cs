@@ -106,6 +106,13 @@ public class ServiceContainer
     /// </summary>
     public Progression.ProgressionManager? Progression { get; set; }
 
+    /// <summary>
+    /// Shared toast renderer. Persists across scene transitions so death penalty
+    /// messages queued in DungeonScene display after the FarmScene transition.
+    /// Created lazily by the first gameplay scene that needs it.
+    /// </summary>
+    public Toast? Toast { get; set; }
+
     /// <summary>Wired by Game1 so menus can toggle fullscreen without holding a GraphicsDeviceManager.</summary>
     public System.Action? ToggleFullscreen { get; set; }
 

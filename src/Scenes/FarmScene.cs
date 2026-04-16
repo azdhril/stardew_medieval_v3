@@ -394,20 +394,27 @@ public class FarmScene : GameplayScene
 
         ResolveEnemySeparation();
 
-        // Player death respawn (Farm-local: heal + recenter).
+        // Player death respawn (Farm-local: penalty + heal + recenter).
         if (!Player.IsAlive)
         {
-            Player.HP = Player.MaxHP;
-            string from = FromScene;
-            if (from == "DungeonDeath")
+            // Don't re-apply penalty if coming from DungeonDeath (already applied there).
+            if (FromScene != "DungeonDeath")
             {
-                Console.WriteLine("[FarmScene] Respawned from dungeon death");
+                var penalty = DeathPenalty.Apply(Services.Inventory!, _lootRng);
+                if (penalty.GoldLost > 0)
+                    Services.Toast?.Show($"Lost {penalty.GoldLost} gold", Color.Red);
+                foreach (var itemId in penalty.ItemsLost)
+                    Services.Toast?.Show($"Lost: {ItemRegistry.Get(itemId)?.Name ?? itemId}", Color.OrangeRed);
+                Console.WriteLine("[FarmScene] Player died on farm -- penalty applied");
             }
             else
             {
-                Console.WriteLine("[FarmScene] Player died! Respawning at farm center.");
+                Console.WriteLine("[FarmScene] Respawned from dungeon death (penalty already applied)");
             }
+            Player.HP = Player.MaxHP;
+            Player.Stats.RestoreStamina();
             Player.Position = TileMap.TileCenterWorld(10, 10);
+            GameStateSnapshot.SaveNow(Services);
         }
 
         _toolController.Update(input);

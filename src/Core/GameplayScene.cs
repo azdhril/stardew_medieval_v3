@@ -142,6 +142,9 @@ public abstract class GameplayScene : Scene
         if (Services.GameState != null)
             Services.GameState.CurrentScene = SceneName;
 
+        // Lazily create the shared toast so death/level-up messages survive scene transitions.
+        Services.Toast ??= new UI.Toast();
+
         Console.WriteLine($"[{SceneName}Scene] Entered from {FromScene}, spawn ({Player.Position.X},{Player.Position.Y})");
     }
 
@@ -231,6 +234,9 @@ public abstract class GameplayScene : Scene
 
         // --- Subclass post-update ---
         OnPostUpdate(deltaTime, input);
+
+        // Shared toast (death penalty, level-up, etc.)
+        Services.Toast?.Update(deltaTime);
     }
 
     public override void Draw(SpriteBatch sb)
@@ -288,6 +294,7 @@ public abstract class GameplayScene : Scene
         sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
         Services.Hud?.Draw(sb, viewport.Width, viewport.Height);
         Services.Hotbar?.Draw(sb, viewport.Width, viewport.Height);
+        Services.Toast?.Draw(sb, Font, Pixel);
         OnDrawScreen(sb, viewport.Width, viewport.Height);
         sb.End();
     }

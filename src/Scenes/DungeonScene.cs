@@ -304,17 +304,28 @@ public class DungeonScene : GameplayScene
         CombatLoop.Update(deltaTime, ctx);
         _boss = ctx.Boss;
 
-        // Death -> reset run + transition back to farm.
+        // Death -> apply penalty, reset run, transition back to farm.
         if (!Player.IsAlive)
         {
-            Console.WriteLine($"[DungeonScene:{_room.Id}] Player died -- resetting run");
+            Console.WriteLine($"[DungeonScene:{_room.Id}] Player died -- applying penalty, resetting run");
+
+            // Apply death penalty BEFORE HP restore and save (D-13, Pitfall 6).
+            var penalty = DeathPenalty.Apply(Services.Inventory!, _lootRng);
+            var toast = Services.Toast;
+            if (penalty.GoldLost > 0)
+                toast?.Show($"Lost {penalty.GoldLost} gold", Color.Red);
+            foreach (var itemId in penalty.ItemsLost)
+                toast?.Show($"Lost: {ItemRegistry.Get(itemId)?.Name ?? itemId}", Color.OrangeRed);
+
+            // Restore HP and stamina after penalty snapshot.
+            Player.HP = Player.MaxHP;
+            Player.Stats.RestoreStamina();
+
             // Persist BEFORE wiping: opened chests now survive BeginRun in memory, but we
             // must also flush them to disk so a crash-after-death does not forget them.
-            // (05-UAT Gap 2 hardening -- belt-and-suspenders over the in-memory fix.)
             GameStateSnapshot.SaveNow(Services);
             Services.Dungeon!.BeginRun();
             DungeonChestSeeder.Seed(Services);
-            Player.HP = Player.MaxHP;
             Services.SceneManager.TransitionTo(new FarmScene(Services, "DungeonDeath"));
             return true;
         }
