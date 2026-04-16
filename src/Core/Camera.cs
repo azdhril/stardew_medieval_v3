@@ -28,6 +28,18 @@ public class Camera
         ClampToBounds();
     }
 
+    /// <summary>
+    /// Re-clamp the current Position against Bounds using the current Zoom and Viewport.
+    /// Call this after a viewport change (e.g. fullscreen toggle) so the camera
+    /// does not stay stuck showing off-map areas from the prior viewport size,
+    /// especially when the paused scene underneath an overlay is not running
+    /// its normal Follow() update.
+    /// </summary>
+    public void Reclamp()
+    {
+        ClampToBounds();
+    }
+
     public void Follow(Vector2 target, float deltaTime)
     {
         Position = Vector2.Lerp(Position, target, _smoothSpeed * deltaTime);
