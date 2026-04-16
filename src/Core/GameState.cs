@@ -10,7 +10,7 @@ namespace stardew_medieval_v3.Core;
 public class GameState
 {
     // === Existing base save data ===
-    public int SaveVersion { get; set; } = 8;
+    public int SaveVersion { get; set; } = 9;
     public int DayNumber { get; set; } = 1;
     public int Season { get; set; } // 0=Spring
     public float StaminaCurrent { get; set; } = 100f;
@@ -43,6 +43,11 @@ public class GameState
 
     // === New (v8): dungeon run state ===
     public DungeonStateSnapshot Dungeon { get; set; } = new();
+
+    // === New (v9): progression stats ===
+    public int MaxHP { get; set; } = 100;
+    public int MaxStamina { get; set; } = 100;
+    public int BaseDamageBonus { get; set; } = 0;
 }
 
 public class FarmCellSaveData

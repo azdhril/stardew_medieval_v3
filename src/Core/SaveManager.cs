@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public static class SaveManager
 {
-    private const int CURRENT_SAVE_VERSION = 8;
+    private const int CURRENT_SAVE_VERSION = 9;
 
     private static string SavePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -127,6 +127,17 @@ public static class SaveManager
             state.Dungeon ??= new World.DungeonStateSnapshot();
             state.SaveVersion = 8;
             Console.WriteLine("[SaveManager] Migrated v7->v8 (Dungeon defaults)");
+        }
+
+        if (state.SaveVersion < 9)
+        {
+            // v8 -> v9: progression stats derived from Level
+            int level = Math.Max(1, state.Level);
+            state.MaxHP = 100 + (level - 1) * 10;
+            state.MaxStamina = 100 + (level - 1) * 5;
+            state.BaseDamageBonus = level - 1;
+            state.SaveVersion = 9;
+            Console.WriteLine($"[SaveManager] Migrated v8->v9 (MaxHP={state.MaxHP}, MaxSta={state.MaxStamina}, DmgBonus={state.BaseDamageBonus})");
         }
     }
 }
