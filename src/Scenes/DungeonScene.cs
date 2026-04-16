@@ -356,6 +356,7 @@ public class DungeonScene : GameplayScene
             _boss.Draw(sb, Pixel);
             EnemyHealthBar.Draw(sb, Pixel, _boss.Position, _boss.Data.Height, _boss.HP, _boss.MaxHP);
         }
+        _projectiles.Draw(sb, Pixel);
     }
 
     /// <summary>Spawn an item drop entity at the given world position.</summary>
