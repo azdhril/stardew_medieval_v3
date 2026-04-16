@@ -67,11 +67,15 @@ public class TileMap
             // Index per-tile occlusion_y overrides from the .tsx (used by Decor).
             var occMap = new Dictionary<int, int>();
             var tiles = tileset.Tiles ?? Array.Empty<TiledTile>();
+            try { File.AppendAllText("decor_debug.log", $"[TileMap] Tileset firstGid={mapTileset.firstgid} source={mapTileset.source} tileCount={tiles.Length}\n"); } catch { }
             foreach (var t in tiles)
             {
+                int __pc = 0; if (t.properties != null) { foreach (var __p in t.properties) __pc++; }
+                try { File.AppendAllText("decor_debug.log", $"[TileMap]   tile.id={t.id} propCount={__pc}\n"); } catch { }
                 if (t.properties == null) continue;
                 foreach (var p in t.properties)
                 {
+                    try { File.AppendAllText("decor_debug.log", $"[TileMap]     prop name={p.name} value={p.value} type={p.type}\n"); } catch { }
                     if (p.name == null) continue;
                     if (!p.name.Equals("occlusion_y", StringComparison.OrdinalIgnoreCase)) continue;
                     if (int.TryParse(p.value, out int occY))
@@ -194,17 +198,30 @@ public class TileMap
     }
 
     /// <summary>
-    /// Parses any ObjectLayer named "Decor" (case-insensitive) into <see cref="DecorOccluder"/>
-    /// instances. Only tile-objects (gid != 0) produce occluders; plain rectangles/points/polygons
-    /// on a Decor layer are silently ignored. Per-tile <c>occlusion_y</c> is read from the .tsx;
-    /// missing property falls back to tileHeight/2. No collision is registered — decor is purely
+    /// Parses any ObjectLayer whose name starts with "Decor" (case-insensitive —
+    /// so "Decor", "Decor_Trees", "decor_fences" all qualify) into
+    /// <see cref="DecorOccluder"/> instances. Only tile-objects (gid != 0)
+    /// produce occluders; plain rectangles/points/polygons are silently ignored.
+    /// Per-tile <c>occlusion_y</c> is read from the .tsx; missing property falls
+    /// back to full-sprite fade. No collision is registered — decor is purely
     /// visual per task CONTEXT locked decision.
     /// </summary>
     private void LoadDecorObjects()
     {
         _decor.Clear();
 
-        var objs = GetObjectGroup("Decor");
+        var objs = new List<TmxObject>();
+        if (_map?.Layers != null)
+        {
+            foreach (var layer in _map.Layers)
+            {
+                if (layer.type != TiledLayerType.ObjectLayer) continue;
+                if (layer.name == null) continue;
+                if (!layer.name.StartsWith("Decor", StringComparison.OrdinalIgnoreCase)) continue;
+                objs.AddRange(GetObjectGroup(layer.name));
+            }
+        }
+
         foreach (var obj in objs)
         {
             if (obj.Gid == 0) continue; // skip non-tile objects (rects/points/polys)
@@ -238,8 +255,11 @@ public class TileMap
             // Tiled tile-object anchor is BOTTOM-LEFT: (obj.x, obj.y) → world rect with y -= tileH
             var dest = new Rectangle(obj.Bounds.X, obj.Bounds.Y - tileH, tileW, tileH);
 
-            // occlusion_y: per-tile tileset property > fallback tileH/2
-            int occY = tileH / 2;
+            // occlusion_y: per-tile tileset property > fallback = 0 (no canopy band).
+            // With occY=0 the sprite never splits/fades — just pure Y-sort against the
+            // player's feet. Tall objects like trees opt in to the fade by setting a
+            // positive occlusion_y on the tileset tile.
+            int occY = 0;
             if (_occlusionYByTileset.TryGetValue(firstGid, out var lookup) &&
                 lookup.TryGetValue(localId, out int v))
             {
