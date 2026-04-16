@@ -29,22 +29,25 @@ public class DungeonState
     public bool IsRunActive { get; private set; }
 
     /// <summary>
-    /// Reset all per-run flags and assign a new RunSeed. Called on dungeon entry,
-    /// on death, and defensively if DungeonScene loads with no active run.
+    /// Reset per-run flags (cleared rooms, chest contents, RunSeed) and activate the run.
+    /// Called on dungeon entry, on death, and defensively if DungeonScene loads with no active run.
     ///
-    /// NOTE: <see cref="BossDefeated"/> is intentionally NOT cleared here. Per
-    /// decision D-14 (Phase 5 context) "derrotar o boss = dungeon completa" — the
-    /// boss-kill is a terminal milestone of the dungeon arc, not a per-run flag.
-    /// D-13 specifies which flags reset on death (rooms, chests, doors, loot) and
-    /// does not include the boss. <see cref="BossSpawnGate"/> relies on this
-    /// persistence so re-entering the dungeon after victory never respawns the
-    /// boss.
+    /// INTENTIONALLY PRESERVED across BeginRun:
+    /// - <see cref="OpenedChestIds"/>: dungeon chest loot is one-time-per-save (05-UAT Gap 2 fix).
+    ///   Reopening an already-opened chest renders its opened/empty state via DungeonScene
+    ///   hydration (IsChestOpened branch). DungeonChestSeeder writes empty contents for
+    ///   opened chests so the legacy hydration path is a no-op on them.
+    /// - <see cref="BossDefeated"/>: dungeon completion is terminal (D-14); re-entry after
+    ///   victory skips the boss spawn via <see cref="BossSpawnGate"/>.
+    ///
+    /// RESET on BeginRun: ClearedRooms, ChestContents, RunSeed. Doors, enemies, and
+    /// per-scene chest open-animation state are scene-local and reset on re-entry.
     /// </summary>
     public void BeginRun()
     {
         ClearedRooms.Clear();
-        OpenedChestIds.Clear();
         ChestContents.Clear();
+        // OpenedChestIds intentionally NOT reset (see xmldoc above).
         // BossDefeated intentionally NOT reset (see xmldoc above).
         RunSeed = new Random().Next();
         IsRunActive = true;

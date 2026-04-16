@@ -53,8 +53,18 @@ public static class DungeonChestSeeder
         {
             foreach (var (chestId, _, _) in room.Chests)
             {
-                var drops = table.Roll(rng);
-                dungeon.ChestContents[chestId] = drops.Select(d => d.itemId).ToList();
+                if (dungeon.IsChestOpened(chestId))
+                {
+                    // Chest was already collected in a prior run -- leave it empty permanently.
+                    // Hydration path in DungeonScene.OnLoad detects this via IsChestOpened and
+                    // renders the chest in its opened/empty sprite state.
+                    dungeon.ChestContents[chestId] = new List<string>();
+                }
+                else
+                {
+                    var drops = table.Roll(rng);
+                    dungeon.ChestContents[chestId] = drops.Select(d => d.itemId).ToList();
+                }
                 chestCount++;
             }
         }

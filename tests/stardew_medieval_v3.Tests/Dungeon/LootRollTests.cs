@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.World;
@@ -71,5 +72,44 @@ public class LootRollTests
                     $"ChestContents missing entry for {chestId}");
             }
         }
+    }
+
+    [Fact]
+    [Trait("Category", "quick")]
+    public void Seed_SkipsOpenedChests_WritesEmptyContents()
+    {
+        var state = new DungeonState { RunSeed = 12345 };
+        // Pick a real chest id from the registry so the loop hits it.
+        state.OpenedChestIds.Add("dungeon_r3a_chest");
+
+        DungeonChestSeeder.Seed(state);
+
+        Assert.True(state.ChestContents.ContainsKey("dungeon_r3a_chest"));
+        Assert.Empty(state.ChestContents["dungeon_r3a_chest"]);
+
+        // Another registered chest (not opened) should have loot rolled.
+        Assert.True(state.ChestContents.ContainsKey("dungeon_r4a_chest"));
+        // At least one drop -- Health_Potion is weight 1.0 so it always lands.
+        Assert.NotEmpty(state.ChestContents["dungeon_r4a_chest"]);
+    }
+
+    [Fact]
+    [Trait("Category", "quick")]
+    public void BeginRun_PreservesOpenedChestIds()
+    {
+        var state = new DungeonState();
+        state.OpenedChestIds.Add("foo");
+        state.OpenedChestIds.Add("bar");
+        state.ClearedRooms.Add("r1");
+        state.ChestContents["foo"] = new List<string> { "Health_Potion" };
+
+        state.BeginRun();
+
+        Assert.Contains("foo", state.OpenedChestIds);
+        Assert.Contains("bar", state.OpenedChestIds);
+        Assert.Empty(state.ClearedRooms);
+        Assert.Empty(state.ChestContents);
+        Assert.NotEqual(0, state.RunSeed);
+        Assert.True(state.IsRunActive);
     }
 }
