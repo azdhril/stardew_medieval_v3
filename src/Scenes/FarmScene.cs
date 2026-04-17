@@ -204,7 +204,7 @@ public class FarmScene : GameplayScene
         _spriteAtlas.RegisterPotions(potionSheet);
         _hotbar = new HotbarRenderer(_inventory, _spriteAtlas);
         _hotbar.LoadContent(device, Font);
-        var goldCoinTex = LoadTexture(device, "assets/Sprites/System/UI Elements/Icons/System/UI_Icon_Sys_Gold.png");
+        var goldCoinTex = LoadTexture(device, "assets/Sprites/Items/Bag_of_coins.png");
         _spriteAtlas.RegisterGoldCoin(goldCoinTex);
         Services.Atlas = _spriteAtlas;
         Services.Hud = _hud;

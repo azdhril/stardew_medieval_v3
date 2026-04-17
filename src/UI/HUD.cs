@@ -216,7 +216,7 @@ public class HUD
         float hpTextY = nextBarY + (hpBarH - hpTextSz.Y) / 2 - hpBarH * 0.07f;
         spriteBatch.DrawString(barFont, hpText,
             new Vector2(hpFillX + (hpFillW - hpTextSz.X) / 2, hpTextY),
-            new Color(60, 5, 15)); // darker wine
+            new Color(220, 80, 100)); // light pinkish red
         nextBarY += hpBarH + barSpacing;
 
         // --- Mana Bar (placeholder -- no mana system yet, shows full blue) ---
@@ -262,7 +262,7 @@ public class HUD
         float staTextY = nextBarY + (staBarH - staTextSz.Y) / 2 - staBarH * 0.07f;
         spriteBatch.DrawString(smallBarFont, staText,
             new Vector2(staFillX + (staFillW - staTextSz.X) / 2, staTextY),
-            new Color(55, 75, 30)); // dark moss green
+            new Color(130, 210, 90)); // light green
         nextBarY += staBarH + barSpacing + 2;
 
         // === Gold label with coin icon + stretched PanelCurrency ===
@@ -324,7 +324,7 @@ public class HUD
         int hotbarStartX = (screenWidth - hotbarWidth) / 2;
         int hotbarTopY = screenHeight - hotbarSlotSize - hotbarBottomMargin;
 
-        int xpBarH = 10;
+        int xpBarH = 20;
         int xpBarY = hotbarTopY - xpBarH - 18;
         int xpBarX = hotbarStartX - 8;
         int xpBarW = hotbarWidth + 16;
