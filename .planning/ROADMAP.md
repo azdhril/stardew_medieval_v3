@@ -160,9 +160,9 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 06-01-PLAN.md — XP/leveling data layer + gold coin drops + save v9 migration + unit tests (Wave 1)
-- [ ] 06-02-PLAN.md — Death penalty + periodic auto-save + level-up/death visual feedback (Wave 2)
-- [ ] 06-03-PLAN.md — HUD graphical polish: XP bar, NineSlice panels, bar text cleanup (Wave 3)
+- [x] 06-01-PLAN.md — XP/leveling data layer + gold coin drops + save v9 migration + unit tests (Wave 1)
+- [x] 06-02-PLAN.md — Death penalty + periodic auto-save + level-up/death visual feedback (Wave 2)
+- [x] 06-03-PLAN.md — HUD graphical polish: XP bar, NineSlice panels, bar text cleanup (Wave 3)
 
 ## Progress
 

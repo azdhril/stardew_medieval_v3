@@ -1,32 +1,31 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-16T21:58:05.571Z",
+  "timestamp": "2026-04-17T02:14:51.872Z",
   "phase": "06",
-  "phase_name": "Progression & Polish",
+  "phase_name": "progression-polish",
   "phase_dir": ".planning/phases/06-progression-polish",
-  "plan": null,
-  "task": null,
-  "total_tasks": null,
+  "plan": 3,
+  "task": 2,
+  "total_tasks": 8,
   "status": "paused",
   "completed_tasks": [
-    {"id": "discuss", "name": "Phase 6 discussion complete — CONTEXT.md + DISCUSSION-LOG.md written", "status": "done", "commit": "4bc7d21"}
+    {"id": "06-01-T1", "name": "XPTable + Save v9 + GameState fields", "status": "done", "commit": "2405b04"},
+    {"id": "06-01-T2", "name": "ProgressionManager + CombatLoop + Gold_Coin", "status": "done", "commit": "2ed4093"},
+    {"id": "06-01-T3", "name": "Wire progression into scenes", "status": "done", "commit": "02935b6"},
+    {"id": "06-02-T1", "name": "DeathPenalty + death path wiring", "status": "done", "commit": "c3cbffc"},
+    {"id": "06-02-T2", "name": "Periodic auto-save + level-up save", "status": "done", "commit": "61db72a"},
+    {"id": "06-02-T3", "name": "Level-up banner + particles + death banner", "status": "done", "commit": "67071cc"},
+    {"id": "06-03-T1", "name": "HUD polish + XP bar + icons", "status": "done", "commit": "897ea45"},
+    {"id": "06-03-T2", "name": "Visual verification checkpoint", "status": "in_progress"}
   ],
   "remaining_tasks": [
-    {"id": "plan", "name": "Run /gsd-plan-phase 6 to generate RESEARCH.md + PLAN.md files from 06-CONTEXT.md", "status": "not_started"},
-    {"id": "execute", "name": "Execute plans covering XP/leveling + gold drops + death penalty + HUD polish + periodic save", "status": "not_started"}
+    {"id": "06-03-T2", "name": "Visual verification", "status": "in_progress"}
   ],
   "blockers": [],
-  "human_actions_pending": [],
-  "decisions": [
-    {"decision": "XP tier-flat (10/15/25/150). Level cap 100 as narrative ceiling, curve tuned so boss kill is realistic at level ~8-15. +10 HP / +1 damage / +5 stamina per level. Level-up = banner + gold particle burst, no pause.", "rationale": "User wants tall headroom but content-appropriate pacing. Captured as D-01..D-08 in 06-CONTEXT.md.", "phase": "06"},
-    {"decision": "Gold drops = Gold_Coin as ItemDropEntity with magnetism (reuses Phase 2 pickup). 5g/8g/15g per tier + 100g boss. Every kill guaranteed. ±30% variance.", "rationale": "Consistency with existing item pickup UX. Predictable economy. Captured as D-09..D-12.", "phase": "06"},
-    {"decision": "Death penalty applies to ALL deaths (farm + dungeon). -10% gold always. Item loss roll: 60% nothing / 25% lose 1 / 15% lose 2, pool = ANY slot (inventory + hotbar + equipment). Red banner + Toast list on respawn.", "rationale": "User explicit: 'qualquer coisa'. Farm cozy is overridden for consistency. Captured as D-13..D-17.", "phase": "06"},
-    {"decision": "HUD polish scope: XP bar above hotbar + Lv label, NineSlice clock panel, gold icon panel, quest tracker with icon + NineSlice, AND cleanup of the ugly HP/MP/STA in-bar text (Claude's Discretion on remove/shrink/tooltip/mini-panel).", "rationale": "User flagged in-bar text as ugly mid-discussion; folded into scope. Captured as D-18..D-19.", "phase": "06"},
-    {"decision": "Save: periodic auto-save every ~30s of gameplay + level-up + post-death triggers, on top of existing day-advance/shop-close/boss-victory/pre-death/F5. Save version v8→v9 adds MaxHP/MaxStamina/BaseDamageBonus persistence. Perf guard in D-21 for write-on-dirty/async if profiling shows >50ms saves.", "rationale": "User wants 'jogo normal' — close the app any time, no lost progress. Captured as D-20..D-24.", "phase": "06"}
+  "human_actions_pending": [
+    {"action": "Close game, dotnet run, visually verify HUD", "context": "Checkpoint for plan 06-03", "blocking": true}
   ],
-  "uncommitted_files": [
-    ".planning/STATE.md still shows 'Executing Phase 05' / 'Completed 05-04-PLAN.md' — not updated this session. Phase 5 is actually complete (commit 1651965) and Phase 6 discuss is done. Next session should refresh STATE during /gsd-plan-phase 6 init."
-  ],
-  "next_action": "Run /gsd-plan-phase 6 to generate RESEARCH.md + phase plans from 06-CONTEXT.md.",
-  "context_notes": "Phase 6 discuss-phase completed in a single session. 24 decisions (D-01..D-24) captured in .planning/phases/06-progression-polish/06-CONTEXT.md with canonical refs to existing code touchpoints and prior phase CONTEXT.md files. Full DISCUSSION-LOG.md alongside. No blockers. Existing infrastructure found during scout: GameState already has XP/Level/Gold fields (unused); InventoryManager.AddGold/TrySpendGold/OnGoldChanged ready; GameStateSnapshot.SaveNow() centralized save hook; SaveManager migration chain at v8; death respawn path exists in FarmScene L378 + DungeonScene L298; LootTable today only drops items — needs gold extension; HP/Mana/Stamina bars already sprite-based; Gold label + clock + quest tracker still plain text; NineSlice + UITheme polished in Inventory/Shop/Chest quick tasks 260416-10o. Session was paused at 91% context right after the context commit — no STATE.md update or state record-session call happened yet."
+  "uncommitted_files": ["src/UI/HUD.cs", "src/UI/UITheme.cs"],
+  "next_action": "Commit HUD fixes, visual verify, then code_review_gate onward",
+  "context_notes": "All 3 plans executed. At checkpoint. HUD asset tweaks need commit + visual check."
 }

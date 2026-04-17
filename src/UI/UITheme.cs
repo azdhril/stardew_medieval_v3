@@ -67,11 +67,14 @@ public sealed class UITheme
     public Texture2D IconEquipBoots    { get; private set; } = null!;
 
     // HUD icons and progress bars
-    public Texture2D GoldIcon   { get; private set; } = null!;
-    public Texture2D ClockIcon  { get; private set; } = null!;
-    public Texture2D XPBarBg    { get; private set; } = null!;
-    public Texture2D XPBarFill  { get; private set; } = null!;
-    public Texture2D PanelSmall { get; private set; } = null!;
+    public Texture2D GoldIcon      { get; private set; } = null!;
+    public Texture2D ClockIcon     { get; private set; } = null!;
+    public Texture2D XPBarBg       { get; private set; } = null!;
+    public Texture2D XPBarFill     { get; private set; } = null!;
+    public Texture2D PanelSmall    { get; private set; } = null!;
+    public Texture2D IconHeart     { get; private set; } = null!;
+    public Texture2D IconMana      { get; private set; } = null!;
+    public Texture2D IconStamina   { get; private set; } = null!;
 
     // 9-slice insets (tune these during visual review; start with conservative defaults
     // suitable for typical pixel-art medieval UI assets).
@@ -85,6 +88,10 @@ public sealed class UITheme
     public NineSlice.Insets PanelCurrencyInsets  = new(24, 16, 24, 16);
     public NineSlice.Insets PanelSlotPaneInsets  = NineSlice.Insets.Uniform(16);
     public NineSlice.Insets PanelSmallInsets     = NineSlice.Insets.Uniform(8);
+
+    // HUD-specific insets (smaller than overlay counterparts for compact HUD panels)
+    public NineSlice.Insets HudPanelTitleInsets    = new(8, 6, 8, 6);
+    public NineSlice.Insets HudPanelCurrencyInsets = new(10, 6, 10, 6);
 
     private bool _loaded;
 
@@ -125,11 +132,14 @@ public sealed class UITheme
         IconEquipBoots    = Load(device, "Icons/Icon_chevron-down.png", "IconEquipBoots",    Color.White);
 
         // HUD icons and XP progress bar
-        GoldIcon   = Load(device, "Icons/System/UI_Icon_Sys_Gold.png",                "GoldIcon",   Color.Gold);
-        ClockIcon  = Load(device, "Icons/System/UI_Icon_Sys_Alarm.png",               "ClockIcon",  Color.White);
-        XPBarBg    = Load(device, "Bars/Progress/UI_Progress_Style1_Bg.png",           "XPBarBg",    new Color(40, 30, 25));
-        XPBarFill  = Load(device, "Bars/Progress/UI_Progress_Style1_Fill_Yellow.png",  "XPBarFill",  Color.Gold);
-        PanelSmall = Load(device, "Panel/UI_Panel_Title.png",                          "PanelSmall", new Color(60, 40, 30));
+        GoldIcon    = Load(device, "Icons/System/UI_Icon_Sys_Gold.png",                "GoldIcon",    Color.Gold);
+        ClockIcon   = Load(device, "Icons/General/UI_Icon_Hourglass.png",              "ClockIcon",   Color.White);
+        XPBarBg     = Load(device, "Bars/Progress/UI_Progress_Style1_Bg.png",          "XPBarBg",     new Color(40, 30, 25));
+        XPBarFill   = Load(device, "Bars/Progress/UI_Progress_Style1_Fill_Yellow.png", "XPBarFill",   Color.Gold);
+        PanelSmall  = Load(device, "Panel/UI_Panel_Title.png",                         "PanelSmall",  new Color(60, 40, 30));
+        IconHeart   = Load(device, "Icons/Icon_heart.png",                             "IconHeart",   Color.Red);
+        IconMana    = Load(device, "Icons/Icon_sparkles.png",                          "IconMana",    Color.Blue);
+        IconStamina = Load(device, "Icons/Icon_stamina.png",                           "IconStamina", Color.Green);
 
         _loaded = true;
         Console.WriteLine("[UITheme] Content loaded");

@@ -139,17 +139,17 @@ public class HUD
 
     public void Draw(SpriteBatch spriteBatch, int screenWidth, int screenHeight)
     {
-        // === Top-left: Day and Time (NineSlice panel + clock icon) ===
+        // === Top-left: Day and Time (stretched PanelTitle + hourglass icon) ===
         string dayText = $"Day {_time.DayNumber}  {_time.GetDisplayHour()}";
         var daySize = _font.MeasureString(dayText);
-        int panelPad = 8;
+        int panelPad = 12;
         int iconSize = 16;
         int clockPanelW = iconSize + 4 + (int)daySize.X + panelPad * 2;
-        int clockPanelH = Math.Max(iconSize, (int)daySize.Y) + panelPad;
+        int clockPanelH = Math.Max(iconSize, (int)daySize.Y) + panelPad + 8;
         var clockPanelRect = new Rectangle(8, 6, clockPanelW, clockPanelH);
 
-        if (_theme?.PanelSmall != null)
-            NineSlice.Draw(spriteBatch, _theme.PanelSmall, clockPanelRect, _theme.PanelSmallInsets);
+        if (_theme?.PanelTitle != null)
+            NineSlice.DrawStretched(spriteBatch, _theme.PanelTitle, clockPanelRect);
 
         // Draw clock icon (if available and not a 1x1 fallback)
         if (_theme?.ClockIcon != null && _theme.ClockIcon.Width > 1)
@@ -180,6 +180,7 @@ public class HUD
             DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, new Color(40, 40, 40));
             DrawRect(spriteBatch, barX, nextBarY, (int)(fallbackW * hpFill), fallbackH, Color.Red);
         }
+        DrawBarIcon(spriteBatch, barX, nextBarY, _theme?.IconHeart, hpDrawn ? HpBarScale : 0, hpDrawn ? ScaledBgHeight(HpBarScale) : fallbackH);
         nextBarY += (hpDrawn ? ScaledBgHeight(HpBarScale) : fallbackH) + barSpacing;
 
         // --- Mana Bar (placeholder -- no mana system yet, shows full blue) ---
@@ -191,6 +192,7 @@ public class HUD
             DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, new Color(40, 40, 40));
             DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, Color.Blue);
         }
+        DrawBarIcon(spriteBatch, barX, nextBarY, _theme?.IconMana, manaDrawn ? ManaBarScale : 0, manaDrawn ? ScaledBgHeight(ManaBarScale) : fallbackH);
         nextBarY += (manaDrawn ? ScaledBgHeight(ManaBarScale) : fallbackH) + barSpacing;
 
         // --- Stamina Bar ---
@@ -202,29 +204,22 @@ public class HUD
             Color barColor = staFill > 0.5f ? Color.LimeGreen : staFill > 0.25f ? Color.Yellow : Color.Red;
             DrawRect(spriteBatch, barX, nextBarY, (int)(fallbackW * staFill), fallbackH, barColor);
         }
+        DrawBarIcon(spriteBatch, barX, nextBarY, _theme?.IconStamina, staDrawn ? StaminaBarScale : 0, staDrawn ? ScaledBgHeight(StaminaBarScale) : fallbackH);
         nextBarY += (staDrawn ? ScaledBgHeight(StaminaBarScale) : fallbackH) + barSpacing + 2;
 
-        // === Gold label with NineSlice panel + coin icon ===
+        // === Gold label with stretched PanelCurrency (has built-in coin pouch) ===
         int gold = _inventory?.Gold ?? 0;
         string goldStr = gold.ToString();
         var goldSize = _font.MeasureString(goldStr);
-        int goldIconSize = 14;
-        bool hasGoldIcon = _theme?.GoldIcon != null && _theme.GoldIcon.Width > 1;
-        int goldIconSpace = hasGoldIcon ? goldIconSize + 4 : 0;
-        int goldPanelW = goldIconSpace + (int)goldSize.X + 12;
-        int goldPanelH = Math.Max(goldIconSize, (int)goldSize.Y) + 8;
+        int goldPanelW = (int)goldSize.X + 52;
+        int goldPanelH = 30;
         var goldPanelRect = new Rectangle(barX, nextBarY, goldPanelW, goldPanelH);
 
-        if (_theme?.PanelSmall != null)
-            NineSlice.Draw(spriteBatch, _theme.PanelSmall, goldPanelRect, _theme.PanelSmallInsets);
-
-        if (hasGoldIcon)
-            spriteBatch.Draw(_theme!.GoldIcon,
-                new Rectangle(barX + 6, nextBarY + (goldPanelH - goldIconSize) / 2, goldIconSize, goldIconSize),
-                Color.White);
+        if (_theme?.PanelCurrency != null)
+            NineSlice.DrawStretched(spriteBatch, _theme.PanelCurrency, goldPanelRect);
 
         spriteBatch.DrawString(_font, goldStr,
-            new Vector2(barX + 6 + goldIconSpace, nextBarY + (goldPanelH - (int)goldSize.Y) / 2),
+            new Vector2(barX + 34, nextBarY + (goldPanelH - (int)goldSize.Y) / 2),
             Color.Gold);
 
         // === XP bar above hotbar ===
@@ -336,19 +331,18 @@ public class HUD
     public static void DrawQuestTracker(SpriteBatch sb, SpriteFont font, Texture2D pixel,
         MainQuestState state, int screenWidth, UITheme? theme = null)
     {
-        const int PanelW = 200;
-        const int PanelH = 20;
+        const int PanelW = 210;
+        const int PanelH = 30;
         const int MarginRight = 12;
         const int MarginTop = 12;
         int panelX = screenWidth - PanelW - MarginRight;
         int panelY = MarginTop;
 
-        // Background panel (NineSlice when theme available, flat rect fallback)
-        if (theme?.PanelSmall != null)
+        // Background panel (stretched PanelTitle when available, flat rect fallback)
+        if (theme?.PanelTitle != null)
         {
-            NineSlice.Draw(sb, theme.PanelSmall,
-                new Rectangle(panelX - 1, panelY - 1, PanelW + 2, PanelH + 2),
-                theme.PanelSmallInsets);
+            NineSlice.DrawStretched(sb, theme.PanelTitle,
+                new Rectangle(panelX, panelY, PanelW, PanelH));
         }
         else
         {
@@ -356,7 +350,7 @@ public class HUD
             sb.Draw(pixel, new Rectangle(panelX, panelY, PanelW, PanelH), new Color(60, 40, 30));
         }
 
-        int textY = panelY + 3;
+        int textY = panelY + (PanelH - (int)font.MeasureString("A").Y) / 2;
 
         switch (state)
         {
@@ -418,6 +412,21 @@ public class HUD
         float progress = 1f - (remaining / max);
         int fillHeight = (int)(cdIconSize * progress);
         DrawRect(sb, iconX, iconY + (cdIconSize - fillHeight), cdIconSize, fillHeight, Color.Orange * 0.5f);
+    }
+
+    /// <summary>
+    /// Draws a small icon inside the bar's left icon square area.
+    /// The icon area spans 0..FillOffsetXNative pixels at native resolution.
+    /// </summary>
+    private void DrawBarIcon(SpriteBatch sb, int barX, int barY, Texture2D? icon, float barScale, int barH)
+    {
+        if (icon == null || icon.Width <= 1) return;
+        int areaW = barScale > 0 ? (int)(FillOffsetXNative * barScale) : 20;
+        int iconSz = Math.Min(14, Math.Min(areaW - 4, barH - 4));
+        if (iconSz < 4) return;
+        int ix = barX + (areaW - iconSz) / 2;
+        int iy = barY + (barH - iconSz) / 2;
+        sb.Draw(icon, new Rectangle(ix, iy, iconSz, iconSz), Color.White);
     }
 
     private void DrawRect(SpriteBatch sb, int x, int y, int w, int h, Color color)
