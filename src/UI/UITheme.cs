@@ -53,6 +53,8 @@ public sealed class UITheme
     // Glyph icons overlaid on buttons / stats
     public Texture2D IconPlus       { get; private set; } = null!;
     public Texture2D IconMinus      { get; private set; } = null!;
+    public Texture2D IconArrowRight { get; private set; } = null!;
+    public Texture2D IconSort       { get; private set; } = null!;
     public Texture2D IconAttack     { get; private set; } = null!;
     public Texture2D IconDefense    { get; private set; } = null!;
 
@@ -119,6 +121,8 @@ public sealed class UITheme
 
         IconPlus       = Load(device, "Icons/Icon_plus.png",             "IconPlus",       Color.White);
         IconMinus      = Load(device, "Icons/Icon_minus.png",            "IconMinus",      Color.White);
+        IconArrowRight = Load(device, "Icons/Icon_arrow-right.png",      "IconArrowRight", Color.White);
+        IconSort       = Load(device, "Icons/Icon_arrow-switch.png",     "IconSort",       Color.White);
         IconAttack     = Load(device, "Icons/System/UI_Icon_Sys_Attack.png",  "IconAttack",  new Color(220, 80, 60));
         IconDefense    = Load(device, "Icons/System/UI_Icon_Sys_Defense.png", "IconDefense", new Color(90, 140, 210));
 

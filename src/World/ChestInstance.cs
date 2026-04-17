@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Inventory;
+using stardew_medieval_v3.Player;
 
 namespace stardew_medieval_v3.World;
 
@@ -11,7 +12,9 @@ namespace stardew_medieval_v3.World;
 /// </summary>
 public class ChestInstance : Entity
 {
-    public const int DefaultCapacity = 12;
+    public const int DefaultCapacity = 8;
+    public const int MaxCapacity = 24;
+    private const int CollisionSidePadding = 2;
 
     private float _frameTimer;
     private bool _opening;
@@ -38,17 +41,17 @@ public class ChestInstance : Entity
     /// when approaching from top to bottom.
     /// </summary>
     public override Rectangle CollisionBox => new(
-        (int)WorldAnchor.X - 7,
-        (int)WorldAnchor.Y - 12,
-        14,
-        12);
+        (int)WorldAnchor.X - (ChestRegistry.ArtWidth + CollisionSidePadding * 2) / 2,
+        (int)WorldAnchor.Y - ChestRegistry.ArtHeightOpened,
+        ChestRegistry.ArtWidth + CollisionSidePadding * 2,
+        ChestRegistry.ArtHeightOpened);
 
     public ChestInstance(string instanceId, string variantId, Point tile, int capacity = DefaultCapacity)
     {
         InstanceId = instanceId;
         VariantId = variantId;
         Tile = tile;
-        Container = new ItemContainer(capacity);
+        Container = new ItemContainer(MathHelper.Clamp(capacity, 1, MaxCapacity));
         Frame = ChestRegistry.FrameClosed;
         Position = WorldAnchor;
     }
@@ -109,6 +112,9 @@ public class ChestInstance : Entity
 
     public Rectangle GetInteractionBounds() =>
         new(Tile.X * TileMap.TileSize, Tile.Y * TileMap.TileSize, TileMap.TileSize, TileMap.TileSize);
+
+    public bool ShouldDrawAfterPlayer(PlayerEntity player) =>
+        player.GetFootPosition().Y < WorldAnchor.Y;
 
     public override void Draw(SpriteBatch spriteBatch)
     {

@@ -12,19 +12,24 @@ namespace stardew_medieval_v3.UI;
 /// </summary>
 public class ContainerGridRenderer
 {
-    private const int SlotSize = 40;
+    private const int DefaultSlotSize = 40;
     private const int Padding = 0;
-    private const int IconPadding = 1;
 
     private readonly SpriteAtlas _atlas;
     private Texture2D _slotNormal = null!;
     private SpriteFont _font = null!;
 
-    public int SlotPixelSize => SlotSize;
+    public int SlotPixelSize { get; private set; }
 
-    public ContainerGridRenderer(SpriteAtlas atlas)
+    public ContainerGridRenderer(SpriteAtlas atlas, int slotPixelSize = DefaultSlotSize)
     {
         _atlas = atlas;
+        SlotPixelSize = slotPixelSize;
+    }
+
+    public void SetSlotPixelSize(int slotPixelSize)
+    {
+        SlotPixelSize = Math.Max(16, slotPixelSize);
     }
 
     public void LoadContent(GraphicsDevice device, SpriteFont font)
@@ -46,15 +51,28 @@ public class ContainerGridRenderer
 
     public void DrawGrid(SpriteBatch sb, IItemSlotCollection container, int columns, int offsetX, int offsetY, int? hiddenIndex = null)
     {
-        for (int i = 0; i < container.Capacity; i++)
+        DrawGrid(sb, container, columns, offsetX, offsetY, hiddenIndex, container.Capacity, container.Capacity);
+    }
+
+    public void DrawGrid(SpriteBatch sb, IItemSlotCollection container, int columns, int offsetX, int offsetY,
+        int? hiddenIndex, int visibleSlots, int enabledSlots)
+    {
+        for (int i = 0; i < visibleSlots; i++)
         {
             var rect = GetSlotRect(i, columns, offsetX, offsetY);
-            sb.Draw(_slotNormal, rect, Color.White);
+            bool enabled = i < enabledSlots;
+            sb.Draw(_slotNormal, rect, enabled ? Color.White : Color.DimGray * 0.55f);
+
+            if (!enabled)
+            {
+                sb.Draw(_slotNormal, new Rectangle(rect.X + 3, rect.Y + 3, rect.Width - 6, rect.Height - 6), Color.Black * 0.28f);
+                continue;
+            }
 
             if (hiddenIndex.HasValue && hiddenIndex.Value == i)
                 continue;
 
-            DrawSlotContents(sb, container.GetSlot(i), rect);
+            DrawSlotContents(sb, i < container.Capacity ? container.GetSlot(i) : null, rect);
         }
     }
 
@@ -63,14 +81,14 @@ public class ContainerGridRenderer
         if (mousePos.X < offsetX || mousePos.Y < offsetY)
             return -1;
 
-        int col = (mousePos.X - offsetX) / (SlotSize + Padding);
-        int row = (mousePos.Y - offsetY) / (SlotSize + Padding);
+        int col = (mousePos.X - offsetX) / (SlotPixelSize + Padding);
+        int row = (mousePos.Y - offsetY) / (SlotPixelSize + Padding);
         if (col < 0 || col >= columns || row < 0)
             return -1;
 
-        int localX = mousePos.X - offsetX - col * (SlotSize + Padding);
-        int localY = mousePos.Y - offsetY - row * (SlotSize + Padding);
-        if (localX > SlotSize || localY > SlotSize)
+        int localX = mousePos.X - offsetX - col * (SlotPixelSize + Padding);
+        int localY = mousePos.Y - offsetY - row * (SlotPixelSize + Padding);
+        if (localX > SlotPixelSize || localY > SlotPixelSize)
             return -1;
 
         int index = row * columns + col;
@@ -82,10 +100,10 @@ public class ContainerGridRenderer
         int col = index % columns;
         int row = index / columns;
         return new Rectangle(
-            offsetX + col * (SlotSize + Padding),
-            offsetY + row * (SlotSize + Padding),
-            SlotSize,
-            SlotSize);
+            offsetX + col * (SlotPixelSize + Padding),
+            offsetY + row * (SlotPixelSize + Padding),
+            SlotPixelSize,
+            SlotPixelSize);
     }
 
     public void DrawDraggedItem(SpriteBatch sb, ItemStack stack, Point dragPosition)
@@ -93,7 +111,7 @@ public class ContainerGridRenderer
         var def = ItemRegistry.Get(stack.ItemId);
         if (def == null) return;
 
-        int drawSize = SlotSize - 4;
+        int drawSize = SlotPixelSize - 4;
         var srcRect = _atlas.GetRect(def.SpriteId);
         var destRect = new Rectangle(
             dragPosition.X - drawSize / 2,
@@ -120,11 +138,12 @@ public class ContainerGridRenderer
         if (def == null) return;
 
         var srcRect = _atlas.GetRect(def.SpriteId);
+        int iconPadding = Math.Max(3, SlotPixelSize / 10);
         var destRect = new Rectangle(
-            slotRect.X + IconPadding,
-            slotRect.Y + IconPadding,
-            slotRect.Width - IconPadding * 2,
-            slotRect.Height - IconPadding * 2);
+            slotRect.X + iconPadding,
+            slotRect.Y + iconPadding,
+            slotRect.Width - iconPadding * 2,
+            slotRect.Height - iconPadding * 2);
         sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White);
 
         if (stack.Quantity > 1)

@@ -14,6 +14,9 @@ public class ItemDefinition
     /// <summary>Display name shown in UI.</summary>
     public string Name { get; set; } = "";
 
+    /// <summary>Short tooltip text shown in compact UI surfaces.</summary>
+    public string Description { get; set; } = "";
+
     /// <summary>Item category.</summary>
     public ItemType Type { get; set; }
 

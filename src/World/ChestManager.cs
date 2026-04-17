@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Inventory;
+using stardew_medieval_v3.Player;
 
 namespace stardew_medieval_v3.World;
 
@@ -31,6 +32,20 @@ public class ChestManager
     {
         foreach (var chest in _chests)
             chest.Draw(spriteBatch);
+    }
+
+    public void DrawBeforePlayer(SpriteBatch spriteBatch, PlayerEntity player)
+    {
+        foreach (var chest in _chests)
+            if (!chest.ShouldDrawAfterPlayer(player))
+                chest.Draw(spriteBatch);
+    }
+
+    public void DrawAfterPlayer(SpriteBatch spriteBatch, PlayerEntity player)
+    {
+        foreach (var chest in _chests)
+            if (chest.ShouldDrawAfterPlayer(player))
+                chest.Draw(spriteBatch);
     }
 
     public ChestInstance? GetChestAtFacingTile(Point facingTile)

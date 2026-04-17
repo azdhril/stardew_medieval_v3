@@ -375,7 +375,7 @@ public class DungeonScene : GameplayScene
 
     protected override void OnDrawWorld(SpriteBatch sb, Rectangle viewArea)
     {
-        _chestManager.Draw(sb);
+        _chestManager.DrawBeforePlayer(sb, Player);
         foreach (var door in _doors)
             door.DrawFallback(sb, Pixel);
         foreach (var drop in _itemDrops)
@@ -391,6 +391,11 @@ public class DungeonScene : GameplayScene
             EnemyHealthBar.Draw(sb, Pixel, _boss.Position, _boss.Data.Height, _boss.HP, _boss.MaxHP);
         }
         _projectiles.Draw(sb, Pixel);
+    }
+
+    protected override void OnDrawWorldAfterPlayer(SpriteBatch sb, Rectangle viewArea)
+    {
+        _chestManager.DrawAfterPlayer(sb, Player);
     }
 
     protected override void OnDrawScreen(SpriteBatch sb, int viewportWidth, int viewportHeight)

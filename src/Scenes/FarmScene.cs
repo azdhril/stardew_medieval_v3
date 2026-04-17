@@ -478,7 +478,7 @@ public class FarmScene : GameplayScene
     {
         _gridManager.DrawOverlays(sb, viewArea);
         _gridManager.DrawCrops(sb, viewArea);
-        _chestManager.Draw(sb);
+        _chestManager.DrawBeforePlayer(sb, Player);
         foreach (var resource in _resourceManager.All)
             resource.DrawBeforePlayer(sb, Player);
         foreach (var drop in _itemDrops)
@@ -497,6 +497,8 @@ public class FarmScene : GameplayScene
 
     protected override void OnDrawWorldAfterPlayer(SpriteBatch sb, Rectangle viewArea)
     {
+        _chestManager.DrawAfterPlayer(sb, Player);
+
         foreach (var resource in _resourceManager.All)
             resource.DrawAfterPlayer(sb, Player);
 
