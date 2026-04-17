@@ -40,10 +40,10 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 ### Dungeon
 
-- [ ] **DNG-01**: 1 dungeon completa com 5-8 salas conectadas (linear com salas opcionais)
-- [ ] **DNG-02**: Progressao de sala: matar todos inimigos para abrir porta para proxima sala
-- [ ] **DNG-03**: Baus de tesouro em salas opcionais com loot aleatorio
-- [ ] **DNG-04**: Boss room como sala final da dungeon
+- [x] **DNG-01**: 1 dungeon completa com 5-8 salas conectadas (linear com salas opcionais)
+- [x] **DNG-02**: Progressao de sala: matar todos inimigos para abrir porta para proxima sala
+- [x] **DNG-03**: Baus de tesouro em salas opcionais com loot aleatorio
+- [x] **DNG-04**: Boss room como sala final da dungeon
 
 ### World & Navigation
 
@@ -61,23 +61,23 @@ Requirements para o v1 jogavel. Cada um mapeia para fases do roadmap.
 
 ### Progression
 
-- [ ] **PRG-01**: Sistema de XP -- matar inimigos da XP, threshold crescente por level
-- [ ] **PRG-02**: Level up concede +HP, +damage, +stamina (10-15 levels para conteudo v1)
-- [ ] **PRG-03**: Sistema de gold -- moeda dropa de inimigos e vem de venda de crops/itens
-- [ ] **PRG-04**: Consequencia de morte: perde 10% do gold + chance aleatoria de perder 1 item do inventario/equipamento, respawn na fazenda
+- [x] **PRG-01**: Sistema de XP -- matar inimigos da XP, threshold crescente por level
+- [x] **PRG-02**: Level up concede +HP, +damage, +stamina (10-15 levels para conteudo v1)
+- [x] **PRG-03**: Sistema de gold -- moeda dropa de inimigos e vem de venda de crops/itens
+- [x] **PRG-04**: Consequencia de morte: perde 10% do gold + chance aleatoria de perder 1 item do inventario/equipamento, respawn na fazenda
 
 ### src/UI/HUD
 
-- [ ] **HUD-01**: HUD grafica com sprites: barra de HP, barra de stamina, hotbar com icones, relogio/dia
+- [x] **HUD-01**: HUD grafica com sprites: barra de HP, barra de stamina, hotbar com icones, relogio/dia
 - [x] **HUD-02**: Inventory UI abrivel (tecla I ou similar) mostrando grid + equipment slots
 - [x] **HUD-03**: Shop UI com lista de itens, precos, botoes comprar/vender
-- [ ] **HUD-04**: Quest tracker simples mostrando missao ativa e objetivo atual
+- [x] **HUD-04**: Quest tracker simples mostrando missao ativa e objetivo atual
 - [x] **HUD-05**: Caixa de dialogo estilizada com retrato do NPC e texto com avanco
 
 ### Save System
 
-- [ ] **SAV-01**: Save/load estendido para inventario, equipment, XP/level, gold, quest state, scene atual
-- [ ] **SAV-02**: Migracao de versao do save file para nao quebrar saves existentes
+- [x] **SAV-01**: Save/load estendido para inventario, equipment, XP/level, gold, quest state, scene atual
+- [x] **SAV-02**: Migracao de versao do save file para nao quebrar saves existentes
 
 ## v2 Requirements
 
@@ -164,18 +164,18 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 | NPC-04 | Phase 4 | Complete |
 | HUD-03 | Phase 4 | Complete |
 | HUD-05 | Phase 4 | Complete |
-| DNG-01 | Phase 5 | Pending |
-| DNG-02 | Phase 5 | Pending |
-| DNG-03 | Phase 5 | Pending |
-| DNG-04 | Phase 5 | Pending |
-| PRG-01 | Phase 6 | Pending |
-| PRG-02 | Phase 6 | Pending |
-| PRG-03 | Phase 6 | Pending |
-| PRG-04 | Phase 6 | Pending |
-| HUD-01 | Phase 6 | Pending |
-| HUD-04 | Phase 6 | Pending |
-| SAV-01 | Phase 6 | Pending |
-| SAV-02 | Phase 6 | Pending |
+| DNG-01 | Phase 5 | Satisfied |
+| DNG-02 | Phase 5 | Satisfied |
+| DNG-03 | Phase 5 | Satisfied |
+| DNG-04 | Phase 5 | Satisfied |
+| PRG-01 | Phase 6 | Satisfied |
+| PRG-02 | Phase 6 | Satisfied |
+| PRG-03 | Phase 6 | Satisfied |
+| PRG-04 | Phase 6 | Satisfied |
+| HUD-01 | Phase 6 | Satisfied |
+| HUD-04 | Phase 6 | Satisfied |
+| SAV-01 | Phase 6 | Satisfied |
+| SAV-02 | Phase 6 | Satisfied |
 
 **Coverage:**
 - v1 requirements: 42 total
@@ -184,4 +184,4 @@ Diferidos para futuras releases. Nao estao no roadmap atual.
 
 ---
 *Requirements defined: 2026-04-10*
-*Last updated: 2026-04-12 after Phase 3.1 verification backfill*
+*Last updated: 2026-04-17 after v1.0 re-audit — all 42 v1 requirements satisfied (Phase 5 dungeon + Phase 6 progression/polish traceability resynced)*
