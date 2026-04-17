@@ -1,9 +1,14 @@
 ---
 phase: 04-world-npcs
 verified: 2026-04-12T22:08:53Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified
 overrides_applied: 0
+re_verification:
+  previous_status: human_needed
+  signed_off: 2026-04-17
+  signed_off_by: user (Renato Guedes)
+  note: "All 8 human_verification tests confirmed in-game during play sessions after Phase 04. Fade transitions, dialogue rendering, HUD quest tracker, shop buy/sell flow, quest-state branching, and save round-trip all verified. Residual UX gaps (scroll, mouse-nav, save persistence wiring) were scoped into Phase 04.1 and closed there."
 deferred:
   - truth: "Player can walk to edge of farm and transition to dungeon entrance"
     addressed_in: "Phase 5"

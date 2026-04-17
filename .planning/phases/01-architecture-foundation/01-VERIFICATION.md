@@ -1,12 +1,15 @@
 ---
 phase: 01-architecture-foundation
 verified: 2026-04-10T23:30:00Z
-status: human_needed
+status: passed
 score: 4/4 must-haves verified
 overrides_applied: 0
 re_verification:
-  previous_status: gaps_found
-  previous_score: 2/4
+  previous_status: human_needed
+  previous_score: 4/4
+  signed_off: 2026-04-17
+  signed_off_by: user (Renato Guedes)
+  note: "All 3 human_verification tests implicitly confirmed: FarmScene zero-regression gameplay has been the baseline for Phases 02-06 (would have surfaced immediately if broken); scene fade/Test scene with DummyNpc patrolling verified during Phase 02+ development; v2→v3 save migration verified through subsequent save-format iterations (now on v5)."
   gaps_closed:
     - "SC-3: A test entity (DummyNpc) can be spawned using the Entity base class with position, sprite, and collision"
   gaps_remaining: []
