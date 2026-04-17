@@ -134,8 +134,8 @@ public sealed class UITheme
         // HUD icons and XP progress bar
         GoldIcon    = Load(device, "Icons/System/UI_Icon_Sys_Gold.png",                "GoldIcon",    Color.Gold);
         ClockIcon   = Load(device, "Icons/General/UI_Icon_Hourglass.png",              "ClockIcon",   Color.White);
-        XPBarBg     = Load(device, "Bars/Progress/UI_Progress_Style1_Bg.png",          "XPBarBg",     new Color(40, 30, 25));
-        XPBarFill   = Load(device, "Bars/Progress/UI_Progress_Style1_Fill_Yellow.png", "XPBarFill",   Color.Gold);
+        XPBarBg     = Load(device, "Bars/Status_no_icon_slot/UI_StatusBar_Bg_No_icon.png", "XPBarBg",   new Color(40, 30, 25));
+        XPBarFill   = Load(device, "Bars/Status_no_icon_slot/UI_StatusBar_Fill_Gray.png",  "XPBarFill", Color.Gold);
         PanelSmall  = Load(device, "Panel/UI_Panel_Title.png",                         "PanelSmall",  new Color(60, 40, 30));
         IconHeart   = Load(device, "Icons/Icon_heart.png",                             "IconHeart",   Color.Red);
         IconMana    = Load(device, "Icons/Icon_sparkles.png",                          "IconMana",    Color.Blue);
