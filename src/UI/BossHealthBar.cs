@@ -100,8 +100,8 @@ public static class BossHealthBar
 
             var nameSize = font.MeasureString(bossName);
             float nameX = barX + (bgW - nameSize.X) / 2f;
-            float nameY = barY + bgH + 2;
-            spriteBatch.DrawString(font, bossName, new Vector2(nameX, nameY), Color.White);
+            float nameY = barY + (bgH - nameSize.Y) / 2.4f;
+            spriteBatch.DrawString(font, bossName, new Vector2(nameX, nameY), Color.White * 0.7f);
         }
         else
         {

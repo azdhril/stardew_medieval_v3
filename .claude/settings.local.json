@@ -28,7 +28,18 @@
       "Skill(gsd-quick:*)",
       "Bash(py -c ' *)",
       "Bash(powershell -Command '\\(New-Object System.Drawing.Text.InstalledFontCollection\\).Families | Where-Object { $_.Name -like '\\\\''*Noto*'\\\\'' } | Select-Object -ExpandProperty Name')",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(git -C \".claude/worktrees/agent-ac50911d\" status)",
+      "Bash(git -C \".claude/worktrees/agent-ac50911d\" log --oneline -5)",
+      "Bash(git -C \".claude/worktrees/agent-ac50911d\" diff HEAD -- .claude/settings.local.json .planning/STATE.md)",
+      "Bash(git worktree *)",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_Popup.png'\\); print\\(f'Size: {img.size}, Mode: {img.mode}'\\)\")",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/Player/player_south.png'\\); print\\(f'Player: {img.size}'\\)\")",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/Player/player_spritesheet.png'\\); print\\(f'Player spritesheet: {img.size}'\\)\")",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_Popup.png'\\); print\\(f'Popup atual: {img.size}'\\); img2 = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupBig.png'\\); print\\(f'PopupBig: {img2.size}'\\)\")",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_Popup.png'\\); print\\(f'Popup atual: {img.size}'\\); img2 = Image.open\\('assets/Sprites/System/UI Elements/Panel/_UI_Pane_Popup.png'\\); print\\(f'_Popup \\(backup?\\): {img2.size}'\\)\")",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupPixelArt.png'\\); print\\(f'Size: {img.size}, Mode: {img.mode}'\\)\")",
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupPixelArt.png'\\); print\\(f'Size: {img.size}'\\)\")"
     ]
   }
 }
