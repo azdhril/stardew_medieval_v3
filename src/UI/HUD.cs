@@ -20,6 +20,7 @@ namespace stardew_medieval_v3.UI;
 public class HUD
 {
     private SpriteFont _font = null!;
+    private SpriteFont? _smallFont;
     private Texture2D _pixel = null!;
 
     private Texture2D? _barBg;
@@ -49,11 +50,17 @@ public class HUD
         _inventory = inventory;
     }
 
-    public void LoadContent(GraphicsDevice device, SpriteFont font)
+    public void LoadContent(GraphicsDevice device, SpriteFont font, Microsoft.Xna.Framework.Content.ContentManager? content = null)
     {
         _font = font;
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
+
+        if (content != null)
+        {
+            try { _smallFont = content.Load<SpriteFont>("NotoSerifSmall"); }
+            catch { Console.WriteLine("[HUD] NotoSerifSmall not found, using main font for bar text"); }
+        }
 
         try
         {
@@ -144,21 +151,38 @@ public class HUD
         var daySize = _font.MeasureString(dayText);
         int panelPad = 12;
         int iconSize = 16;
-        int clockPanelW = iconSize + 4 + (int)daySize.X + panelPad * 2;
-        int clockPanelH = Math.Max(iconSize, (int)daySize.Y) + panelPad + 8;
+        int contentW = iconSize + 4 + (int)daySize.X + panelPad * 2;
+        int contentH = Math.Max(iconSize, (int)daySize.Y) + panelPad + 8;
+        // 15% bigger, maintain texture aspect ratio (no distortion)
+        int clockPanelW = (int)(contentW * 1.15f);
+        int clockPanelH = (int)(contentH * 1.15f);
+        if (_theme?.PanelTitle != null && _theme.PanelTitle.Width > 1)
+        {
+            float texRatio = (float)_theme.PanelTitle.Width / _theme.PanelTitle.Height;
+            int ratioH = (int)(clockPanelW / texRatio);
+            if (ratioH >= clockPanelH)
+                clockPanelH = ratioH;
+            else
+                clockPanelW = (int)(clockPanelH * texRatio);
+        }
         var clockPanelRect = new Rectangle(8, 6, clockPanelW, clockPanelH);
 
         if (_theme?.PanelTitle != null)
             NineSlice.DrawStretched(spriteBatch, _theme.PanelTitle, clockPanelRect);
 
-        // Draw clock icon (if available and not a 1x1 fallback)
-        if (_theme?.ClockIcon != null && _theme.ClockIcon.Width > 1)
-            spriteBatch.Draw(_theme.ClockIcon,
-                new Rectangle(8 + panelPad, 6 + (clockPanelH - iconSize) / 2, iconSize, iconSize),
+        // Hourglass icon at left edge of background (25% bigger, nudged 30% right)
+        bool hasClockIcon = _theme?.ClockIcon != null && _theme.ClockIcon.Width > 1;
+        if (hasClockIcon)
+        {
+            int bigIcon = (int)(iconSize * 1.25f);
+            int iconLeftPad = 8 + (int)(iconSize * 0.45f);
+            spriteBatch.Draw(_theme!.ClockIcon,
+                new Rectangle(8 + iconLeftPad, 6 + (clockPanelH - bigIcon) / 2, bigIcon, bigIcon),
                 Color.White);
+        }
 
-        // Draw day text after icon
-        int clockTextX = 8 + panelPad + (_theme?.ClockIcon != null && _theme.ClockIcon.Width > 1 ? iconSize + 4 : 0);
+        // Day text centered in panel (independent of icon position)
+        int clockTextX = 8 + (clockPanelW - (int)daySize.X) / 2;
         int clockTextY = 6 + (clockPanelH - (int)daySize.Y) / 2;
         spriteBatch.DrawString(_font, dayText, new Vector2(clockTextX, clockTextY), Color.White);
 
@@ -181,10 +205,24 @@ public class HUD
             DrawRect(spriteBatch, barX, nextBarY, (int)(fallbackW * hpFill), fallbackH, Color.Red);
         }
         DrawBarIcon(spriteBatch, barX, nextBarY, _theme?.IconHeart, hpDrawn ? HpBarScale : 0, hpDrawn ? ScaledBgHeight(HpBarScale) : fallbackH);
-        nextBarY += (hpDrawn ? ScaledBgHeight(HpBarScale) : fallbackH) + barSpacing;
+        int hpBarW = hpDrawn && _barBg != null ? (int)(_barBg.Width * HpBarScale) : fallbackW;
+        int hpBarH = hpDrawn ? ScaledBgHeight(HpBarScale) : fallbackH;
+        int hpFillX = barX + (int)(FillOffsetXNative * HpBarScale);
+        int hpFillW = hpBarW - (int)(FillOffsetXNative * HpBarScale);
+        var barFont =  _font;
+        var smallBarFont = _smallFont ?? _font;
+        string hpText = $"{(int)_player.HP}/{(int)_player.MaxHP}";
+        var hpTextSz = barFont.MeasureString(hpText);
+        float hpTextY = nextBarY + (hpBarH - hpTextSz.Y) / 2 - hpBarH * 0.07f;
+        spriteBatch.DrawString(barFont, hpText,
+            new Vector2(hpFillX + (hpFillW - hpTextSz.X) / 2, hpTextY),
+            new Color(60, 5, 15)); // darker wine
+        nextBarY += hpBarH + barSpacing;
 
         // --- Mana Bar (placeholder -- no mana system yet, shows full blue) ---
         float manaFill = 1.0f;
+        float manaMax = 100f;
+        float manaCur = manaMax;
         bool manaDrawn = DrawSpriteBar(spriteBatch, barX, nextBarY, _barBg, _barFillMana, manaFill, ManaBarScale);
         if (!manaDrawn)
         {
@@ -193,7 +231,17 @@ public class HUD
             DrawRect(spriteBatch, barX, nextBarY, fallbackW, fallbackH, Color.Blue);
         }
         DrawBarIcon(spriteBatch, barX, nextBarY, _theme?.IconMana, manaDrawn ? ManaBarScale : 0, manaDrawn ? ScaledBgHeight(ManaBarScale) : fallbackH);
-        nextBarY += (manaDrawn ? ScaledBgHeight(ManaBarScale) : fallbackH) + barSpacing;
+        int manaBarW = manaDrawn && _barBg != null ? (int)(_barBg.Width * ManaBarScale) : fallbackW;
+        int manaBarH = manaDrawn ? ScaledBgHeight(ManaBarScale) : fallbackH;
+        int manaFillX = barX + (int)(FillOffsetXNative * ManaBarScale);
+        int manaFillW = manaBarW - (int)(FillOffsetXNative * ManaBarScale);
+        string manaText = $"{(int)manaCur}/{(int)manaMax}";
+        var manaTextSz = smallBarFont.MeasureString(manaText);
+        float manaTextY = nextBarY + (manaBarH - manaTextSz.Y) / 2 - manaBarH * 0.07f;
+        spriteBatch.DrawString(smallBarFont, manaText,
+            new Vector2(manaFillX + (manaFillW - manaTextSz.X) / 2, manaTextY),
+            new Color(140, 200, 245)); // sky blue
+        nextBarY += manaBarH + barSpacing;
 
         // --- Stamina Bar ---
         float staFill = _stats.CurrentStamina / _stats.MaxStamina;
@@ -205,22 +253,51 @@ public class HUD
             DrawRect(spriteBatch, barX, nextBarY, (int)(fallbackW * staFill), fallbackH, barColor);
         }
         DrawBarIcon(spriteBatch, barX, nextBarY, _theme?.IconStamina, staDrawn ? StaminaBarScale : 0, staDrawn ? ScaledBgHeight(StaminaBarScale) : fallbackH);
-        nextBarY += (staDrawn ? ScaledBgHeight(StaminaBarScale) : fallbackH) + barSpacing + 2;
+        int staBarW = staDrawn && _barBg != null ? (int)(_barBg.Width * StaminaBarScale) : fallbackW;
+        int staBarH = staDrawn ? ScaledBgHeight(StaminaBarScale) : fallbackH;
+        int staFillX = barX + (int)(FillOffsetXNative * StaminaBarScale);
+        int staFillW = staBarW - (int)(FillOffsetXNative * StaminaBarScale);
+        string staText = $"{(int)_stats.CurrentStamina}/{(int)_stats.MaxStamina}";
+        var staTextSz = smallBarFont.MeasureString(staText);
+        float staTextY = nextBarY + (staBarH - staTextSz.Y) / 2 - staBarH * 0.07f;
+        spriteBatch.DrawString(smallBarFont, staText,
+            new Vector2(staFillX + (staFillW - staTextSz.X) / 2, staTextY),
+            new Color(55, 75, 30)); // dark moss green
+        nextBarY += staBarH + barSpacing + 2;
 
-        // === Gold label with stretched PanelCurrency (has built-in coin pouch) ===
+        // === Gold label with coin icon + stretched PanelCurrency ===
         int gold = _inventory?.Gold ?? 0;
-        string goldStr = gold.ToString();
+        string goldStr = gold.ToString("N0");  // 1,000  100,000  1,000,000
         var goldSize = _font.MeasureString(goldStr);
-        int goldPanelW = (int)goldSize.X + 52;
-        int goldPanelH = 30;
+        int coinIconSz = 18;
+        int goldPanelW = coinIconSz + 6 + (int)goldSize.X + 32;
+        int goldPanelH = 34;
+        // Maintain texture aspect ratio to reduce distortion
+        if (_theme?.PanelCurrency != null && _theme.PanelCurrency.Width > 1)
+        {
+            float texRatio = (float)_theme.PanelCurrency.Width / _theme.PanelCurrency.Height;
+            int ratioH = (int)(goldPanelW / texRatio);
+            if (ratioH >= goldPanelH)
+                goldPanelH = ratioH;
+            else
+                goldPanelW = (int)(goldPanelH * texRatio);
+        }
         var goldPanelRect = new Rectangle(barX, nextBarY, goldPanelW, goldPanelH);
 
         if (_theme?.PanelCurrency != null)
             NineSlice.DrawStretched(spriteBatch, _theme.PanelCurrency, goldPanelRect);
 
+        // Coin icon
+        int coinX = barX + 8;
+        int coinY = nextBarY + (goldPanelH - coinIconSz) / 2;
+        if (_theme?.GoldIcon != null && _theme.GoldIcon.Width > 1)
+            spriteBatch.Draw(_theme.GoldIcon, new Rectangle(coinX, coinY, coinIconSz, coinIconSz), Color.White);
+
+        // Gold text (cream color, nudged 30% right from coin)
+        int goldTextNudge = (int)(coinIconSz * 0.30f);
         spriteBatch.DrawString(_font, goldStr,
-            new Vector2(barX + 34, nextBarY + (goldPanelH - (int)goldSize.Y) / 2),
-            Color.Gold);
+            new Vector2(coinX + coinIconSz + 4 + goldTextNudge, nextBarY + (goldPanelH - (int)goldSize.Y) / 2),
+            new Color(255, 248, 220));
 
         // === XP bar above hotbar ===
         DrawXPBar(spriteBatch, screenWidth, screenHeight);
@@ -248,7 +325,7 @@ public class HUD
         int hotbarTopY = screenHeight - hotbarSlotSize - hotbarBottomMargin;
 
         int xpBarH = 10;
-        int xpBarY = hotbarTopY - xpBarH - 6;
+        int xpBarY = hotbarTopY - xpBarH - 18;
         int xpBarX = hotbarStartX - 8;
         int xpBarW = hotbarWidth + 16;
 
@@ -331,8 +408,8 @@ public class HUD
     public static void DrawQuestTracker(SpriteBatch sb, SpriteFont font, Texture2D pixel,
         MainQuestState state, int screenWidth, UITheme? theme = null)
     {
-        const int PanelW = 210;
-        const int PanelH = 30;
+        const int PanelW = 315;
+        const int PanelH = 45;
         const int MarginRight = 12;
         const int MarginTop = 12;
         int panelX = screenWidth - PanelW - MarginRight;
@@ -358,7 +435,7 @@ public class HUD
             {
                 string s = "Quest: (none)";
                 var size = font.MeasureString(s);
-                float x = panelX + PanelW - size.X - 6;
+                float x = panelX + (PanelW - size.X) / 2f;
                 sb.DrawString(font, s, new Vector2(x, textY), Color.Gray * 0.7f);
                 break;
             }
@@ -368,7 +445,8 @@ public class HUD
                 string obj = " Clear the Dungeon";
                 var pfxSize = font.MeasureString(prefix);
                 var objSize = font.MeasureString(obj);
-                float totalX = panelX + PanelW - (pfxSize.X + objSize.X) - 6;
+                float totalW = pfxSize.X + objSize.X;
+                float totalX = panelX + (PanelW - totalW) / 2f;
                 sb.DrawString(font, prefix, new Vector2(totalX, textY), Color.Gold);
                 sb.DrawString(font, obj, new Vector2(totalX + pfxSize.X, textY), Color.White);
                 break;
@@ -381,7 +459,8 @@ public class HUD
                 var pfxSize = font.MeasureString(prefix);
                 var objSize = font.MeasureString(obj);
                 var chkSize = font.MeasureString(check);
-                float totalX = panelX + PanelW - (pfxSize.X + objSize.X + chkSize.X) - 6;
+                float totalW = pfxSize.X + objSize.X + chkSize.X;
+                float totalX = panelX + (PanelW - totalW) / 2f;
                 sb.DrawString(font, prefix, new Vector2(totalX, textY), Color.Gold);
                 sb.DrawString(font, obj, new Vector2(totalX + pfxSize.X, textY), Color.White);
                 sb.DrawString(font, check, new Vector2(totalX + pfxSize.X + objSize.X, textY), Color.LimeGreen);
@@ -422,7 +501,7 @@ public class HUD
     {
         if (icon == null || icon.Width <= 1) return;
         int areaW = barScale > 0 ? (int)(FillOffsetXNative * barScale) : 20;
-        int iconSz = Math.Min(14, Math.Min(areaW - 4, barH - 4));
+        int iconSz = Math.Min(16, Math.Min(areaW - 2, barH - 2));
         if (iconSz < 4) return;
         int ix = barX + (areaW - iconSz) / 2;
         int iy = barY + (barH - iconSz) / 2;

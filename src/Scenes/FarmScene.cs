@@ -174,7 +174,7 @@ public class FarmScene : GameplayScene
 
         // HUD
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat, _inventory);
-        _hud.LoadContent(device, Font);
+        _hud.LoadContent(device, Font, Services.Content);
         _hud.SetQuest(_mainQuest);
         _hud.SetProgression(Services.Progression);
 
@@ -553,7 +553,7 @@ public class FarmScene : GameplayScene
             _chestPrompt.Draw(sb, Font, Pixel, screenPos, "Press E to open chest");
         }
 
-        _minimap.Draw(sb, new Rectangle(viewportWidth - 174, 38, 160, 160));
+        _minimap.Draw(sb, new Rectangle(viewportWidth - 174, 86, 160, 160));
 
         if (_boss != null && _boss.IsAlive)
         {

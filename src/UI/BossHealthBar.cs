@@ -17,6 +17,7 @@ public static class BossHealthBar
     private static Texture2D? _barBg;
     private static Texture2D? _barFillHP;
     private static Texture2D? _pixel;
+    private static Texture2D? _iconAlert;
 
     private const int FillOffsetXNative = 58;
     private const int FillOffsetYNative = 13;
@@ -45,6 +46,16 @@ public static class BossHealthBar
         {
             Console.WriteLine($"[BossHealthBar] Failed to load UI_StatusBar_Fill_HP: {ex.Message}");
         }
+
+        try
+        {
+            using var iconStream = File.OpenRead("assets/Sprites/System/UI Elements/Icons/Icon_alert-fill.png");
+            _iconAlert = Texture2D.FromStream(device, iconStream);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[BossHealthBar] Failed to load Icon_alert-fill: {ex.Message}");
+        }
     }
 
     public static void Draw(SpriteBatch spriteBatch, Texture2D pixel, SpriteFont font,
@@ -62,6 +73,16 @@ public static class BossHealthBar
             int barY = TopMargin;
 
             spriteBatch.Draw(_barBg, new Rectangle(barX, barY, bgW, bgH), Color.White);
+
+            // Draw alert icon in the square area left of the fill
+            int areaW = (int)(FillOffsetXNative * Scale);
+            if (_iconAlert != null && _iconAlert.Width > 1)
+            {
+                int iconSz = Math.Min(30, Math.Min(areaW - 4, bgH - 4));
+                int ix = barX + (areaW - iconSz) / 2;
+                int iy = barY + (bgH - iconSz) / 2;
+                spriteBatch.Draw(_iconAlert, new Rectangle(ix, iy, iconSz, iconSz), Color.White);
+            }
 
             int padX = (int)(FillOffsetXNative * Scale);
             int padY = (int)(FillOffsetYNative * Scale);

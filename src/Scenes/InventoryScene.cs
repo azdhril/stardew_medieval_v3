@@ -16,8 +16,8 @@ namespace stardew_medieval_v3.Scenes;
 /// </summary>
 public class InventoryScene : Scene
 {
-    private const int PanelWidth = 420;
-    private const int PanelHeight = 260;
+    private const int PanelWidth = 735;
+    private const int PanelHeight = 447;
 
     private readonly InventoryManager _inventory;
     private readonly SpriteAtlas _atlas;
@@ -112,10 +112,10 @@ public class InventoryScene : Scene
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
-        // Window frame (9-slice)
-        NineSlice.Draw(spriteBatch, _theme.PanePopup,
+        // Window frame (uniform pixel scale, not 9-slice)
+        spriteBatch.Draw(_theme.PanePopup,
             new Rectangle(panelX, panelY, PanelWidth, PanelHeight),
-            _theme.PanePopupInsets);
+            Color.White);
 
         // Title plaque (9-slice, horizontal) centered at the top of the panel
         const int titlePlaqueW = 180;

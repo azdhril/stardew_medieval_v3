@@ -78,7 +78,7 @@ public sealed class UITheme
 
     // 9-slice insets (tune these during visual review; start with conservative defaults
     // suitable for typical pixel-art medieval UI assets).
-    public NineSlice.Insets PanePopupInsets      = NineSlice.Insets.Uniform(16);
+    public NineSlice.Insets PanePopupInsets      = new(11, 28, 11, 31);
     public NineSlice.Insets PanelTitleInsets     = new(32, 24, 32, 24);
     public NineSlice.Insets CommonBtnInsets      = NineSlice.Insets.Uniform(12);
     public NineSlice.Insets TabInsets            = new(12, 8, 12, 4);
@@ -99,7 +99,7 @@ public sealed class UITheme
     public void LoadContent(GraphicsDevice device)
     {
         if (_loaded) return;
-        PanePopup      = Load(device, "Panel/UI_Pane_Popup.png",         "PanePopup",      new Color(60, 40, 30));
+        PanePopup      = Load(device, "Panel/UI_Pane_PopupPixelArt.png",  "PanePopup",      new Color(60, 40, 30));
         PanelTitle     = Load(device, "Panel/UI_Panel_Title.png",        "PanelTitle",     new Color(90, 60, 45));
         PanelThumbnail = Load(device, "Panel/UI_Panel_Thumbnail.png",    "PanelThumbnail", new Color(40, 30, 25));
         SlotSelected   = Load(device, "Slot/UI_Slot_Selected.png",       "SlotSelected",   Color.Gold);

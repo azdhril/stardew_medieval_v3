@@ -14,8 +14,8 @@ namespace stardew_medieval_v3.Scenes;
 /// </summary>
 public class ChestScene : Scene
 {
-    private const int PanelWidth = 470;
-    private const int PanelHeight = 290;
+    private const int PanelWidth = 735;
+    private const int PanelHeight = 447;
     private const int PlayerColumns = 5;
     private const int ChestColumns = 4;
     private const int ButtonWidth = 100;
@@ -120,9 +120,10 @@ public class ChestScene : Scene
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
-        NineSlice.Draw(spriteBatch, _theme.PanePopup,
+        // Window frame (uniform pixel scale, not 9-slice)
+        spriteBatch.Draw(_theme.PanePopup,
             new Rectangle(panelX, panelY, PanelWidth, PanelHeight),
-            _theme.PanePopupInsets);
+            Color.White);
 
         // Title plaque — centered hanging banner above the panel top edge.
         const int titlePlaqueW = 200;

@@ -27,3 +27,10 @@
 /processorParam:TextureFormat=Compressed
 /build:NotoSerif.spritefont
 
+#begin NotoSerifSmall.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:NotoSerifSmall.spritefont
+

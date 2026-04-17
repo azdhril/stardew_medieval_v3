@@ -459,8 +459,8 @@ public class ShopPanel
         // Full-screen dim — covers the entire real viewport, not a fixed 960x540.
         sb.Draw(pixel, new Rectangle(0, 0, viewportWidth, viewportHeight), Dim);
 
-        // Panel chrome (9-slice frame replaces outline + solid fill)
-        NineSlice.Draw(sb, theme.PanePopup, _panelRect, theme.PanePopupInsets);
+        // Panel chrome (uniform pixel scale, not 9-slice)
+        sb.Draw(theme.PanePopup, _panelRect, Color.White);
 
         // Header strip — title plaque + centered "Shop" label
         const int titlePlaqueW = 160;
