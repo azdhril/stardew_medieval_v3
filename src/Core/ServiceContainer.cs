@@ -56,6 +56,24 @@ public class ServiceContainer
     public GameState? GameState { get; set; }
 
     /// <summary>
+    /// One-shot scene restore target set by Game1.LoadContent from the loaded save.
+    /// FarmScene reads this at end of OnLoad and, if non-null and not "Farm", issues
+    /// a TransitionTo on the next frame. Consumer MUST set to null after consumption.
+    /// </summary>
+    public string? PendingRestoreScene { get; set; }
+
+    /// <summary>
+    /// One-shot restore position for a specific scene. Set by Game1 from
+    /// <see cref="GameState.PositionByScene"/> for whichever scene we're about to enter.
+    /// Consumed by GameplayScene.LoadContent when SceneName matches
+    /// <see cref="PendingRestoreSceneName"/>. Use <c>null</c> to indicate no restore.
+    /// </summary>
+    public Vector2? PendingRestorePosition { get; set; }
+
+    /// <summary>Name of the scene whose position is queued in <see cref="PendingRestorePosition"/>.</summary>
+    public string? PendingRestoreSceneName { get; set; }
+
+    /// <summary>
     /// Shared sprite atlas (item/tool icons). Set by FarmScene after atlas
     /// construction so overlay scenes (e.g. ShopOverlayScene) can render icons
     /// without rebuilding registrations.

@@ -10,7 +10,7 @@ namespace stardew_medieval_v3.Core;
 public class GameState
 {
     // === Existing base save data ===
-    public int SaveVersion { get; set; } = 9;
+    public int SaveVersion { get; set; } = 10;
     public int DayNumber { get; set; } = 1;
     public int Season { get; set; } // 0=Spring
     public float StaminaCurrent { get; set; } = 100f;
@@ -48,6 +48,26 @@ public class GameState
     public int MaxHP { get; set; } = 100;
     public int MaxStamina { get; set; } = 100;
     public int BaseDamageBonus { get; set; } = 0;
+
+    // === New (v10): per-scene position ===
+    /// <summary>
+    /// Per-scene player position snapshot. Populated by
+    /// <see cref="GameStateSnapshot.SaveNow"/> on save and consumed by
+    /// <c>GameplayScene.LoadContent</c> during boot-time restore so each scene
+    /// (Farm/Village/Castle/Shop) remembers its own last-known position.
+    /// Dungeon scenes are skipped — their coordinates are intra-run only.
+    /// </summary>
+    public Dictionary<string, ScenePosition> PositionByScene { get; set; } = new();
+}
+
+/// <summary>
+/// Serializable player position for a given scene. Stored in
+/// <see cref="GameState.PositionByScene"/> so each scene remembers its own spot.
+/// </summary>
+public class ScenePosition
+{
+    public float X { get; set; }
+    public float Y { get; set; }
 }
 
 public class FarmCellSaveData

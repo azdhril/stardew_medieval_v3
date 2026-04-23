@@ -11,7 +11,7 @@ namespace stardew_medieval_v3.Core;
 /// </summary>
 public static class SaveManager
 {
-    private const int CURRENT_SAVE_VERSION = 9;
+    private const int CURRENT_SAVE_VERSION = 10;
 
     private static string SavePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -138,6 +138,31 @@ public static class SaveManager
             state.BaseDamageBonus = level - 1;
             state.SaveVersion = 9;
             Console.WriteLine($"[SaveManager] Migrated v8->v9 (MaxHP={state.MaxHP}, MaxSta={state.MaxStamina}, DmgBonus={state.BaseDamageBonus})");
+        }
+
+        if (state.SaveVersion < 10)
+        {
+            // v9 -> v10: per-scene position. Legacy PlayerX/Y is implicitly Farm (boot
+            // always dumped the player on the farm in v9 and earlier), so seed Farm
+            // from those fields. Other scenes get spawn defaults on next entry.
+            state.PositionByScene ??= new();
+            if (!state.PositionByScene.ContainsKey("Farm"))
+            {
+                state.PositionByScene["Farm"] = new ScenePosition
+                {
+                    X = state.PlayerX,
+                    Y = state.PlayerY,
+                };
+            }
+            // Clamp a historical oddity: some v9 saves may have CurrentScene="Dungeon:*"
+            // from a crash mid-run. Those scenes aren't restorable — normalize to Farm.
+            if (!string.IsNullOrEmpty(state.CurrentScene) && state.CurrentScene.StartsWith("Dungeon:"))
+            {
+                Console.WriteLine($"[SaveManager] v9->v10: normalizing CurrentScene '{state.CurrentScene}' -> Farm");
+                state.CurrentScene = "Farm";
+            }
+            state.SaveVersion = 10;
+            Console.WriteLine($"[SaveManager] Migrated v9->v10 (PositionByScene seeded: Farm=({state.PlayerX},{state.PlayerY}))");
         }
     }
 }

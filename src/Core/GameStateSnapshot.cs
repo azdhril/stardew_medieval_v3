@@ -21,6 +21,24 @@ public static class GameStateSnapshot
     public static void SaveNow(ServiceContainer services, List<FarmCellSaveData>? farmCells = null)
     {
         var prior = services.GameState;
+
+        // v10: per-scene position. Clone prior dict, then overwrite the entry for the
+        // scene we're currently inside so each scene keeps its own last-known spot.
+        var positionByScene = new Dictionary<string, ScenePosition>(
+            prior?.PositionByScene ?? new Dictionary<string, ScenePosition>());
+        string currentScene = prior?.CurrentScene ?? "Farm";
+        // Skip dungeon scenes — their positions are intra-run only and the SceneName
+        // encodes a specific room (Dungeon:r1, Dungeon:boss) we don't want to land on at boot.
+        if (services.Player != null && !string.IsNullOrEmpty(currentScene)
+            && !currentScene.StartsWith("Dungeon:"))
+        {
+            positionByScene[currentScene] = new ScenePosition
+            {
+                X = services.Player.Position.X,
+                Y = services.Player.Position.Y,
+            };
+        }
+
         var state = new GameState
         {
             DayNumber = services.Time.DayNumber,
@@ -38,6 +56,7 @@ public static class GameStateSnapshot
             Chests = services.ChestManager?.GetSaveData() ?? prior?.Chests ?? new List<ChestSaveData>(),
             Resources = services.ResourceManager?.GetSaveData() ?? prior?.Resources ?? new List<ResourceSaveData>(),
             Dungeon = services.Dungeon?.ToSnapshot() ?? prior?.Dungeon ?? new World.DungeonStateSnapshot(),
+            PositionByScene = positionByScene,
         };
 
         // v9: progression stats
