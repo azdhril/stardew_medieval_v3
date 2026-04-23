@@ -242,7 +242,9 @@ public class FarmScene : GameplayScene
         }
 
         Services.GameState = _loadedState;
-        _loadedState.CurrentScene = "Farm";
+        // Note: GameplayScene.LoadContent writes Services.GameState.CurrentScene = SceneName
+        // on every entry, so restamping it here is both redundant and actively wrong during
+        // boot (would overwrite the save's CurrentScene before Game1 reads it). Removed in v10.
         InitializeChests(_loadedState);
         InitializeResources(_loadedState);
 
@@ -303,6 +305,37 @@ public class FarmScene : GameplayScene
         }
 
         Console.WriteLine("[FarmScene] Loaded");
+
+        // v10: boot-time scene restore. If save.CurrentScene was non-Farm, hop there now that
+        // Player/Inventory/Atlas/Hotbar are fully constructed. PushImmediate can't be used —
+        // we're still inside LoadContent; TransitionTo defers the swap to the fade-out point.
+        var restoreTarget = Services.PendingRestoreScene;
+        if (!string.IsNullOrEmpty(restoreTarget) && restoreTarget != "Farm")
+        {
+            Services.PendingRestoreScene = null; // one-shot
+            Scene? next = restoreTarget switch
+            {
+                "Village" => new VillageScene(Services, "RestoreSave"),
+                "Castle"  => new CastleScene(Services, "RestoreSave"),
+                "Shop"    => new ShopScene(Services, "RestoreSave"),
+                _         => null,
+            };
+            if (next != null)
+            {
+                Console.WriteLine($"[FarmScene] Boot restore: transitioning to {restoreTarget}");
+                Services.SceneManager.TransitionTo(next);
+            }
+            else
+            {
+                Console.WriteLine($"[FarmScene] Boot restore: unknown scene '{restoreTarget}', staying on Farm");
+                // PendingRestorePosition for Farm (if any) was already consumed by
+                // GameplayScene.LoadContent above — nothing else to do.
+            }
+        }
+        else
+        {
+            Services.PendingRestoreScene = null; // nothing to restore; clear so no stale state
+        }
     }
 
     protected override bool OnPreUpdate(float deltaTime, InputManager input)
@@ -731,7 +764,9 @@ public class FarmScene : GameplayScene
         state.PlayerY = Player.Position.Y;
         state.GameTime = Services.Time.GameTime;
         state.FarmCells = _gridManager.GetSaveData();
-        state.CurrentScene = "Farm";
+        // CurrentScene is maintained by GameplayScene.LoadContent on each entry —
+        // no need to re-stamp it here (removed in v10 so the single source of truth
+        // is the base class, enabling boot-time restore to non-Farm scenes).
         state.BossKilled = _loadedState?.BossKilled ?? false;
         state.Chests = _chestManager.GetSaveData();
         state.Resources = _resourceManager.GetSaveData();

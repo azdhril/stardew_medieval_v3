@@ -153,6 +153,20 @@ public abstract class GameplayScene : Scene
 
         Player.Position = GetSpawn(FromScene);
 
+        // v10: one-shot position restore on boot. If Game1 queued a restore for THIS scene,
+        // override the spawn. Subsequent entries (e.g. door transitions) skip this and use
+        // the normal GetSpawn marker.
+        if (Services.PendingRestorePosition.HasValue
+            && !string.IsNullOrEmpty(Services.PendingRestoreSceneName)
+            && string.Equals(Services.PendingRestoreSceneName, SceneName, StringComparison.Ordinal))
+        {
+            var restored = Services.PendingRestorePosition.Value;
+            Player.Position = restored;
+            Services.PendingRestorePosition = null;
+            Services.PendingRestoreSceneName = null;
+            Console.WriteLine($"[{SceneName}Scene] Boot position restored to ({restored.X},{restored.Y})");
+        }
+
         Services.Camera.Bounds = Map.GetWorldBounds();
         ApplyFitZoom();
         Services.Camera.SnapTo(Player.Position);

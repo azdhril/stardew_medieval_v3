@@ -112,6 +112,32 @@ public class Game1 : Game
         _services.ToggleFullscreen = ToggleFullscreen;
         _services.QuitGame = Exit;
 
+        // Pre-read save so boot routing knows which scene to land on.
+        // Always push FarmScene first (bootstrap): it constructs Player, Inventory, Atlas,
+        // Hotbar, Progression, Quest. If the saved scene is non-Farm (Village/Castle/Shop),
+        // FarmScene will TransitionTo it on the next frame after its OnLoad completes.
+        // Dungeon:* saved scenes are intentionally normalized to Farm during v9->v10 migration.
+        var bootSave = SaveManager.Load();
+        if (bootSave != null)
+        {
+            string target = bootSave.CurrentScene ?? "Farm";
+            if (string.IsNullOrEmpty(target) || target.StartsWith("Dungeon:"))
+                target = "Farm";
+
+            _services.PendingRestoreScene = target;
+            _services.PendingRestoreSceneName = target;
+            if (bootSave.PositionByScene != null
+                && bootSave.PositionByScene.TryGetValue(target, out var scenePos))
+            {
+                _services.PendingRestorePosition = new Vector2(scenePos.X, scenePos.Y);
+                Console.WriteLine($"[Game1] Boot restore queued: scene={target} pos=({scenePos.X},{scenePos.Y})");
+            }
+            else
+            {
+                Console.WriteLine($"[Game1] Boot restore queued: scene={target} (no position entry — will use spawn default)");
+            }
+        }
+
         // Push initial scene
         _sceneManager.PushImmediate(new FarmScene(_services));
     }
