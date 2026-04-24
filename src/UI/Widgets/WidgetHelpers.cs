@@ -1,3 +1,4 @@
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -78,5 +79,50 @@ internal static class WidgetHelpers
         sb.Draw(pixel, new Rectangle(rect.X, rect.Bottom - t, rect.Width, t), color);
         sb.Draw(pixel, new Rectangle(rect.X, rect.Y, t, rect.Height), color);
         sb.Draw(pixel, new Rectangle(rect.Right - t, rect.Y, t, rect.Height), color);
+    }
+
+    /// <summary>
+    /// Draw a panel/modal title centered inside <paramref name="rect"/>. The default look
+    /// mirrors the ChestScene + ShopPanel title style: letter-spacing 2px, faux-bold
+    /// (extra 1px-right pass in the same color), and a 1px-down shadow at 82% opacity.
+    /// Turn off <paramref name="shadow"/> for subtler sub-pane labels (e.g. "Bolsa" / "Baú").
+    /// </summary>
+    /// <param name="sb">Open sprite batch (PointClamp sampler).</param>
+    /// <param name="font">Pre-sized bold font (FontStashSharp — native size, no scaling).</param>
+    /// <param name="text">Title text.</param>
+    /// <param name="rect">Destination rect; text is centered horizontally and vertically inside.</param>
+    /// <param name="color">Title color (typically <see cref="Color.LightGoldenrodYellow"/>).</param>
+    /// <param name="letterSpacing">Extra pixels added between glyphs. 2f produces the medieval "spaced" look.</param>
+    /// <param name="shadow">When true, adds faux-bold + drop shadow for modal title headings.</param>
+    public static void DrawPanelTitle(
+        SpriteBatch sb,
+        SpriteFontBase font,
+        string text,
+        Rectangle rect,
+        Color color,
+        float letterSpacing = 2f,
+        bool shadow = true)
+    {
+        var raw = font.MeasureString(text);
+        float width = raw.X + (text.Length > 1 ? letterSpacing * (text.Length - 1) : 0f);
+        float height = raw.Y;
+        var pos = new Vector2(
+            rect.X + (rect.Width - width) / 2f,
+            rect.Y + (rect.Height - height) / 2f);
+
+        float x = pos.X;
+        for (int i = 0; i < text.Length; i++)
+        {
+            string c = text[i].ToString();
+            if (shadow)
+            {
+                // Drop shadow (+1px down, 82% opacity) — drawn first so main glyph sits on top.
+                sb.DrawString(font, c, new Vector2(x, pos.Y + 1), color * 0.82f);
+                // Faux-bold sibling (+1px right, same color) — thickens the glyph without needing a bolder weight.
+                sb.DrawString(font, c, new Vector2(x + 1, pos.Y), color);
+            }
+            sb.DrawString(font, c, new Vector2(x, pos.Y), color);
+            x += font.MeasureString(c).X + letterSpacing;
+        }
     }
 }

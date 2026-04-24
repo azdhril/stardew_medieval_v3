@@ -17,13 +17,13 @@ namespace stardew_medieval_v3.UI;
 /// </summary>
 public class InventoryGridRenderer
 {
-    private const int Columns = 5;
-    private const int Rows = 4;
-    private const int SlotSize = 40;
+    /// <summary>Column count for the inventory grid. Scenes compute this from pane width
+    /// each frame so the grid fills horizontally and wraps naturally as capacity grows.</summary>
+    public int Columns { get; set; } = 5;
+    public const int SlotSize = 60;
     private const int Padding = 0;
-    private const int IconPadding = 1;
-    private const int EquipSlotSize = 32;
-    private const int EquipGap = 4;
+    public const int EquipSlotSize = 67;
+    public const int EquipGap = 4;
     private const int EquipStride = EquipSlotSize + EquipGap;
 
     private static readonly EquipSlot[] EquipSlots = {
@@ -271,7 +271,11 @@ public class InventoryGridRenderer
 
     private void DrawGrid(SpriteBatch sb, int offsetX, int offsetY)
     {
-        for (int i = 0; i < InventoryManager.SlotCount; i++)
+        // Grid is dynamic: renders exactly _inventory.Capacity slots, wrapping every Columns
+        // into a new row. Lets future bag upgrades grow capacity (8 → 12 → 20 …) without
+        // relayouting the renderer — row count falls out of ceil(capacity / columns).
+        int capacity = _inventory.Capacity;
+        for (int i = 0; i < capacity; i++)
         {
             int col = i % Columns;
             int row = i / Columns;
@@ -290,14 +294,8 @@ public class InventoryGridRenderer
 
     private void DrawEquipment(SpriteBatch sb, int offsetX, int offsetY)
     {
-        // Thumbnail frame around the Tibia-style 3-column equipment cluster.
-        // Cluster is 3 * 32 + 2 * 4 = 104 wide, 4 * 32 + 3 * 4 = 140 tall.
-        // Frame wraps it with breathing room + reserves a strip below for ATK/DEF.
-        if (_theme != null)
-        {
-            var thumbRect = new Rectangle(offsetX - 14, offsetY - 12, 132, 196);
-            NineSlice.Draw(sb, _theme.PanelThumbnail, thumbRect, NineSlice.Insets.Uniform(12));
-        }
+        // Dark thumbnail frame removed — InventoryScene now wraps equipment in the cream
+        // PanelSlotPane (same visual as Bolsa/Baú in ChestScene) for a consistent look.
 
         for (int i = 0; i < EquipSlots.Length; i++)
         {
@@ -335,24 +333,9 @@ public class InventoryGridRenderer
             }
         }
 
-        // ATK / DEF stats row below the cluster: [iconAtk][n] [iconDef][n]
-        var (attack, defense) = EquipmentData.GetEquipmentStats(_inventory.GetAllEquipment());
-        int statsY = offsetY + 150;
-        string atkText = $"{attack:F0}";
-        string defText = $"{defense:F0}";
-
-        if (_theme != null)
-        {
-            sb.Draw(_theme.IconAttack, new Rectangle(offsetX + 8, statsY, 16, 16), Color.White);
-            sb.DrawString(_font, atkText, new Vector2(offsetX + 28, statsY + 1), new Color(255, 205, 100));
-            sb.Draw(_theme.IconDefense, new Rectangle(offsetX + 58, statsY, 16, 16), Color.White);
-            sb.DrawString(_font, defText, new Vector2(offsetX + 78, statsY + 1), new Color(190, 220, 255));
-        }
-        else
-        {
-            sb.DrawString(_font, $"ATK:{attack:F0}", new Vector2(offsetX, statsY), Color.OrangeRed);
-            sb.DrawString(_font, $"DEF:{defense:F0}", new Vector2(offsetX, statsY + 16), Color.CornflowerBlue);
-        }
+        // ATK/DEF badges moved to InventoryScene.Draw so they can anchor to the
+        // equipment pane's bottom-left / bottom-right corners instead of tracking
+        // the cluster origin. Keeps the renderer focused on the slot grid itself.
     }
 
     private static Texture2D? GetEquipWatermark(EquipSlot slot, UITheme theme) => slot switch
@@ -373,10 +356,13 @@ public class InventoryGridRenderer
         var def = ItemRegistry.Get(stack.ItemId);
         if (def == null) return;
 
+        // Proportional icon padding — matches ContainerGridRenderer so inventory and chest
+        // render items at the same relative inset inside their slot frames.
+        int iconPadding = Math.Max(3, slotRect.Width / 10);
         var srcRect = _atlas.GetRect(def.SpriteId);
         var destRect = new Rectangle(
-            slotRect.X + IconPadding, slotRect.Y + IconPadding,
-            slotRect.Width - IconPadding * 2, slotRect.Height - IconPadding * 2);
+            slotRect.X + iconPadding, slotRect.Y + iconPadding,
+            slotRect.Width - iconPadding * 2, slotRect.Height - iconPadding * 2);
         sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White);
 
         Color? rarityColor = def.Rarity switch
@@ -453,14 +439,15 @@ public class InventoryGridRenderer
 
         int col = relX / (SlotSize + Padding);
         int row = relY / (SlotSize + Padding);
-        if (col >= Columns || row >= Rows) return -1;
+        int maxRows = (_inventory.Capacity + Columns - 1) / Columns;
+        if (col >= Columns || row >= maxRows) return -1;
 
         int slotLocalX = relX - col * (SlotSize + Padding);
         int slotLocalY = relY - row * (SlotSize + Padding);
         if (slotLocalX > SlotSize || slotLocalY > SlotSize) return -1;
 
         int hitSlot = row * Columns + col;
-        return hitSlot < InventoryManager.SlotCount ? hitSlot : -1;
+        return hitSlot < _inventory.Capacity ? hitSlot : -1;
     }
 
     private EquipSlot? HitTestEquip(Point mousePos, int offsetX, int offsetY)
@@ -493,5 +480,12 @@ public class InventoryGridRenderer
     }
 
     public int GridWidth => Columns * SlotSize + (Columns - 1) * Padding;
-    public int GridHeight => Rows * SlotSize + (Rows - 1) * Padding;
+    public int GridHeight
+    {
+        get
+        {
+            int rows = (_inventory.Capacity + Columns - 1) / Columns;
+            return rows * SlotSize + Math.Max(0, rows - 1) * Padding;
+        }
+    }
 }

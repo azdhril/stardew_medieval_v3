@@ -524,9 +524,9 @@ public class ShopPanel
 
         NineSlice.Draw(sb, theme.PanePopup, _panelRect, theme.PanePopupInsets);
 
-        // Title
-        DrawCenteredTitle(sb, titleFont, "Shop",
-            new Rectangle(_panelX + 28, _panelY, PanelWidth - 56, 50),
+        // Title — shared helper in WidgetHelpers keeps every modal title identical.
+        WidgetHelpers.DrawPanelTitle(sb, titleFont, "Shop",
+            new Rectangle(_panelX + 28, _panelY - 3, PanelWidth - 56, 50),
             Color.LightGoldenrodYellow, 2f);
         int headerY = _panelY + 8;
 
@@ -594,26 +594,7 @@ public class ShopPanel
         }
     }
 
-    private static void DrawCenteredTitle(SpriteBatch sb, SpriteFontBase font, string text, Rectangle rect,
-        Color color, float letterSpacing)
-    {
-        var raw = font.MeasureString(text);
-        float width = raw.X + (text.Length > 1 ? letterSpacing * (text.Length - 1) : 0f);
-        float height = raw.Y;
-        var pos = new Vector2(
-            rect.X + (rect.Width - width) / 2f,
-            rect.Y + (rect.Height - height) / 2f);
-
-        float x = pos.X;
-        for (int i = 0; i < text.Length; i++)
-        {
-            string c = text[i].ToString();
-            sb.DrawString(font, c, new Vector2(x, pos.Y), color);
-            sb.DrawString(font, c, new Vector2(x + 1, pos.Y), color);
-            sb.DrawString(font, c, new Vector2(x, pos.Y + 1), color * 0.82f);
-            x += font.MeasureString(c).X + letterSpacing;
-        }
-    }
+    // Local DrawCenteredTitle removed — migrated to WidgetHelpers.DrawPanelTitle (quick 260424-…).
 
     private void DrawRow(SpriteBatch sb, SpriteFontBase font, Texture2D pixel, UITheme theme, int x, int y, int width, int rowIndex, bool hovered, int visibleSlot)
     {

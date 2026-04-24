@@ -13,8 +13,12 @@ namespace stardew_medieval_v3.Inventory;
 /// </summary>
 public class InventoryManager : IItemSlotCollection
 {
-    /// <summary>Total number of inventory slots.</summary>
-    public const int SlotCount = 20;
+    /// <summary>
+    /// Absolute upper bound on inventory size — equals the largest registered bag tier.
+    /// The backing slot array is sized to this so bag upgrades never need to resize memory;
+    /// <see cref="Capacity"/> is the currently-accessible subset.
+    /// </summary>
+    public static readonly int SlotCount = BagRegistry.MaxCapacity;
 
     /// <summary>Number of hotbar reference slots.</summary>
     public const int HotbarSize = 8;
@@ -26,7 +30,41 @@ public class InventoryManager : IItemSlotCollection
     private readonly string?[] _hotbarRefs = new string?[HotbarSize];
     private readonly string?[] _consumableRefs = new string?[ConsumableSlotCount];
 
-    public int Capacity => SlotCount;
+    /// <summary>
+    /// Identifier of the currently-equipped bag. Drives <see cref="Capacity"/> and
+    /// the inventory subtitle shown in the Inventory overlay. Persisted in the save.
+    /// </summary>
+    public string BagId { get; private set; } = BagRegistry.StarterId;
+
+    /// <summary>Display name of the equipped bag (e.g. "Bolsa de Couro").</summary>
+    public string BagName => BagRegistry.Get(BagId).Name;
+
+    /// <summary>The bag definition for the next upgrade, or null when maxed out.</summary>
+    public BagDefinition? NextBag => BagRegistry.Next(BagRegistry.Get(BagId));
+
+    public int Capacity => BagRegistry.Get(BagId).Capacity;
+
+    /// <summary>
+    /// Swap the equipped bag for <paramref name="bagId"/>. Returns true if the id
+    /// is valid and different from the current bag. Slots beyond the new capacity
+    /// retain their contents in memory (not lost), but become inaccessible until
+    /// an upgrade restores capacity — keeps downgrades safe against item loss.
+    /// </summary>
+    public bool TryEquipBag(string bagId)
+    {
+        var next = BagRegistry.Get(bagId);
+        if (next.Id == BagId) return false;
+        BagId = next.Id;
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Shortcut — upgrade to the next bag tier, if one exists.</summary>
+    public bool TryUpgradeBag()
+    {
+        var next = NextBag;
+        return next != null && TryEquipBag(next.Id);
+    }
 
     /// <summary>Currently selected hotbar slot index (0-7).</summary>
     public int ActiveHotbarIndex { get; private set; } = 0;
@@ -103,8 +141,11 @@ public class InventoryManager : IItemSlotCollection
 
         int remaining = quantity;
         int stackLimit = def.StackLimit;
+        int accessible = Capacity;
 
-        for (int i = 0; i < SlotCount && remaining > 0; i++)
+        // Top off existing stacks first — but ONLY within accessible capacity so new items never
+        // land in a slot the player can't reach after a bag downgrade.
+        for (int i = 0; i < accessible && remaining > 0; i++)
         {
             if (_slots[i] != null && _slots[i]!.ItemId == itemId)
             {
@@ -118,7 +159,7 @@ public class InventoryManager : IItemSlotCollection
             }
         }
 
-        for (int i = 0; i < SlotCount && remaining > 0; i++)
+        for (int i = 0; i < accessible && remaining > 0; i++)
         {
             if (_slots[i] == null)
             {
@@ -527,6 +568,8 @@ public class InventoryManager : IItemSlotCollection
     public void LoadFromState(GameState state)
     {
         Gold = Math.Max(0, state.Gold);
+        // Migrate pre-bag saves (BagId is null) to the starter bag.
+        BagId = state.BagId ?? BagRegistry.StarterId;
         for (int i = 0; i < SlotCount; i++) _slots[i] = null;
 
         for (int i = 0; i < state.Inventory.Count && i < SlotCount; i++)
@@ -572,6 +615,7 @@ public class InventoryManager : IItemSlotCollection
     public void SaveToState(GameState state)
     {
         state.Gold = Gold;
+        state.BagId = BagId;
         state.Inventory.Clear();
         for (int i = 0; i < SlotCount; i++)
             if (_slots[i] != null)

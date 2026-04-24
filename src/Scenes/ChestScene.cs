@@ -253,9 +253,9 @@ public class ChestScene : Scene
 
         // Title plaque — centered hanging banner above the panel top edge.
         string title = ChestRegistry.Get(_chest.VariantId)?.DisplayName ?? "Chest";
-        DrawCenteredText(spriteBatch, _titleFont, title,
-            new Rectangle(panelX + 28, panelY, PanelWidth - 56, 50),
-            Color.LightGoldenrodYellow, 2f, withShadow: true);
+        WidgetHelpers.DrawPanelTitle(spriteBatch, _titleFont, title,
+            new Rectangle(panelX + 28, panelY - 3, PanelWidth - 56, 50),
+            Color.LightGoldenrodYellow);
 
         // Close X widget Draws itself below (after action buttons, so focus outline stacks cleanly).
 
@@ -263,16 +263,16 @@ public class ChestScene : Scene
         NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, playerPaneRect, _theme.PanelSlotPaneInsets);
         NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, chestPaneRect,  _theme.PanelSlotPaneInsets);
 
-        DrawCenteredText(spriteBatch, _titleFont, "Bolsa", new Rectangle(
+        WidgetHelpers.DrawPanelTitle(spriteBatch, _titleFont, "Bolsa", new Rectangle(
             playerPaneRect.X + PanePadding,
             playerPaneRect.Y + 10,
             playerPaneRect.Width - PanePadding * 2,
-            PaneTitleHeight), Color.LightGoldenrodYellow, 1f);
-        DrawCenteredText(spriteBatch, _titleFont, "Baú", new Rectangle(
+            PaneTitleHeight), Color.LightGoldenrodYellow, letterSpacing: 1f, shadow: false);
+        WidgetHelpers.DrawPanelTitle(spriteBatch, _titleFont, "Baú", new Rectangle(
             chestPaneRect.X + PanePadding,
             chestPaneRect.Y + 10,
             chestPaneRect.Width - PanePadding * 2,
-            PaneTitleHeight), Color.LightGoldenrodYellow, 1f);
+            PaneTitleHeight), Color.LightGoldenrodYellow, letterSpacing: 1f, shadow: false);
 
         // Action + close widgets (scene-level ordering: after pane chrome, before grid content).
         _sendBtn.Draw(spriteBatch);
@@ -530,66 +530,9 @@ public class ChestScene : Scene
         CloseButtonSize,
         CloseButtonSize);
 
-    /// <summary>
-    /// Draws <paramref name="text"/> centered inside <paramref name="rect"/>.
-    /// </summary>
-    private void DrawCenteredText(
-        SpriteBatch sb,
-        SpriteFontBase font,
-        string text,
-        Rectangle rect,
-        Color color,
-        float letterSpacing = 0f,
-        bool withShadow = false)
-    {
-        var size = MeasureText(font, text, letterSpacing);
-        var pos = new Vector2(
-            rect.X + (rect.Width - size.X) / 2f,
-            rect.Y + (rect.Height - size.Y) / 2f);
-        DrawText(sb, font, text, pos, color, letterSpacing, withShadow);
-    }
-
-    private static Vector2 MeasureText(SpriteFontBase font, string text, float letterSpacing)
-    {
-        var size = font.MeasureString(text);
-        if (text.Length > 1)
-            size.X += letterSpacing * (text.Length - 1);
-        return size;
-    }
-
-    private static void DrawText(
-        SpriteBatch sb,
-        SpriteFontBase font,
-        string text,
-        Vector2 pos,
-        Color color,
-        float letterSpacing,
-        bool withShadow = false)
-    {
-        if (letterSpacing <= 0f)
-        {
-            DrawString(sb, font, text, pos, color, withShadow);
-            return;
-        }
-
-        float x = pos.X;
-        for (int i = 0; i < text.Length; i++)
-        {
-            string c = text[i].ToString();
-            DrawString(sb, font, c, new Vector2(x, pos.Y), color, withShadow);
-            x += font.MeasureString(c).X + letterSpacing;
-        }
-    }
-
-    private static void DrawString(SpriteBatch sb, SpriteFontBase font, string text, Vector2 pos, Color color, bool withShadow)
-    {
-        sb.DrawString(font, text, pos, color);
-        if (!withShadow)
-            return;
-
-        sb.DrawString(font, text, pos + new Vector2(1f, 0f), color);
-        sb.DrawString(font, text, pos + new Vector2(0f, 1f), color * 0.82f);
-    }
+    // Local DrawCenteredText + MeasureText + DrawText + DrawString removed —
+    // migrated to the shared WidgetHelpers.DrawPanelTitle so every modal title
+    // renders with identical letter-spacing + faux-bold + shadow treatment.
 
     private void DrawContextMenu(SpriteBatch sb)
     {

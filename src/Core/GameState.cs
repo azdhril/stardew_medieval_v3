@@ -32,6 +32,13 @@ public class GameState
     public List<string?> ConsumableRefs { get; set; } = new();
     public List<string?> HotbarSlots { get; set; } = new(new string?[8]);
 
+    /// <summary>
+    /// ID of the bag the player has equipped — determines inventory capacity and
+    /// the "Bolsa" subtitle shown in the Inventory overlay. Null/missing means the
+    /// starter bag (migrated from any pre-bag save).
+    /// </summary>
+    public string? BagId { get; set; } = null;
+
     // === New (v4) per D-23: Boss tracking ===
     public bool BossKilled { get; set; } = false;
 
