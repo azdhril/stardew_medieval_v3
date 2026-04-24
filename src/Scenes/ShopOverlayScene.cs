@@ -64,7 +64,7 @@ public class ShopOverlayScene : Scene
     {
         var vp = Services.GraphicsDevice.Viewport;
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-        _panel.Draw(spriteBatch, _font, _pixel, Services.Theme!, vp.Width, vp.Height);
+        _panel.Draw(spriteBatch, _font, _titleFont, _pixel, Services.Theme!, vp.Width, vp.Height);
         _toast.Draw(spriteBatch, _font, _pixel);
         spriteBatch.End();
     }

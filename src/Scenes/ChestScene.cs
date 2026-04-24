@@ -1,4 +1,5 @@
 using System;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -44,9 +45,9 @@ public class ChestScene : Scene
     private readonly System.Action _onClose;
 
     private ContainerGridRenderer _gridRenderer = null!;
-    private SpriteFont _font = null!;
-    private SpriteFont _smallFont = null!;
-    private SpriteFont _titleFont = null!;
+    private SpriteFontBase _font = null!;
+    private SpriteFontBase _smallFont = null!;
+    private SpriteFontBase _titleFont = null!;
     private Texture2D _pixel = null!;
     private UITheme _theme = null!;
     private bool _wasMouseDown;
@@ -110,9 +111,10 @@ public class ChestScene : Scene
     public override void LoadContent()
     {
         var device = Services.GraphicsDevice;
-        _font = Services.Content.Load<SpriteFont>("NotoSerif");
-        _smallFont = Services.Content.Load<SpriteFont>("NotoSerifSmall");
-        _titleFont = Services.Content.Load<SpriteFont>("NotoSerifBold");
+        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
+        _smallFont = Services.Fonts!.GetFont(FontRole.Body, 10);
+        // Native 16pt bold replaces old 12pt-at-1.35x-scale title (crisp pixel edges).
+        _titleFont = Services.Fonts!.GetFont(FontRole.Bold, 16);
 
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
@@ -187,7 +189,7 @@ public class ChestScene : Scene
         string title = ChestRegistry.Get(_chest.VariantId)?.DisplayName ?? "Chest";
         DrawCenteredText(spriteBatch, _titleFont, title,
             new Rectangle(panelX + 28, panelY + 6, PanelWidth - 56, 50),
-            Color.LightGoldenrodYellow, 2f, 1.35f, true);
+            Color.LightGoldenrodYellow, 2f, withShadow: true);
         DrawCloseButton(spriteBatch, GetCloseButtonRect(panelX, panelY));
 
         // Action buttons — shorter labels with a drop-shadow so text reads over button texture.
@@ -200,7 +202,7 @@ public class ChestScene : Scene
             playerPaneRect.Y + 1,
             playerPaneRect.Width - PanePadding * 2,
             PaneTitleHeight), Color.LightGoldenrodYellow, 1f);
-        DrawCenteredText(spriteBatch, _titleFont, "Bau", new Rectangle(
+        DrawCenteredText(spriteBatch, _titleFont, "Baú", new Rectangle(
             chestPaneRect.X + PanePadding,
             chestPaneRect.Y + 1,
             chestPaneRect.Width - PanePadding * 2,
@@ -472,24 +474,31 @@ public class ChestScene : Scene
         NineSlice.DrawStretched(sb, _theme.BtnIconX, rect, tint);
     }
 
+    /// <summary>
+    /// Draws <paramref name="text"/> centered inside <paramref name="rect"/>. Caller
+    /// passes a pre-sized <see cref="SpriteFontBase"/> (native glyph size); the helper
+    /// no longer accepts a scale parameter — scaling a pre-rasterized glyph produced
+    /// the bilinear smudge the FontStashSharp migration (quick 260423-tu6) fixed.
+    /// When <paramref name="withShadow"/> is true, a 1px right + 1px down outline is
+    /// drawn behind the glyphs for extra legibility over busy backgrounds.
+    /// </summary>
     private void DrawCenteredText(
         SpriteBatch sb,
-        SpriteFont font,
+        SpriteFontBase font,
         string text,
         Rectangle rect,
         Color color,
         float letterSpacing = 0f,
-        float scale = 1f,
-        bool bold = false)
+        bool withShadow = false)
     {
-        var size = MeasureText(font, text, letterSpacing) * scale;
+        var size = MeasureText(font, text, letterSpacing);
         var pos = new Vector2(
             rect.X + (rect.Width - size.X) / 2f,
             rect.Y + (rect.Height - size.Y) / 2f);
-        DrawText(sb, font, text, pos, color, letterSpacing, scale, bold);
+        DrawText(sb, font, text, pos, color, letterSpacing, withShadow);
     }
 
-    private static Vector2 MeasureText(SpriteFont font, string text, float letterSpacing)
+    private static Vector2 MeasureText(SpriteFontBase font, string text, float letterSpacing)
     {
         var size = font.MeasureString(text);
         if (text.Length > 1)
@@ -499,17 +508,16 @@ public class ChestScene : Scene
 
     private static void DrawText(
         SpriteBatch sb,
-        SpriteFont font,
+        SpriteFontBase font,
         string text,
         Vector2 pos,
         Color color,
         float letterSpacing,
-        float scale = 1f,
-        bool bold = false)
+        bool withShadow = false)
     {
         if (letterSpacing <= 0f)
         {
-            DrawString(sb, font, text, pos, color, scale, bold);
+            DrawString(sb, font, text, pos, color, withShadow);
             return;
         }
 
@@ -517,19 +525,21 @@ public class ChestScene : Scene
         for (int i = 0; i < text.Length; i++)
         {
             string c = text[i].ToString();
-            DrawString(sb, font, c, new Vector2(x, pos.Y), color, scale, bold);
-            x += (font.MeasureString(c).X + letterSpacing) * scale;
+            DrawString(sb, font, c, new Vector2(x, pos.Y), color, withShadow);
+            x += font.MeasureString(c).X + letterSpacing;
         }
     }
 
-    private static void DrawString(SpriteBatch sb, SpriteFont font, string text, Vector2 pos, Color color, float scale, bool bold)
+    private static void DrawString(SpriteBatch sb, SpriteFontBase font, string text, Vector2 pos, Color color, bool withShadow)
     {
-        sb.DrawString(font, text, pos, color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-        if (!bold)
+        sb.DrawString(font, text, pos, color);
+        if (!withShadow)
             return;
 
-        sb.DrawString(font, text, pos + new Vector2(scale, 0f), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-        sb.DrawString(font, text, pos + new Vector2(0f, scale), color * 0.82f, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+        // Fixed 1px outline offsets (previously "scale pixels"). 1px reads as a clean
+        // drop shadow at 960x540 native resolution regardless of font size.
+        sb.DrawString(font, text, pos + new Vector2(1f, 0f), color);
+        sb.DrawString(font, text, pos + new Vector2(0f, 1f), color * 0.82f);
     }
 
     private void DrawContextMenu(SpriteBatch sb)
@@ -727,7 +737,7 @@ public class ChestScene : Scene
         if (stats.Length > 0)
         {
             height += TooltipLineGap + 1;
-            height += stats.Length * (_smallFont.LineSpacing + TooltipLineGap) - TooltipLineGap;
+            height += stats.Length * (_smallFont.LineHeight + TooltipLineGap) - TooltipLineGap;
         }
 
         int x = Math.Clamp(anchor.X + anchor.Width / 2 - width / 2, 4, viewport.Width - width - 4);
@@ -753,7 +763,7 @@ public class ChestScene : Scene
             sb.DrawString(_smallFont, stats[i].Value,
                 new Vector2(textPos.X + statLabelWidth + TooltipStatGap, textPos.Y),
                 Color.White);
-            textPos.Y += _smallFont.LineSpacing + TooltipLineGap;
+            textPos.Y += _smallFont.LineHeight + TooltipLineGap;
         }
     }
 

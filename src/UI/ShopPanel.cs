@@ -1,4 +1,5 @@
 using System;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -450,7 +451,11 @@ public class ShopPanel
     // ================= Draw =================
 
     /// <summary>Render panel + rows + header + disabled reason.</summary>
-    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel, UITheme theme,
+    /// <param name="titleFont">Native-sized bold font for the "Shop" title plaque.
+    /// Passed separately so the caller can request a larger size (16pt bold) for
+    /// crisp rasterization instead of scaling a 12pt glyph at Draw time.</param>
+    public void Draw(SpriteBatch sb, SpriteFontBase font, SpriteFontBase titleFont,
+        Texture2D pixel, UITheme theme,
         int viewportWidth, int viewportHeight)
     {
         // Defensive: ensure cached layout matches current state even if Draw runs without a preceding Update.
@@ -467,8 +472,10 @@ public class ShopPanel
         const int titlePlaqueH = 30;
         var titleRect = new Rectangle(_panelX + 16, _panelY - 8, titlePlaqueW, titlePlaqueH);
         NineSlice.Draw(sb, theme.PanelTitle, titleRect, theme.PanelTitleInsets);
-        var shopSize = font.MeasureString("Shop");
-        sb.DrawString(font, "Shop",
+        // Title rendered with native-size bold (16pt) so glyphs stay crisp — previous
+        // SpriteFont 12pt path relied on bilinear scaling that produced smudged edges.
+        var shopSize = titleFont.MeasureString("Shop");
+        sb.DrawString(titleFont, "Shop",
             new Vector2(titleRect.X + (titleRect.Width - shopSize.X) / 2,
                         titleRect.Y + (titleRect.Height - shopSize.Y) / 2),
             Color.White);
@@ -546,7 +553,7 @@ public class ShopPanel
 
     }
 
-    private void DrawTab(SpriteBatch sb, SpriteFont font, UITheme theme, int x, int y, string label, bool active)
+    private void DrawTab(SpriteBatch sb, SpriteFontBase font, UITheme theme, int x, int y, string label, bool active)
     {
         var tabRect = new Rectangle(x, y, 80, 32);
         var tex = active ? theme.TabOn : theme.TabOff;
@@ -557,7 +564,7 @@ public class ShopPanel
             active ? Color.Black : Color.White);
     }
 
-    private void DrawRow(SpriteBatch sb, SpriteFont font, Texture2D pixel, UITheme theme, int x, int y, int width, int rowIndex)
+    private void DrawRow(SpriteBatch sb, SpriteFontBase font, Texture2D pixel, UITheme theme, int x, int y, int width, int rowIndex)
     {
         // Icon cell (16x16 centered vertically in 40px row)
         int iconX = x + 8;
