@@ -229,8 +229,10 @@ public class ShopPanel
 
         // Row + action-button rects
         int listX = _panelX + 16;
-        int listY = tabY + 36;
+        int listY = tabY + 40;
         int width = PanelWidth - 32;
+        int qtyBtnSize = 24;
+        int qtyBtnYOffset = (RowHeight - qtyBtnSize) / 2;
         for (int i = 0; i < VisibleRows; i++)
         {
             int rowIndex = i + scroll;
@@ -241,9 +243,9 @@ public class ShopPanel
                 int actionX = listX + width - 72;
                 _actionBtnRects[i] = new Rectangle(actionX, y + 8, 60, 24);
                 // Per-row qty stepper: [-][qty][+] immediately left of the action button (D-04).
-                _qtyMinusRects[i] = new Rectangle(actionX - 80, y + 10, 20, 20);
-                _qtyLabelRects[i] = new Rectangle(actionX - 60, y + 8, 32, 24);
-                _qtyPlusRects[i]  = new Rectangle(actionX - 24, y + 10, 20, 20);
+                _qtyMinusRects[i] = new Rectangle(actionX - 80, y + qtyBtnYOffset, qtyBtnSize, qtyBtnSize);
+                _qtyLabelRects[i] = new Rectangle(actionX - 58, y + 6, 32, 24);
+                _qtyPlusRects[i]  = new Rectangle(actionX - 30, y + qtyBtnYOffset, qtyBtnSize, qtyBtnSize);
             }
             else
             {

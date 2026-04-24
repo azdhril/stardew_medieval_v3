@@ -138,7 +138,7 @@ public abstract class GameplayScene : Scene
                 "assets", "Sprites", "System", "Font");
             Services.Fonts = new FontService(fontDir);
         }
-        Font = Services.Fonts.GetFont(FontRole.Body, 12);
+        Font = Services.Fonts.GetFont(FontRole.Body, 18);
 
         Map = new TileMap();
         Map.Load(MapPath, device);

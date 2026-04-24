@@ -111,10 +111,10 @@ public class ChestScene : Scene
     public override void LoadContent()
     {
         var device = Services.GraphicsDevice;
-        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
-        _smallFont = Services.Fonts!.GetFont(FontRole.Body, 10);
-        // Native 16pt bold replaces old 12pt-at-1.35x-scale title (crisp pixel edges).
-        _titleFont = Services.Fonts!.GetFont(FontRole.Bold, 16);
+        _font = Services.Fonts!.GetFont(FontRole.Body, 18);
+        _smallFont = Services.Fonts!.GetFont(FontRole.Body, 15);
+        // Native bold title (50% larger than previous 16pt baseline).
+        _titleFont = Services.Fonts!.GetFont(FontRole.Bold, 24);
 
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });

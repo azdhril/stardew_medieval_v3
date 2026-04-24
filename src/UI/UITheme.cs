@@ -117,7 +117,7 @@ public sealed class UITheme
         PanelCurrency  = Load(device, "Panel/UI_Panel_Currency.png",     "PanelCurrency",  new Color(60, 45, 25));
         ImageDeco      = Load(device, "Decorations/UI_Image_Deco.png",   "ImageDeco",      new Color(140, 110, 70));
         PanelSlotPane  = Load(device, "Panel/UI_Panel_SlotPaneBackground.png", "PanelSlotPane",  new Color(215, 190, 140));
-        BtnCircleSmall = Load(device, "Buttons/UI_Btn_Circle_small.png", "BtnCircleSmall", new Color(78, 58, 44));
+        BtnCircleSmall = Load(device, "Buttons/UI_Btn_Circle_small_pixelart.png", "BtnCircleSmall", new Color(78, 58, 44));
 
         IconPlus       = Load(device, "Icons/Icon_plus.png",             "IconPlus",       Color.White);
         IconMinus      = Load(device, "Icons/Icon_minus.png",            "IconMinus",      Color.White);

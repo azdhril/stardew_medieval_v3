@@ -174,7 +174,7 @@ public class FarmScene : GameplayScene
 
         // HUD
         _hud = new HUD(Services.Time, pl.Stats, _toolController, pl, _combat, _inventory);
-        _hud.LoadContent(device, Font, Services.Fonts!.GetFont(FontRole.Body, 10));
+        _hud.LoadContent(device, Font, Services.Fonts!.GetFont(FontRole.Body, 15));
         _hud.SetQuest(_mainQuest);
         _hud.SetProgression(Services.Progression);
 

@@ -41,7 +41,7 @@ public class InventoryScene : Scene
     public override void LoadContent()
     {
         var device = Services.GraphicsDevice;
-        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
+        _font = Services.Fonts!.GetFont(FontRole.Body, 18);
 
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });

@@ -30,7 +30,7 @@ public class PauseScene : Scene
 
     public override void LoadContent()
     {
-        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
+        _font = Services.Fonts!.GetFont(FontRole.Body, 18);
 
         var device = Services.GraphicsDevice;
         _pixel = new Texture2D(device, 1, 1);

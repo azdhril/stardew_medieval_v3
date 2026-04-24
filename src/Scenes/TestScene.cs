@@ -24,7 +24,7 @@ public class TestScene : Scene
     {
         _pixel = new Texture2D(Services.GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
-        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
+        _font = Services.Fonts!.GetFont(FontRole.Body, 18);
 
         var viewport = Services.GraphicsDevice.Viewport;
         _npc = new DummyNpc(_pixel, new Vector2(viewport.Width / 2f, viewport.Height / 2f + 60f));
