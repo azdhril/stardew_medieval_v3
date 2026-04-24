@@ -344,7 +344,7 @@ public class ShopPanel
     /// <summary>Row count for the active tab.</summary>
     private int GetRowCount()
     {
-        if (_tab == ShopTab.Buy) return ShopStock.Items.Count;
+        if (_tab == ShopTab.Buy) return ShopStock.GetBuyItems(_inv).Count;
         int n = 0;
         for (int i = 0; i < InventoryManager.SlotCount; i++)
             if (_inv.GetSlot(i) != null) n++;
@@ -378,8 +378,11 @@ public class ShopPanel
     {
         if (_tab == ShopTab.Buy)
         {
-            if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return 0;
-            var e = ShopStock.Items[rowIndex];
+            var buyItems = ShopStock.GetBuyItems(_inv);
+            if (rowIndex < 0 || rowIndex >= buyItems.Count) return 0;
+            var e = buyItems[rowIndex];
+            // Bag upgrade is a single-purchase slot: qty is always 1 when affordable, 0 otherwise.
+            if (e.IsBagUpgrade) return _inv.Gold >= e.Price ? 1 : 0;
             var def = ItemRegistry.Get(e.ItemId);
             if (def == null || e.Price <= 0) return 0;
             int affordable = _inv.Gold / e.Price;
@@ -413,9 +416,34 @@ public class ShopPanel
     private void TryBuy(int rowIndex, int qty, out ToastRequest? toast)
     {
         toast = null;
-        if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return;
+        var buyItems = ShopStock.GetBuyItems(_inv);
+        if (rowIndex < 0 || rowIndex >= buyItems.Count) return;
         if (qty <= 0) return;
-        var entry = ShopStock.Items[rowIndex];
+        var entry = buyItems[rowIndex];
+
+        // Bag upgrade: one-shot purchase. Ignore qty (always buy 1), deduct gold, call TryEquipBag.
+        // The next frame GetBuyItems returns either the NEXT bag (if any) or just the regular list.
+        if (entry.IsBagUpgrade && entry.BagId != null)
+        {
+            if (_inv.Gold < entry.Price)
+            {
+                Console.WriteLine($"[ShopPanel] Bag upgrade blocked: not enough gold ({_inv.Gold} < {entry.Price})");
+                return;
+            }
+            if (!_inv.TrySpendGold(entry.Price)) return;
+            if (!_inv.TryEquipBag(entry.BagId))
+            {
+                _inv.AddGold(entry.Price);
+                Console.WriteLine($"[ShopPanel] Bag upgrade failed (already equipped?). Refunded {entry.Price}g");
+                return;
+            }
+            var bag = BagRegistry.Get(entry.BagId);
+            Console.WriteLine($"[ShopPanel] Bag upgraded to {bag.Name} (capacity {bag.Capacity}) for {entry.Price}g");
+            toast = new ToastRequest($"Equipada: {bag.Name}", Color.LimeGreen);
+            EnsureRowQtySized(GetRowCount());
+            return;
+        }
+
         var def = ItemRegistry.Get(entry.ItemId);
         if (def == null)
         {
@@ -528,19 +556,9 @@ public class ShopPanel
         WidgetHelpers.DrawPanelTitle(sb, titleFont, "Shop",
             new Rectangle(_panelX + 28, _panelY - 3, PanelWidth - 56, 50),
             Color.LightGoldenrodYellow, 2f);
-        int headerY = _panelY + 8;
-
-        // Gold display — thousands separator to match HUD.
-        string goldText = _inv.Gold.ToString("N0");
-        var goldSize = font.MeasureString(goldText);
-        int coinSize = 18;
-        int goldBlockW = coinSize + 6 + (int)goldSize.X;
-        int goldX = _panelX + PanelWidth - 44 - goldBlockW;
-        int goldY = headerY + 10;
-        sb.Draw(theme.GoldIcon, new Rectangle(goldX, goldY, coinSize, coinSize), Color.White);
-        sb.DrawString(font, goldText,
-            new Vector2(goldX + coinSize + 6, goldY + (coinSize - goldSize.Y) / 2),
-            Color.Gold);
+        // Gold display removed from the shop header — the HUD's gold badge is
+        // re-rendered above the dim overlay by ShopOverlayScene for a dedicated
+        // highlight of the player's balance while shopping.
 
         // Tabs (widget-rendered via _buyTab.Draw / _sellTab.Draw)
         _buyTab.Draw(sb);
@@ -607,13 +625,25 @@ public class ShopPanel
         int price;
         Color priceColor;
 
+        bool isBagUpgradeRow = false;
+        string? bagSpriteId = null;
         if (_tab == ShopTab.Buy)
         {
-            var entry = ShopStock.Items[rowIndex];
+            var entry = ShopStock.GetBuyItems(_inv)[rowIndex];
             itemId = entry.ItemId;
             price = entry.Price;
-            var def = ItemRegistry.Get(entry.ItemId);
-            label = def?.Name ?? entry.ItemId;
+            if (entry.IsBagUpgrade && entry.BagId != null)
+            {
+                isBagUpgradeRow = true;
+                var bag = BagRegistry.Get(entry.BagId);
+                label = $"{bag.Name} ({bag.Capacity} slots)";
+                bagSpriteId = $"bag_upgrade_{bag.SpriteIndex}";
+            }
+            else
+            {
+                var def = ItemRegistry.Get(entry.ItemId);
+                label = def?.Name ?? entry.ItemId;
+            }
             priceColor = _inv.Gold >= price
                 ? (hovered ? Color.White : PriceGold)
                 : Color.Gray * 0.7f;
@@ -632,13 +662,22 @@ public class ShopPanel
                 : Color.Gray * 0.7f;
         }
 
-        // Icon
-        var iconDef = ItemRegistry.Get(itemId);
-        if (iconDef != null)
+        // Icon — bag upgrade rows use the bags_upgrades spritesheet (6 variants, 16×16 each).
+        if (isBagUpgradeRow && bagSpriteId != null)
         {
-            var srcRect = _atlas.GetRect(iconDef.SpriteId);
-            sb.Draw(_atlas.GetTexture(iconDef.SpriteId),
-                new Rectangle(iconX, iconY, IconSize, IconSize), srcRect, Color.White);
+            var bagRect = _atlas.GetRect(bagSpriteId);
+            sb.Draw(_atlas.GetTexture(bagSpriteId),
+                new Rectangle(iconX, iconY, IconSize, IconSize), bagRect, Color.White);
+        }
+        else
+        {
+            var iconDef = ItemRegistry.Get(itemId);
+            if (iconDef != null)
+            {
+                var srcRect = _atlas.GetRect(iconDef.SpriteId);
+                sb.Draw(_atlas.GetTexture(iconDef.SpriteId),
+                    new Rectangle(iconX, iconY, IconSize, IconSize), srcRect, Color.White);
+            }
         }
 
         // Name
@@ -671,9 +710,12 @@ public class ShopPanel
     {
         if (_tab == ShopTab.Buy)
         {
-            if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return false;
-            var e = ShopStock.Items[rowIndex];
+            var buyItems = ShopStock.GetBuyItems(_inv);
+            if (rowIndex < 0 || rowIndex >= buyItems.Count) return false;
+            var e = buyItems[rowIndex];
             if (_inv.Gold < e.Price) return false;
+            // Bag upgrade doesn't go into inventory slots — skip the CanAddOne gate.
+            if (e.IsBagUpgrade) return true;
             if (!CanAddOne(e.ItemId)) return false;
             return true;
         }

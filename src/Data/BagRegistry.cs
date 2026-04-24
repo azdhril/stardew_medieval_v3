@@ -14,10 +14,18 @@ public static class BagRegistry
 
     private static readonly Dictionary<string, BagDefinition> _all = new()
     {
-        ["bag_cloth"]      = new("bag_cloth",      "Bolsa de Pano",     8,  "bag_leather"),
-        ["bag_leather"]    = new("bag_leather",    "Bolsa de Couro",    12, "bag_reinforced"),
-        ["bag_reinforced"] = new("bag_reinforced", "Bolsa Reforçada",   20, "bag_traveler"),
-        ["bag_traveler"]   = new("bag_traveler",   "Bolsa do Viajante", 28, null),
+        // Starter bag — given to every new player, not for sale.
+        ["bag_cloth"]       = new("bag_cloth",       "Bolsa de Pano",         8,  NextId: "bag_worn"),
+
+        // 5 upgrade tiers — cap at 28 slots (the most the inventory panel can show
+        // at 7 columns × 4 rows without overflowing). SpriteIndex maps to
+        // bags_upgrades.png (horizontal — 0..5 left→right); idx 5 reserved for a
+        // future "hero" tier if the panel grows.
+        ["bag_worn"]        = new("bag_worn",        "Bolsa Surrada",        12, NextId: "bag_leather",    ShopPrice:   1_000,   SpriteIndex: 0),
+        ["bag_leather"]     = new("bag_leather",     "Bolsa de Couro",       16, NextId: "bag_reinforced", ShopPrice:   5_000,   SpriteIndex: 1),
+        ["bag_reinforced"]  = new("bag_reinforced",  "Bolsa Reforçada",      20, NextId: "bag_traveler",   ShopPrice:  25_000,   SpriteIndex: 2),
+        ["bag_traveler"]    = new("bag_traveler",    "Bolsa do Viajante",    24, NextId: "bag_adventurer", ShopPrice:  75_000,   SpriteIndex: 3),
+        ["bag_adventurer"]  = new("bag_adventurer",  "Bolsa do Aventureiro", 28, NextId: null,             ShopPrice: 250_000,   SpriteIndex: 4),
     };
 
     /// <summary>

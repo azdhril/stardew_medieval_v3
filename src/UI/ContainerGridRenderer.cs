@@ -56,12 +56,13 @@ public class ContainerGridRenderer
     }
 
     public void DrawGrid(SpriteBatch sb, IItemSlotCollection container, int columns, int offsetX, int offsetY,
-        int? hiddenIndex, int visibleSlots, int enabledSlots)
+        int? hiddenIndex, int visibleSlots, int enabledSlots, int slotOffset = 0)
     {
         for (int i = 0; i < visibleSlots; i++)
         {
+            int absoluteSlot = slotOffset + i;
             var rect = GetSlotRect(i, columns, offsetX, offsetY);
-            bool enabled = i < enabledSlots;
+            bool enabled = absoluteSlot < enabledSlots;
             sb.Draw(_slotNormal, rect, enabled ? Color.White : Color.DimGray * 0.55f);
 
             if (!enabled)
@@ -70,14 +71,20 @@ public class ContainerGridRenderer
                 continue;
             }
 
-            if (hiddenIndex.HasValue && hiddenIndex.Value == i)
+            if (hiddenIndex.HasValue && hiddenIndex.Value == absoluteSlot)
                 continue;
 
-            DrawSlotContents(sb, i < container.Capacity ? container.GetSlot(i) : null, rect);
+            DrawSlotContents(sb, absoluteSlot < container.Capacity ? container.GetSlot(absoluteSlot) : null, rect);
         }
     }
 
-    public int HitTest(Point mousePos, int capacity, int columns, int offsetX, int offsetY)
+    /// <summary>
+    /// Return the absolute slot index at <paramref name="mousePos"/> (=<paramref name="slotOffset"/>
+    /// + local index) or -1 when the cursor isn't over an enabled slot. Pagination callers pass the
+    /// active page's base offset in <paramref name="slotOffset"/>; the returned index is directly
+    /// usable against the underlying container.
+    /// </summary>
+    public int HitTest(Point mousePos, int capacity, int columns, int offsetX, int offsetY, int slotOffset = 0)
     {
         if (mousePos.X < offsetX || mousePos.Y < offsetY)
             return -1;
@@ -92,14 +99,20 @@ public class ContainerGridRenderer
         if (localX > SlotPixelSize || localY > SlotPixelSize)
             return -1;
 
-        int index = row * columns + col;
-        return index < capacity ? index : -1;
+        int absolute = slotOffset + row * columns + col;
+        return absolute < capacity ? absolute : -1;
     }
 
-    public Rectangle GetSlotRect(int index, int columns, int offsetX, int offsetY)
+    /// <summary>
+    /// Return the on-screen rect for slot <paramref name="index"/>. Pagination callers pass
+    /// the active page's base offset so they can supply the absolute slot index directly;
+    /// internally the helper subtracts the offset to land back in the visible grid.
+    /// </summary>
+    public Rectangle GetSlotRect(int index, int columns, int offsetX, int offsetY, int slotOffset = 0)
     {
-        int col = index % columns;
-        int row = index / columns;
+        int local = index - slotOffset;
+        int col = local % columns;
+        int row = local / columns;
         return new Rectangle(
             offsetX + col * (SlotPixelSize + Padding),
             offsetY + row * (SlotPixelSize + Padding),

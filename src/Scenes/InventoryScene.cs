@@ -48,6 +48,7 @@ public class InventoryScene : Scene
     private Texture2D _pixel = null!;
     private UITheme _theme = null!;
     private CloseButton _closeBtn = null!;
+    private IconButton _sortBtn = null!;
 
     // Drag state-machine tracker — legitimate use per RESEARCH audit.
     private bool _wasMouseDown;
@@ -94,6 +95,14 @@ public class InventoryScene : Scene
         };
         Ui.Register(_closeBtn);
 
+        // Reorder (broom) — bare icon, no background chrome, matches ChestScene's sort button.
+        _sortBtn = new IconButton(_theme.IconSort)
+        {
+            OnClickAction = () => _inventory.SortByDefault(),
+            Tooltip = "Reorganizar",
+        };
+        Ui.Register(_sortBtn);
+
         _wasMouseDown = false;
         Console.WriteLine("[InventoryScene] Loaded");
     }
@@ -110,10 +119,11 @@ public class InventoryScene : Scene
         }
 
         GetPanelPosition(out int panelX, out int panelY);
-        GetLayout(panelX, panelY, out _, out _, out int equipX, out int equipY, out int gridX, out int gridY);
+        GetLayout(panelX, panelY, out _, out Rectangle gridPaneRect, out int equipX, out int equipY, out int gridX, out int gridY);
 
         // Refresh close button bounds each frame (viewport-responsive).
         _closeBtn.Bounds = GetCloseButtonRect(panelX, panelY);
+        _sortBtn.Bounds = GetSortButtonRect(gridPaneRect);
 
         // Widget layer FIRST — consumes the click if close X was hit.
         if (Ui.Update(deltaTime, input))
@@ -168,12 +178,15 @@ public class InventoryScene : Scene
             new Rectangle(panelX + 28, panelY - 3, PanelWidth - 56, 50),
             Color.LightGoldenrodYellow);
 
-        // Close X at top-right.
+        // Close X at top-right — sits on the panel chrome, no pane overlap risk.
         _closeBtn.Draw(spriteBatch);
 
         // Cream slot-pane backgrounds — same look as Bolsa/Baú in ChestScene.
         NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, equipPaneRect, _theme.PanelSlotPaneInsets);
         NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, gridPaneRect, _theme.PanelSlotPaneInsets);
+
+        // Sort broom — drawn AFTER the cream pane so it isn't covered by the pane chrome.
+        _sortBtn.Draw(spriteBatch);
 
         // Sub-pane subtitles — left = "Equipamentos", right = current bag's display name.
         // Style matches ChestScene's "Bolsa"/"Baú" (smaller letter spacing, no shadow).
@@ -241,6 +254,18 @@ public class InventoryScene : Scene
         int gridDisplayW = cols * InventoryGridRenderer.SlotSize;
         gridX = gridPaneRect.X + (gridPaneRect.Width - gridDisplayW) / 2;
         gridY = gridPaneRect.Y + PanePadding + PaneTitleHeight + 8;
+    }
+
+    /// <summary>
+    /// Sort button: 32×32, top-right of the bag pane aligned with the grid's right edge
+    /// (matches ChestScene sort button placement). Called each frame from Update.
+    /// </summary>
+    private Rectangle GetSortButtonRect(Rectangle gridPaneRect)
+    {
+        const int size = 32;
+        int gridW = _gridRenderer.Columns * InventoryGridRenderer.SlotSize;
+        int right = gridPaneRect.X + (gridPaneRect.Width + gridW) / 2 - 7;
+        return new Rectangle(right - size, gridPaneRect.Y + 10, size, size);
     }
 
     private static Rectangle GetCloseButtonRect(int panelX, int panelY) => new(

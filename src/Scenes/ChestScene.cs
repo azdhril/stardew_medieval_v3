@@ -28,6 +28,8 @@ public class ChestScene : Scene
     private const int ChestColumns = 5;
     private const int MinSlotSize = 40;
     private const int MaxSlotSize = 60;
+    /// <summary>Visible-per-page slot count on the Bolsa grid (4 rows × 5 cols).</summary>
+    private const int PlayerPageSize = 20;
     private const int IconButtonSize = 32;
     private const int IconButtonGap = 6;
     private const int CloseButtonSize = 32;
@@ -79,6 +81,11 @@ public class ChestScene : Scene
     private IconButton _takeBtn = null!;
     private IconButton _sortChestBtn = null!;
     private CloseButton _closeBtn = null!;
+    private IconButton _bolsaPrevBtn = null!;
+    private IconButton _bolsaNextBtn = null!;
+
+    /// <summary>Current page index for the Bolsa pane (0-based). Only relevant when capacity > PlayerPageSize.</summary>
+    private int _bolsaPage;
 
     private enum DragSourceKind
     {
@@ -169,10 +176,40 @@ public class ChestScene : Scene
             OnClickAction = CloseOverlay,
         };
 
+        // Bolsa pagination — only enabled when the player's bag capacity exceeds one page.
+        _bolsaPrevBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
+        {
+            Effects = SpriteEffects.FlipHorizontally,
+            OnClickAction = () => AdjustBolsaPage(-1),
+            Tooltip = "Página anterior",
+        };
+        _bolsaNextBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
+        {
+            OnClickAction = () => AdjustBolsaPage(+1),
+            Tooltip = "Próxima página",
+        };
+
         Ui.Register(_sendBtn);
         Ui.Register(_takeBtn);
         Ui.Register(_sortChestBtn);
         Ui.Register(_closeBtn);
+        Ui.Register(_bolsaPrevBtn);
+        Ui.Register(_bolsaNextBtn);
+    }
+
+    private int BolsaPageCount
+        => Math.Max(1, (_playerInventory.Capacity + PlayerPageSize - 1) / PlayerPageSize);
+
+    private int BolsaSlotOffset => _bolsaPage * PlayerPageSize;
+
+    private void AdjustBolsaPage(int delta)
+    {
+        int next = Math.Clamp(_bolsaPage + delta, 0, BolsaPageCount - 1);
+        if (next == _bolsaPage) return;
+        // Drop any in-flight drag from the old page — targets on the new page are different slots.
+        _dragSource = DragSourceKind.None;
+        _dragIndex = -1;
+        _bolsaPage = next;
     }
 
     public override void Update(float deltaTime)
@@ -195,6 +232,16 @@ public class ChestScene : Scene
         _takeBtn.Bounds      = GetActionButtonRect(playerPaneRect, chestPaneRect, ButtonAction.TakeAll);
         _sortChestBtn.Bounds = GetActionButtonRect(playerPaneRect, chestPaneRect, ButtonAction.SortChest);
         _closeBtn.Bounds     = GetCloseButtonRect(panelX, panelY);
+
+        // Pagination controls — Enabled only when the bag has more than one page; out-of-range
+        // pages (e.g. after a bag downgrade) auto-clamp so the Bolsa never shows blank slots.
+        _bolsaPage = Math.Clamp(_bolsaPage, 0, BolsaPageCount - 1);
+        bool hasPages = BolsaPageCount > 1;
+        (var prevRect, var nextRect) = GetBolsaPageButtonRects(playerPaneRect);
+        _bolsaPrevBtn.Bounds = prevRect;
+        _bolsaNextBtn.Bounds = nextRect;
+        _bolsaPrevBtn.Enabled = hasPages && _bolsaPage > 0;
+        _bolsaNextBtn.Enabled = hasPages && _bolsaPage < BolsaPageCount - 1;
 
         // Widget layer FIRST — consumes click if a widget was hit.
         bool consumed = Ui.Update(deltaTime, input);
@@ -282,12 +329,28 @@ public class ChestScene : Scene
 
         int? hiddenPlayer = _dragSource == DragSourceKind.Player ? _dragIndex : null;
         int? hiddenChest = _dragSource == DragSourceKind.Chest ? _dragIndex : null;
-        // Display both grids as 4 rows × 5 cols = 20 slots (per user request, temporary cap).
-        const int displaySlots = 20;
+        // Bolsa grid is PAGINATED — render PlayerPageSize slots starting at the active
+        // page's offset. Pagination buttons (rendered below) flip between pages.
+        // Baú grid renders its natural capacity (no pagination; chest capacity is fixed).
         _gridRenderer.DrawGrid(spriteBatch, _playerInventory, PlayerColumns, playerX, playerY,
-            hiddenPlayer, displaySlots, _playerInventory.Capacity);
+            hiddenPlayer, PlayerPageSize, _playerInventory.Capacity, BolsaSlotOffset);
         _gridRenderer.DrawGrid(spriteBatch, _chest.Container, ChestColumns, chestX, chestY,
-            hiddenChest, displaySlots, _chest.Container.Capacity);
+            hiddenChest, _chest.Container.Capacity, _chest.Container.Capacity);
+
+        // Bolsa pagination — only render when the player's bag spans more than one page.
+        if (BolsaPageCount > 1)
+        {
+            _bolsaPrevBtn.Draw(spriteBatch);
+            _bolsaNextBtn.Draw(spriteBatch);
+            string pageLabel = $"{_bolsaPage + 1} / {BolsaPageCount}";
+            var labelSize = _font.MeasureString(pageLabel);
+            var anchor = _bolsaPrevBtn.Bounds;
+            spriteBatch.DrawString(_font, pageLabel,
+                new Vector2(
+                    playerPaneRect.X + playerPaneRect.Width / 2 - labelSize.X / 2,
+                    anchor.Y + (anchor.Height - labelSize.Y) / 2),
+                Color.LightGoldenrodYellow);
+        }
 
         var dragged = GetDraggedStack();
         if (dragged != null)
@@ -328,7 +391,7 @@ public class ChestScene : Scene
         // Action + close buttons are now widgets (Ui.Update consumed the click).
         // Only drag/context remain scene-level.
 
-        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY);
+        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY, BolsaSlotOffset);
         if (playerHit >= 0 && _playerInventory.GetSlot(playerHit) != null)
         {
             if (TryHandleDoubleClick(DragSourceKind.Player, playerHit))
@@ -365,7 +428,7 @@ public class ChestScene : Scene
             out _, out _,
             out int playerX, out int playerY, out int chestX, out int chestY);
 
-        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY);
+        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY, BolsaSlotOffset);
         if (playerHit >= 0 && _playerInventory.GetSlot(playerHit) != null)
         {
             _contextSource = DragSourceKind.Player;
@@ -400,7 +463,7 @@ public class ChestScene : Scene
             out _, out _,
             out int playerX, out int playerY, out int chestX, out int chestY);
 
-        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY);
+        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY, BolsaSlotOffset);
         int chestHit = _gridRenderer.HitTest(mousePos, _chest.Container.Capacity, ChestColumns, chestX, chestY);
 
         if (_dragSource == DragSourceKind.Player)
@@ -479,14 +542,34 @@ public class ChestScene : Scene
         chestY = chestPaneRect.Y + PanePadding + PaneTitleHeight + 20;
     }
 
+    /// <summary>
+    /// Compute the on-pane rects for the Bolsa pagination buttons (prev + next). Placed
+    /// centered under the grid. Page indicator is drawn between them by <see cref="Draw"/>.
+    /// </summary>
+    private (Rectangle prev, Rectangle next) GetBolsaPageButtonRects(Rectangle playerPaneRect)
+    {
+        const int btnSize = 24;
+        const int btnGap = 72;
+        int gridW = PlayerColumns * _gridRenderer.SlotPixelSize;
+        int gridBottom = playerPaneRect.Y + PanePadding + PaneTitleHeight + 20 + 4 * _gridRenderer.SlotPixelSize;
+        int y = gridBottom + 6;
+        int centerX = playerPaneRect.X + playerPaneRect.Width / 2;
+        return (
+            new Rectangle(centerX - btnGap / 2 - btnSize, y, btnSize, btnSize),
+            new Rectangle(centerX + btnGap / 2, y, btnSize, btnSize));
+    }
+
     private int CalculateSlotSize(Rectangle playerPaneRect, Rectangle chestPaneRect)
     {
-        // Both grids are displayed at 4 rows × 5 cols (per user request, temporary cap).
-        int playerRows = 4;
-        int chestRows = 4;
+        // Both grids display exactly 4 rows — slot size stays consistent between the two
+        // panes. When the player's bag capacity exceeds the on-screen page (20 slots),
+        // pagination buttons let the user flip pages instead of shrinking slots.
+        const int fixedRows = 4;
+        int playerRows = fixedRows;
+        int chestRows = fixedRows;
         int usablePlayerW = playerPaneRect.Width - PanePadding * 2;
         int usableChestW = chestPaneRect.Width - PanePadding * 2;
-        int usableH = playerPaneRect.Height - PanePadding * 2 - PaneTitleHeight;
+        int usableH = playerPaneRect.Height - PanePadding * 2 - PaneTitleHeight - 20;
 
         int byPlayerW = usablePlayerW / PlayerColumns;
         int byChestW = usableChestW / ChestColumns;
@@ -682,11 +765,11 @@ public class ChestScene : Scene
         ItemStack? stack = null;
         Rectangle anchor = Rectangle.Empty;
 
-        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY);
+        int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY, BolsaSlotOffset);
         if (playerHit >= 0)
         {
             stack = _playerInventory.GetSlot(playerHit);
-            anchor = _gridRenderer.GetSlotRect(playerHit, PlayerColumns, playerX, playerY);
+            anchor = _gridRenderer.GetSlotRect(playerHit, PlayerColumns, playerX, playerY, BolsaSlotOffset);
         }
         else
         {

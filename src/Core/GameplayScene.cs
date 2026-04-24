@@ -409,7 +409,7 @@ public abstract class GameplayScene : Scene
         if (inv == null) return;
 
         inv.ClearAll();
-        inv.AddGold(1000);
+        inv.AddGold(50000);
         Console.WriteLine($"[{SceneName}Scene] Debug kit: inventory cleared, +1000 gold (total {inv.Gold}g).");
 
         (string id, int qty)[] kit = new[]

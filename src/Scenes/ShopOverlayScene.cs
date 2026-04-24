@@ -69,6 +69,17 @@ public class ShopOverlayScene : Scene
         var vp = Services.GraphicsDevice.Viewport;
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
         _panel.Draw(spriteBatch, _font, _titleFont, _pixel, Services.Theme!, vp.Width, vp.Height);
+
+        // Re-render the HUD's gold badge ABOVE the shop's dim overlay so the
+        // player's balance stays highlighted while shopping (shop's own gold
+        // display was removed). Position mirrors the HUD's latest-known badge
+        // origin, so the visible gold never jumps when the overlay opens.
+        if (Services.Hud != null)
+        {
+            var origin = Services.Hud.LastGoldBadgeOrigin;
+            Services.Hud.DrawGoldBadge(spriteBatch, origin.X, origin.Y);
+        }
+
         // Focus outline + tooltip overlay (on top of widget chrome).
         Ui.Draw(spriteBatch, _pixel, _font, vp.Width, vp.Height);
         _toast.Draw(spriteBatch, _font, _pixel);

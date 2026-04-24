@@ -271,11 +271,13 @@ public class InventoryGridRenderer
 
     private void DrawGrid(SpriteBatch sb, int offsetX, int offsetY)
     {
-        // Grid is dynamic: renders exactly _inventory.Capacity slots, wrapping every Columns
-        // into a new row. Lets future bag upgrades grow capacity (8 → 12 → 20 …) without
-        // relayouting the renderer — row count falls out of ceil(capacity / columns).
+        // Grid is dynamic: renders up to the MAX bag tier's capacity, but only the first
+        // _inventory.Capacity slots are active. Remaining slots are drawn dim (matching
+        // ChestScene's beyond-capacity visual) so the player sees how much room future
+        // bag upgrades unlock.
         int capacity = _inventory.Capacity;
-        for (int i = 0; i < capacity; i++)
+        int maxCapacity = BagRegistry.MaxCapacity;
+        for (int i = 0; i < maxCapacity; i++)
         {
             int col = i % Columns;
             int row = i / Columns;
@@ -283,7 +285,16 @@ public class InventoryGridRenderer
             int y = offsetY + row * (SlotSize + Padding);
 
             var slotRect = new Rectangle(x, y, SlotSize, SlotSize);
-            sb.Draw(_slotNormal, slotRect, Color.White);
+            bool enabled = i < capacity;
+            sb.Draw(_slotNormal, slotRect, enabled ? Color.White : Color.DimGray * 0.55f);
+
+            if (!enabled)
+            {
+                // Dark inner panel marks the slot as locked — same visual ChestScene uses
+                // for slots beyond the chest variant's capacity.
+                sb.Draw(_slotNormal, new Rectangle(slotRect.X + 3, slotRect.Y + 3, slotRect.Width - 6, slotRect.Height - 6), Color.Black * 0.28f);
+                continue;
+            }
 
             if (_isDragging && _dragSourceSlot == i && _dragSourceEquip == null)
                 continue;

@@ -261,7 +261,41 @@ public class HUD
             new Color(130, 210, 90)); // light green
         nextBarY += staBarH + barSpacing + 2;
 
-        // === Gold label with coin icon + stretched PanelCurrency ===
+        // === Gold badge — extracted to a reusable method so overlays (e.g. ShopOverlayScene)
+        //     can re-render it on top of their dim layer for a dedicated highlight. The
+        //     position is cached on each frame so ShopOverlayScene can render the badge
+        //     at the HUD's exact computed spot without duplicating the bar-stack math.
+        _lastGoldBadgeOrigin = new Point(barX, nextBarY);
+        DrawGoldBadge(spriteBatch, barX, nextBarY);
+
+        // === XP bar above hotbar ===
+        DrawXPBar(spriteBatch, screenWidth, screenHeight);
+
+        // === Magic cooldown indicator (per D-09) ===
+        DrawFireballCooldown(spriteBatch, screenWidth, screenHeight);
+
+        // === Top-right: Quest tracker (HUD-05 / D-13) ===
+        var questState = _quest?.State ?? MainQuestState.NotStarted;
+        DrawQuestTracker(spriteBatch, _font, _pixel, questState, screenWidth, _theme);
+    }
+
+    /// <summary>
+    /// Render the gold badge (coin icon + formatted value inside a <c>PanelCurrency</c>
+    /// 9-slice chrome) at the given origin. Extracted from the main <see cref="Draw"/>
+    /// so overlays (like the shop) can re-render the badge above their dim layer for a
+    /// dedicated highlight of the player's balance.
+    /// </summary>
+    /// <summary>
+    /// Last position where the HUD rendered its gold badge (set on every Draw).
+    /// Overlays that re-render the badge above their dim layer read this so the
+    /// visible gold pops in the same spot the HUD already chose for it.
+    /// </summary>
+    public Point LastGoldBadgeOrigin => _lastGoldBadgeOrigin;
+
+    private Point _lastGoldBadgeOrigin = new(12, 12);
+
+    public void DrawGoldBadge(SpriteBatch sb, int originX, int originY)
+    {
         int gold = _inventory?.Gold ?? 0;
         string goldStr = gold.ToString("N0");  // 1,000  100,000  1,000,000
         var goldSize = _font.MeasureString(goldStr);
@@ -278,32 +312,22 @@ public class HUD
             else
                 goldPanelW = (int)(goldPanelH * texRatio);
         }
-        var goldPanelRect = new Rectangle(barX, nextBarY, goldPanelW, goldPanelH);
+        var goldPanelRect = new Rectangle(originX, originY, goldPanelW, goldPanelH);
 
         if (_theme?.PanelCurrency != null)
-            NineSlice.DrawStretched(spriteBatch, _theme.PanelCurrency, goldPanelRect);
+            NineSlice.DrawStretched(sb, _theme.PanelCurrency, goldPanelRect);
 
         // Coin icon
-        int coinX = barX + 8;
-        int coinY = nextBarY + (goldPanelH - coinIconSz) / 2;
+        int coinX = originX + 8;
+        int coinY = originY + (goldPanelH - coinIconSz) / 2;
         if (_theme?.GoldIcon != null && _theme.GoldIcon.Width > 1)
-            spriteBatch.Draw(_theme.GoldIcon, new Rectangle(coinX, coinY, coinIconSz, coinIconSz), Color.White);
+            sb.Draw(_theme.GoldIcon, new Rectangle(coinX, coinY, coinIconSz, coinIconSz), Color.White);
 
         // Gold text (cream color, nudged 30% right from coin)
         int goldTextNudge = (int)(coinIconSz * 0.30f);
-        spriteBatch.DrawString(_font, goldStr,
-            new Vector2(coinX + coinIconSz + 4 + goldTextNudge, nextBarY + (goldPanelH - (int)goldSize.Y) / 2),
+        sb.DrawString(_font, goldStr,
+            new Vector2(coinX + coinIconSz + 4 + goldTextNudge, originY + (goldPanelH - (int)goldSize.Y) / 2),
             new Color(255, 248, 220));
-
-        // === XP bar above hotbar ===
-        DrawXPBar(spriteBatch, screenWidth, screenHeight);
-
-        // === Magic cooldown indicator (per D-09) ===
-        DrawFireballCooldown(spriteBatch, screenWidth, screenHeight);
-
-        // === Top-right: Quest tracker (HUD-05 / D-13) ===
-        var questState = _quest?.State ?? MainQuestState.NotStarted;
-        DrawQuestTracker(spriteBatch, _font, _pixel, questState, screenWidth, _theme);
     }
 
     /// <summary>

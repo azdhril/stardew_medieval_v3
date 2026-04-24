@@ -206,4 +206,15 @@ public class SpriteAtlas
     {
         RegisterRect(goldTexture, "Gold_Coin", new Rectangle(0, 0, goldTexture.Width, goldTexture.Height));
     }
+
+    /// <summary>
+    /// Register the 6 upgrade bags from <c>bags_upgrades.png</c> (96×16, horizontal layout).
+    /// Each 16×16 cell maps to a sprite id of the form <c>bag_upgrade_{index}</c> where
+    /// index matches <see cref="BagDefinition.SpriteIndex"/>.
+    /// </summary>
+    public void RegisterBagUpgrades(Texture2D bagsSheet)
+    {
+        for (int i = 0; i < 6; i++)
+            RegisterOn(bagsSheet, $"bag_upgrade_{i}", i, 0);
+    }
 }

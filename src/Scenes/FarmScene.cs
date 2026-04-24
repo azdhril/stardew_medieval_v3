@@ -206,6 +206,8 @@ public class FarmScene : GameplayScene
         _hotbar.LoadContent(device, Font);
         var goldCoinTex = LoadTexture(device, "assets/Sprites/Items/Bag_of_coins.png");
         _spriteAtlas.RegisterGoldCoin(goldCoinTex);
+        var bagsSheet = LoadTexture(device, "assets/Sprites/Items/Tools/bags_upgrades.png");
+        _spriteAtlas.RegisterBagUpgrades(bagsSheet);
         Services.Atlas = _spriteAtlas;
         Services.Hud = _hud;
         Services.Hotbar = _hotbar;
