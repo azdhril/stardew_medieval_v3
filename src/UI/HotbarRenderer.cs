@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -29,7 +30,7 @@ public class HotbarRenderer
     private Texture2D? _handIcon;
     private Texture2D? _panelSlotPane;
     private Texture2D? _panelSlotPaneShort;
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
     private Texture2D _pixel = null!;
 
     // When the Short panel is drawn, consumable slots are repositioned to center inside it.
@@ -71,7 +72,7 @@ public class HotbarRenderer
         _atlas = atlas;
     }
 
-    public void LoadContent(GraphicsDevice device, SpriteFont font)
+    public void LoadContent(GraphicsDevice device, SpriteFontBase font)
     {
         _font = font;
 

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Data;
@@ -39,7 +40,7 @@ public class InventoryGridRenderer
 
     private Texture2D _slotNormal = null!;
     private Texture2D _slotSelected = null!;
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
     private Texture2D _pixel = null!;
     private UITheme? _theme;
 
@@ -80,7 +81,7 @@ public class InventoryGridRenderer
         _hotbar?.SetExternalDragSource(-1, -1);
     }
 
-    public void LoadContent(GraphicsDevice device, SpriteFont font)
+    public void LoadContent(GraphicsDevice device, SpriteFontBase font)
     {
         _font = font;
         _pixel = new Texture2D(device, 1, 1);

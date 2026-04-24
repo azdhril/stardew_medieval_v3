@@ -1,3 +1,4 @@
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -31,7 +32,7 @@ public class DialogueBox
     /// is anchored to the bottom-center of the actual viewport (not a fixed 960x540).
     /// </summary>
     /// <param name="sb">Open SpriteBatch.</param>
-    /// <param name="font">SpriteFont for body text.</param>
+    /// <param name="font">Font for body text.</param>
     /// <param name="pixel">1x1 white texture for solid rects.</param>
     /// <param name="portrait">Optional 80x80 NPC portrait; null draws placeholder.</param>
     /// <param name="revealedText">Current line, truncated by the typewriter.</param>
@@ -39,7 +40,7 @@ public class DialogueBox
     /// <param name="pulseOn">When showAdvance, controls the 2Hz ▼ pulse.</param>
     /// <param name="viewportWidth">Current GraphicsDevice viewport width (px).</param>
     /// <param name="viewportHeight">Current GraphicsDevice viewport height (px).</param>
-    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel,
+    public void Draw(SpriteBatch sb, SpriteFontBase font, Texture2D pixel,
         Texture2D? portrait, string revealedText, bool showAdvance, bool pulseOn,
         int viewportWidth, int viewportHeight)
     {

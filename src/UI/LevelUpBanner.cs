@@ -1,3 +1,4 @@
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -44,9 +45,9 @@ public class LevelUpBanner
     /// No-op when inactive.
     /// </summary>
     /// <param name="sb">Active SpriteBatch.</param>
-    /// <param name="font">SpriteFont for text rendering.</param>
+    /// <param name="font">Font for text rendering.</param>
     /// <param name="screenWidth">Current viewport width for horizontal centering.</param>
-    public void Draw(SpriteBatch sb, SpriteFont font, int screenWidth)
+    public void Draw(SpriteBatch sb, SpriteFontBase font, int screenWidth)
     {
         if (!_active) return;
 

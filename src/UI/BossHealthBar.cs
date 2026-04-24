@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -58,7 +59,7 @@ public static class BossHealthBar
         }
     }
 
-    public static void Draw(SpriteBatch spriteBatch, Texture2D pixel, SpriteFont font,
+    public static void Draw(SpriteBatch spriteBatch, Texture2D pixel, SpriteFontBase font,
         string bossName, float hp, float maxHp, int screenWidth, int screenHeight)
     {
         if (hp <= 0 || maxHp <= 0) return;

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Data;
@@ -17,7 +18,7 @@ public class ContainerGridRenderer
 
     private readonly SpriteAtlas _atlas;
     private Texture2D _slotNormal = null!;
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
 
     public int SlotPixelSize { get; private set; }
 
@@ -32,7 +33,7 @@ public class ContainerGridRenderer
         SlotPixelSize = Math.Max(16, slotPixelSize);
     }
 
-    public void LoadContent(GraphicsDevice device, SpriteFont font)
+    public void LoadContent(GraphicsDevice device, SpriteFontBase font)
     {
         _font = font;
 

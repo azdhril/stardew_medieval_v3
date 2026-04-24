@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Combat;
@@ -19,8 +20,8 @@ namespace stardew_medieval_v3.UI;
 /// </summary>
 public class HUD
 {
-    private SpriteFont _font = null!;
-    private SpriteFont? _smallFont;
+    private SpriteFontBase _font = null!;
+    private SpriteFontBase? _smallFont;
     private Texture2D _pixel = null!;
 
     private Texture2D? _barBg;
@@ -50,17 +51,12 @@ public class HUD
         _inventory = inventory;
     }
 
-    public void LoadContent(GraphicsDevice device, SpriteFont font, Microsoft.Xna.Framework.Content.ContentManager? content = null)
+    public void LoadContent(GraphicsDevice device, SpriteFontBase font, SpriteFontBase? smallFont = null)
     {
         _font = font;
+        _smallFont = smallFont;
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
-
-        if (content != null)
-        {
-            try { _smallFont = content.Load<SpriteFont>("NotoSerifSmall"); }
-            catch { Console.WriteLine("[HUD] NotoSerifSmall not found, using main font for bar text"); }
-        }
 
         try
         {
@@ -405,7 +401,7 @@ public class HUD
     /// Static so scenes without a full HUD (e.g. CastleScene shell) can call
     /// it directly. See UI-SPEC for exact copy and colors.
     /// </summary>
-    public static void DrawQuestTracker(SpriteBatch sb, SpriteFont font, Texture2D pixel,
+    public static void DrawQuestTracker(SpriteBatch sb, SpriteFontBase font, Texture2D pixel,
         MainQuestState state, int screenWidth, UITheme? theme = null)
     {
         const int PanelW = 315;

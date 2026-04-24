@@ -1,3 +1,4 @@
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -40,7 +41,7 @@ public class DeathBanner
     /// Draw the banner centered on screen. Caller owns SpriteBatch.Begin/End.
     /// No-op when inactive.
     /// </summary>
-    public void Draw(SpriteBatch sb, SpriteFont font, int screenWidth, int screenHeight)
+    public void Draw(SpriteBatch sb, SpriteFontBase font, int screenWidth, int screenHeight)
     {
         if (!_active) return;
 

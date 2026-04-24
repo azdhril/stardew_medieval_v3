@@ -393,8 +393,9 @@ public abstract class GameplayScene : Scene
             sb.Draw(Pixel, new Rectangle(bx, by, 1, bh), color);
             sb.Draw(Pixel, new Rectangle(bx + bw - 1, by, 1, bh), color);
             if (Font != null)
-                sb.DrawString(Font, t.Name, new Vector2(bx + 2, by + 2), Color.White, 0f,
-                    Vector2.Zero, 0.4f, SpriteEffects.None, 0f);
+                // Debug trigger marker label — native size; scale arg removed during
+                // FSS migration (quick 260423-tu6). Font is already small enough.
+                sb.DrawString(Font, t.Name, new Vector2(bx + 2, by + 2), Color.White);
         }
     }
 

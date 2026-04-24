@@ -1,3 +1,4 @@
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -23,11 +24,11 @@ public class InteractionPrompt
     /// offset 20px upward. Caller owns SpriteBatch.Begin/End.
     /// </summary>
     /// <param name="sb">Open SpriteBatch.</param>
-    /// <param name="font">SpriteFont for the prompt text.</param>
+    /// <param name="font">Font for the prompt text.</param>
     /// <param name="pixel">1x1 white texture.</param>
     /// <param name="screenPos">Screen-space anchor (entity head in screen coords).</param>
     /// <param name="text">Prompt copy, e.g. "Press E to talk".</param>
-    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel, Vector2 screenPos, string text)
+    public void Draw(SpriteBatch sb, SpriteFontBase font, Texture2D pixel, Vector2 screenPos, string text)
     {
         var textSize = font.MeasureString(text);
         int panelW = (int)textSize.X + Padding * 2;

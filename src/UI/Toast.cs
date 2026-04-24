@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -73,7 +74,7 @@ public class Toast
     /// Draw the toast. Caller owns <c>SpriteBatch.Begin/End</c>. No-op when inactive.
     /// Screen assumed 960x540; panel centered horizontally, anchored ~80px from bottom.
     /// </summary>
-    public void Draw(SpriteBatch sb, SpriteFont font, Texture2D pixel)
+    public void Draw(SpriteBatch sb, SpriteFontBase font, Texture2D pixel)
     {
         if (!_active) return;
 
