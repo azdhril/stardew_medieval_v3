@@ -4,12 +4,18 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using stardew_medieval_v3.Core;
+using stardew_medieval_v3.UI;
+using stardew_medieval_v3.UI.Widgets;
 
 namespace stardew_medieval_v3.Scenes;
 
 /// <summary>
-/// Mocked pause/settings menu overlay. Shows Resume, Settings, and Quit options.
-/// Opened via Escape when no other overlay is active. Closed via Escape or clicking Resume.
+/// Mocked pause/settings menu overlay. Shows Resume, Fullscreen, Settings, and
+/// Quit options. Opened via Escape when no other overlay is active. Closed via
+/// Escape or clicking Resume. Migrated to the UI Widgets framework (quick
+/// 260424-2af): all 4 buttons are <see cref="TextButton"/> widgets registered
+/// with the scene-owned <see cref="Scene.Ui"/>; hit-test, hover, cursor, Tab
+/// navigation and Enter/Space activation flow through <see cref="UIManager"/>.
 /// </summary>
 public class PauseScene : Scene
 {
@@ -19,12 +25,13 @@ public class PauseScene : Scene
     private const int ButtonHeight = 30;
     private const int ButtonSpacing = 10;
 
-    private static readonly string[] Options = { "Resume", "Fullscreen", "Settings", "Quit" };
-
     private SpriteFontBase _font = null!;
     private Texture2D _pixel = null!;
-    private int _hoveredIndex = -1;
-    private bool _mouseWasDown;
+
+    private TextButton _resumeBtn = null!;
+    private TextButton _fullscreenBtn = null!;
+    private TextButton _settingsBtn = null!;
+    private TextButton _quitBtn = null!;
 
     public PauseScene(ServiceContainer services) : base(services) { }
 
@@ -35,6 +42,24 @@ public class PauseScene : Scene
         var device = Services.GraphicsDevice;
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
+
+        // Lazy-init theme mirror (matches ChestScene/InventoryScene pattern).
+        if (Services.Theme == null)
+        {
+            Services.Theme = new UITheme();
+            Services.Theme.LoadContent(Services.GraphicsDevice);
+        }
+        var theme = Services.Theme;
+
+        _resumeBtn     = new TextButton("Resume",     theme.YellowBtnSmall, theme.YellowBtnSmallInsets, _font) { OnClickAction = OnResume };
+        _fullscreenBtn = new TextButton("Fullscreen", theme.YellowBtnSmall, theme.YellowBtnSmallInsets, _font) { OnClickAction = OnFullscreen };
+        _settingsBtn   = new TextButton("Settings",   theme.YellowBtnSmall, theme.YellowBtnSmallInsets, _font) { OnClickAction = OnSettings };
+        _quitBtn       = new TextButton("Quit",       theme.YellowBtnSmall, theme.YellowBtnSmallInsets, _font) { OnClickAction = OnQuit };
+
+        Ui.Register(_resumeBtn);
+        Ui.Register(_fullscreenBtn);
+        Ui.Register(_settingsBtn);
+        Ui.Register(_quitBtn);
 
         Console.WriteLine("[PauseScene] Loaded");
     }
@@ -49,57 +74,17 @@ public class PauseScene : Scene
             return;
         }
 
-        // Hit test buttons
+        // Recompute button bounds each frame (viewport-responsive — Pitfall 3).
         var viewport = Services.GraphicsDevice.Viewport;
         int panelX = (viewport.Width - PanelWidth) / 2;
         int panelY = (viewport.Height - PanelHeight) / 2;
-        Point mousePos = input.MousePosition;
+        _resumeBtn.Bounds     = GetButtonRect(0, panelX, panelY);
+        _fullscreenBtn.Bounds = GetButtonRect(1, panelX, panelY);
+        _settingsBtn.Bounds   = GetButtonRect(2, panelX, panelY);
+        _quitBtn.Bounds       = GetButtonRect(3, panelX, panelY);
 
-        _hoveredIndex = -1;
-        for (int i = 0; i < Options.Length; i++)
-        {
-            var rect = GetButtonRect(i, panelX, panelY);
-            if (rect.Contains(mousePos))
-            {
-                _hoveredIndex = i;
-                break;
-            }
-        }
-
-        // Edge-detected click
-        bool mouseDown = Mouse.GetState().LeftButton == ButtonState.Pressed;
-        bool clicked = mouseDown && !_mouseWasDown;
-        _mouseWasDown = mouseDown;
-
-        if (clicked && _hoveredIndex >= 0)
-        {
-            switch (_hoveredIndex)
-            {
-                case 0: // Resume
-                    Services.SceneManager.PopImmediate();
-                    return;
-                case 1: // Fullscreen
-                    // Close and reopen the menu around the toggle. Workaround for a
-                    // DesktopGL quirk where the first IsFullScreen flip while an
-                    // overlay scene is on top leaves the SDL window slightly
-                    // mis-sized (visible as black bars). Popping to the gameplay
-                    // scene first lets its Update/Draw commit the new state, then
-                    // we re-push the menu so the user doesn't see a flash.
-                    Services.SceneManager.PopImmediate();
-                    Services.ToggleFullscreen?.Invoke();
-                    // Defer the re-push so GameplayScene gets real Update frames
-                    // while the OS commits the window resize. Synchronous push
-                    // here leaves black bars on first fullscreen entry.
-                    Services.SceneManager.PushAfter(new PauseScene(Services), 0.25f);
-                    return;
-                case 2: // Settings (mocked - just log)
-                    Console.WriteLine("[PauseScene] Settings not yet implemented");
-                    break;
-                case 3: // Quit
-                    Services.QuitGame?.Invoke();
-                    return;
-            }
-        }
+        // Widgets handle all clicks — no scene-level click fallback needed.
+        Ui.Update(deltaTime, input);
     }
 
     public override void Draw(SpriteBatch spriteBatch)
@@ -132,24 +117,21 @@ public class PauseScene : Scene
             new Vector2(panelX + (PanelWidth - titleSize.X) / 2, panelY + 10),
             Color.White);
 
-        // Buttons
-        for (int i = 0; i < Options.Length; i++)
-        {
-            var rect = GetButtonRect(i, panelX, panelY);
-            var bgColor = i == _hoveredIndex ? Color.Gray * 0.6f : Color.Gray * 0.3f;
-            spriteBatch.Draw(_pixel, rect, bgColor);
+        // Buttons (widget Draw each).
+        _resumeBtn.Draw(spriteBatch);
+        _fullscreenBtn.Draw(spriteBatch);
+        _settingsBtn.Draw(spriteBatch);
+        _quitBtn.Draw(spriteBatch);
 
-            var textSize = _font.MeasureString(Options[i]);
-            spriteBatch.DrawString(_font, Options[i],
-                new Vector2(rect.X + (ButtonWidth - textSize.X) / 2, rect.Y + (ButtonHeight - textSize.Y) / 2),
-                Color.White);
-        }
+        // Focus outline + tooltip overlay.
+        Ui.Draw(spriteBatch, _pixel, _font, screenWidth, screenHeight);
 
         spriteBatch.End();
     }
 
     public override void UnloadContent()
     {
+        base.UnloadContent();
         _pixel?.Dispose();
         Console.WriteLine("[PauseScene] Unloaded");
     }
@@ -159,5 +141,36 @@ public class PauseScene : Scene
         int x = panelX + (PanelWidth - ButtonWidth) / 2;
         int y = panelY + 40 + index * (ButtonHeight + ButtonSpacing);
         return new Rectangle(x, y, ButtonWidth, ButtonHeight);
+    }
+
+    private void OnResume()
+    {
+        Services.SceneManager.PopImmediate();
+    }
+
+    private void OnFullscreen()
+    {
+        // Close and reopen the menu around the toggle. Workaround for a
+        // DesktopGL quirk where the first IsFullScreen flip while an overlay
+        // scene is on top leaves the SDL window slightly mis-sized (visible as
+        // black bars). Popping to the gameplay scene first lets its
+        // Update/Draw commit the new state, then we re-push the menu so the
+        // user doesn't see a flash.
+        Services.SceneManager.PopImmediate();
+        Services.ToggleFullscreen?.Invoke();
+        // Defer the re-push so GameplayScene gets real Update frames while the
+        // OS commits the window resize. Synchronous push here leaves black
+        // bars on first fullscreen entry.
+        Services.SceneManager.PushAfter(new PauseScene(Services), 0.25f);
+    }
+
+    private void OnSettings()
+    {
+        Console.WriteLine("[PauseScene] Settings not yet implemented");
+    }
+
+    private void OnQuit()
+    {
+        Services.QuitGame?.Invoke();
     }
 }
