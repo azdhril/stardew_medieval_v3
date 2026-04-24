@@ -81,6 +81,14 @@ public class ServiceContainer
     public SpriteAtlas? Atlas { get; set; }
 
     /// <summary>
+    /// Shared font service (runtime TTF rasterizer via FontStashSharp). Created
+    /// lazily by the first gameplay scene that needs it in LoadContent; reused
+    /// across all scenes. Replaces the old SpriteFont content-pipeline fonts
+    /// (see quick task 260423-tu6).
+    /// </summary>
+    public FontService? Fonts { get; set; }
+
+    /// <summary>
     /// Shared HUD renderer. Set by FarmScene so hub scenes (Village/Castle/Shop)
     /// can draw the same HUD on transition without re-instantiating.
     /// </summary>

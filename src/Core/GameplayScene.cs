@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -22,7 +23,7 @@ public abstract class GameplayScene : Scene
     protected TileMap Map = null!;
     protected PlayerEntity Player = null!;
     protected Texture2D Pixel = null!;
-    protected SpriteFont Font = null!;
+    protected SpriteFontBase Font = null!;
     protected string FromScene { get; }
 
     /// <summary>Periodic auto-save interval in seconds.</summary>
@@ -130,15 +131,14 @@ public abstract class GameplayScene : Scene
         Pixel = new Texture2D(device, 1, 1);
         Pixel.SetData(new[] { Color.White });
 
-        try
+        // Lazy-init the shared FontService on first scene load.
+        if (Services.Fonts == null)
         {
-            Font = Services.Content.Load<SpriteFont>("NotoSerif");
+            var fontDir = System.IO.Path.Combine(AppContext.BaseDirectory,
+                "assets", "Sprites", "System", "Font");
+            Services.Fonts = new FontService(fontDir);
         }
-        catch
-        {
-            Console.WriteLine("[GameplayScene] NotoSerif font not found, falling back to DefaultFont");
-            Font = Services.Content.Load<SpriteFont>("DefaultFont");
-        }
+        Font = Services.Fonts.GetFont(FontRole.Body, 12);
 
         Map = new TileMap();
         Map.Load(MapPath, device);
