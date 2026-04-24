@@ -28,6 +28,13 @@ public sealed class UIManager
     private readonly List<IClickable> _widgets = new();
     private IClickable? _hovered;
     private IClickable? _focused;
+    /// <summary>
+    /// Mirrors the CSS <c>:focus-visible</c> pseudo-class: true only when focus moved via
+    /// keyboard (Tab/Shift-Tab or Enter/Space activation from a Tab-set focus). Mouse clicks
+    /// set <see cref="_focused"/> for keyboard-activation continuity but leave this false,
+    /// so the yellow focus outline does not render for mouse interactions.
+    /// </summary>
+    private bool _focusVisible;
     private float _hoverTime;
     private bool _wasHoveringClickable;
     private static bool _didFirstRegisterLog;
@@ -78,6 +85,7 @@ public sealed class UIManager
         _widgets.Clear();
         _hovered = null;
         _focused = null;
+        _focusVisible = false;
         _hoverTime = 0f;
         if (_wasHoveringClickable)
         {
@@ -131,18 +139,22 @@ public sealed class UIManager
             _wasHoveringClickable = hoveringClickable;
         }
 
-        // 4. Focus navigation: Tab / Shift-Tab.
+        // 4. Focus navigation: Tab / Shift-Tab. Keyboard-triggered → focus outline visible.
         if (input.IsKeyPressed(Keys.Tab))
         {
             bool backward = input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift);
             AdvanceFocus(backward);
+            _focusVisible = true;
         }
 
         // 5. Click dispatch (mouse edge-click OR keyboard Enter/Space on focused widget).
         bool consumed = false;
         if (input.IsLeftClickPressed && _hovered != null && _hovered.Enabled)
         {
+            // Mouse click: tracks focus for subsequent keyboard activation, but HIDES the
+            // focus outline. Standard UX — outline is keyboard-user affordance only.
             _focused = _hovered;
+            _focusVisible = false;
             _hovered.OnClick();
             OnClickSound?.Invoke();
             consumed = true;
@@ -166,8 +178,10 @@ public sealed class UIManager
     /// </summary>
     public void Draw(SpriteBatch sb, Texture2D pixel, SpriteFontBase font, int viewportW, int viewportH)
     {
-        // Focus outline — 2px golden ring around the focused widget (Pitfall 5: skip if disabled).
-        if (_focused != null && _focused.Enabled)
+        // Focus outline — 2px golden ring around the focused widget. Only rendered when focus
+        // was set via keyboard (_focusVisible), matching CSS :focus-visible semantics — mouse
+        // clickers never see a stale outline ring they didn't ask for.
+        if (_focused != null && _focused.Enabled && _focusVisible)
         {
             var b = _focused.Bounds;
             var ring = new Rectangle(b.X - 1, b.Y - 1, b.Width + 2, b.Height + 2);

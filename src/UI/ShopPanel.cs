@@ -293,8 +293,8 @@ public class ShopPanel
         _buyTabRect  = new Rectangle(_panelX + 16,      tabY, 80, 32);
         _sellTabRect = new Rectangle(_panelX + 16 + 88, tabY, 80, 32);
 
-        // Close X button — 20x20 at top-right of header
-        _closeRect = new Rectangle(_panelX + PanelWidth - 28, _panelY + 8, 20, 20);
+        // Close X button — 32x32 pixel-art icon at top-right of header.
+        _closeRect = new Rectangle(_panelX + PanelWidth - 40, _panelY + 8, 32, 32);
 
         // Row + action-button rects
         int listX = _panelX + 16;
@@ -530,8 +530,8 @@ public class ShopPanel
             Color.LightGoldenrodYellow, 2f);
         int headerY = _panelY + 8;
 
-        // Gold display
-        string goldText = _inv.Gold.ToString();
+        // Gold display — thousands separator to match HUD.
+        string goldText = _inv.Gold.ToString("N0");
         var goldSize = font.MeasureString(goldText);
         int coinSize = 18;
         int goldBlockW = coinSize + 6 + (int)goldSize.X;

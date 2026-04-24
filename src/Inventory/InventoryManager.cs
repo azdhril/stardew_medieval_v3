@@ -592,4 +592,58 @@ public class InventoryManager : IItemSlotCollection
         state.WeaponId = null;
         state.ArmorId = null;
     }
+
+    /// <summary>
+    /// Sort inventory slots by type, then rarity, then name. Empty slots go to the end.
+    /// Hotbar references re-resolve via item id, so slot order changing does not break
+    /// them as long as the item id is still somewhere in inventory.
+    /// </summary>
+    public void SortByDefault()
+    {
+        var items = new List<ItemStack>();
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] != null)
+                items.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity });
+        }
+
+        items.Sort(static (a, b) =>
+        {
+            var defA = ItemRegistry.Get(a.ItemId);
+            var defB = ItemRegistry.Get(b.ItemId);
+
+            int typeCompare = GetTypeOrder(defA?.Type ?? ItemType.Loot).CompareTo(GetTypeOrder(defB?.Type ?? ItemType.Loot));
+            if (typeCompare != 0) return typeCompare;
+
+            int rarityCompare = GetRarityOrder(defB?.Rarity ?? Rarity.Common).CompareTo(GetRarityOrder(defA?.Rarity ?? Rarity.Common));
+            if (rarityCompare != 0) return rarityCompare;
+
+            int nameCompare = string.Compare(defA?.Name ?? a.ItemId, defB?.Name ?? b.ItemId, StringComparison.OrdinalIgnoreCase);
+            if (nameCompare != 0) return nameCompare;
+
+            return string.Compare(a.ItemId, b.ItemId, StringComparison.OrdinalIgnoreCase);
+        });
+
+        for (int i = 0; i < _slots.Length; i++)
+            _slots[i] = i < items.Count ? items[i] : null;
+    }
+
+    private static int GetTypeOrder(ItemType type) => type switch
+    {
+        ItemType.Tool => 0,
+        ItemType.Weapon => 1,
+        ItemType.Armor => 2,
+        ItemType.Consumable => 3,
+        ItemType.Seed => 4,
+        ItemType.Crop => 5,
+        ItemType.Loot => 6,
+        _ => 99,
+    };
+
+    private static int GetRarityOrder(Rarity rarity) => rarity switch
+    {
+        Rarity.Rare => 2,
+        Rarity.Uncommon => 1,
+        _ => 0,
+    };
 }

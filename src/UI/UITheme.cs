@@ -36,6 +36,7 @@ public sealed class UITheme
     public Texture2D SquareBtn      { get; private set; } = null!;
     public Texture2D SquareBtnHover { get; private set; } = null!;
     public Texture2D YellowBtnSmall { get; private set; } = null!;
+    public Texture2D BtnSlot        { get; private set; } = null!;
     public Texture2D BtnIconX       { get; private set; } = null!;
 
     // Shop gold pouch
@@ -87,6 +88,7 @@ public sealed class UITheme
     public NineSlice.Insets ListItemHoverInsets  = NineSlice.Insets.Uniform(8);
     public NineSlice.Insets SquareBtnInsets      = NineSlice.Insets.Uniform(8);
     public NineSlice.Insets YellowBtnSmallInsets = new(5, 4, 5, 4);
+    public NineSlice.Insets BtnSlotInsets        = new(5, 6, 5, 6);
     public NineSlice.Insets PanelCurrencyInsets  = new(24, 16, 24, 16);
     public NineSlice.Insets PanelSlotPaneInsets  = new(50, 48, 50, 47);
     public NineSlice.Insets PanelSmallInsets     = NineSlice.Insets.Uniform(8);
@@ -113,7 +115,8 @@ public sealed class UITheme
         SquareBtn      = Load(device, "Buttons/UI_Square_Btn.png",       "SquareBtn",      new Color(78, 58, 44));
         SquareBtnHover = Load(device, "Buttons/UI_Square_Btn_hover.png", "SquareBtnHover", new Color(120, 90, 60));
         YellowBtnSmall = Load(device, "Buttons/UI_Btn_yellow_pixelart.png", "YellowBtnSmall", Color.Gold);
-        BtnIconX       = Load(device, "Buttons/UI_BtnIcon_x.png",        "BtnIconX",       Color.White);
+        BtnSlot        = Load(device, "Buttons/UI_Btn_slot_pixelart.png",   "BtnSlot",        new Color(90, 30, 25));
+        BtnIconX       = Load(device, "Buttons/UI_BtnIcon_x_pixelart.png", "BtnIconX",       Color.White);
         PanelCurrency  = Load(device, "Panel/UI_Panel_Currency.png",     "PanelCurrency",  new Color(60, 45, 25));
         ImageDeco      = Load(device, "Decorations/UI_Image_Deco.png",   "ImageDeco",      new Color(140, 110, 70));
         PanelSlotPane  = Load(device, "Panel/UI_Panel_SlotPaneBackground.png", "PanelSlotPane",  new Color(215, 190, 140));
@@ -121,8 +124,8 @@ public sealed class UITheme
 
         IconPlus       = Load(device, "Icons/Icon_plus.png",             "IconPlus",       Color.White);
         IconMinus      = Load(device, "Icons/Icon_minus.png",            "IconMinus",      Color.White);
-        IconArrowRight = Load(device, "Icons/Icon_arrow-right.png",      "IconArrowRight", Color.White);
-        IconSort       = Load(device, "Icons/Icon_arrow-switch.png",     "IconSort",       Color.White);
+        IconArrowRight = Load(device, "Icons/Icon_arrow-right_pixelart.png", "IconArrowRight", Color.White);
+        IconSort       = Load(device, "Icons/Icon_reorder.png",              "IconSort",       Color.White);
         IconAttack     = Load(device, "Icons/System/UI_Icon_Sys_Attack.png",  "IconAttack",  new Color(220, 80, 60));
         IconDefense    = Load(device, "Icons/System/UI_Icon_Sys_Defense.png", "IconDefense", new Color(90, 140, 210));
 

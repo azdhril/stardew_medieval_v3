@@ -81,9 +81,22 @@ public class IconButton : IClickable
         if (_background != null)
             NineSlice.Draw(sb, _background, Bounds, BackgroundInsets);
 
-        int scale = Math.Max(1, Math.Min(Bounds.Width / _icon.Width, Bounds.Height / _icon.Height));
-        int iw = _icon.Width * scale;
-        int ih = _icon.Height * scale;
+        // If icon fits at 1x or larger, use integer scaling (crisp pixel art).
+        // If icon is larger than bounds, fall back to uniform fractional fit with 20% inner padding
+        // so the icon reads as centered inside its button chrome instead of clipping.
+        int iw, ih;
+        if (_icon.Width <= Bounds.Width && _icon.Height <= Bounds.Height)
+        {
+            int scale = Math.Max(1, Math.Min(Bounds.Width / _icon.Width, Bounds.Height / _icon.Height));
+            iw = _icon.Width * scale;
+            ih = _icon.Height * scale;
+        }
+        else
+        {
+            float fit = Math.Min((float)Bounds.Width / _icon.Width, (float)Bounds.Height / _icon.Height) * 0.8f;
+            iw = (int)(_icon.Width * fit);
+            ih = (int)(_icon.Height * fit);
+        }
         int yNudge = (hovered && Hover == HoverStyle.NudgeHalo) ? -1 : 0;
         var iconRect = new Rectangle(
             Bounds.X + (Bounds.Width - iw) / 2,

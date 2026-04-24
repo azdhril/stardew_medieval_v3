@@ -30,7 +30,7 @@ public class ChestScene : Scene
     private const int MaxSlotSize = 60;
     private const int IconButtonSize = 32;
     private const int IconButtonGap = 6;
-    private const int CloseButtonSize = 26;
+    private const int CloseButtonSize = 32;
     private const int ContentMarginX = 18;
     private const int ContentTop = 72;
     private const int ContentBottom = 44;
@@ -145,18 +145,21 @@ public class ChestScene : Scene
         _gridRenderer.LoadContent(device, _font);
 
         // Build action + close widgets. Bounds are refreshed each frame in Update.
-        _sendBtn = new IconButton(_theme.IconArrowRight, _theme.CommonBtn, _theme.CommonBtnInsets)
+        // Send/Take: pixel-art slot background (BtnSlot, 9-sliced), positioned in the center
+        // separator between the panes. Direction of arrow = destination pane.
+        _sendBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
         {
             OnClickAction = () => ExecuteButton(ButtonAction.SendAll),
             Tooltip = "Send all",
         };
-        _takeBtn = new IconButton(_theme.IconArrowRight, _theme.CommonBtn, _theme.CommonBtnInsets)
+        _takeBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
         {
             Effects = SpriteEffects.FlipHorizontally,
             OnClickAction = () => ExecuteButton(ButtonAction.TakeAll),
             Tooltip = "Take all",
         };
-        _sortChestBtn = new IconButton(_theme.IconSort, _theme.CommonBtn, _theme.CommonBtnInsets)
+        // Sort (broom): bare icon, no background chrome — per user design.
+        _sortChestBtn = new IconButton(_theme.IconSort)
         {
             OnClickAction = () => ExecuteButton(ButtonAction.SortChest),
             Tooltip = "Sort chest",
@@ -188,9 +191,9 @@ public class ChestScene : Scene
         GetLayout(panelX, panelY,
             out Rectangle playerPaneRect, out Rectangle chestPaneRect,
             out _, out _, out _, out _);
-        _sendBtn.Bounds      = GetActionButtonRect(playerPaneRect, ButtonAction.SendAll);
-        _takeBtn.Bounds      = GetActionButtonRect(chestPaneRect, ButtonAction.TakeAll);
-        _sortChestBtn.Bounds = GetActionButtonRect(chestPaneRect, ButtonAction.SortChest);
+        _sendBtn.Bounds      = GetActionButtonRect(playerPaneRect, chestPaneRect, ButtonAction.SendAll);
+        _takeBtn.Bounds      = GetActionButtonRect(playerPaneRect, chestPaneRect, ButtonAction.TakeAll);
+        _sortChestBtn.Bounds = GetActionButtonRect(playerPaneRect, chestPaneRect, ButtonAction.SortChest);
         _closeBtn.Bounds     = GetCloseButtonRect(panelX, panelY);
 
         // Widget layer FIRST — consumes click if a widget was hit.
@@ -251,7 +254,7 @@ public class ChestScene : Scene
         // Title plaque — centered hanging banner above the panel top edge.
         string title = ChestRegistry.Get(_chest.VariantId)?.DisplayName ?? "Chest";
         DrawCenteredText(spriteBatch, _titleFont, title,
-            new Rectangle(panelX + 28, panelY + 6, PanelWidth - 56, 50),
+            new Rectangle(panelX + 28, panelY, PanelWidth - 56, 50),
             Color.LightGoldenrodYellow, 2f, withShadow: true);
 
         // Close X widget Draws itself below (after action buttons, so focus outline stacks cleanly).
@@ -262,12 +265,12 @@ public class ChestScene : Scene
 
         DrawCenteredText(spriteBatch, _titleFont, "Bolsa", new Rectangle(
             playerPaneRect.X + PanePadding,
-            playerPaneRect.Y + 1,
+            playerPaneRect.Y + 10,
             playerPaneRect.Width - PanePadding * 2,
             PaneTitleHeight), Color.LightGoldenrodYellow, 1f);
         DrawCenteredText(spriteBatch, _titleFont, "Baú", new Rectangle(
             chestPaneRect.X + PanePadding,
-            chestPaneRect.Y + 1,
+            chestPaneRect.Y + 10,
             chestPaneRect.Width - PanePadding * 2,
             PaneTitleHeight), Color.LightGoldenrodYellow, 1f);
 
@@ -279,9 +282,12 @@ public class ChestScene : Scene
 
         int? hiddenPlayer = _dragSource == DragSourceKind.Player ? _dragIndex : null;
         int? hiddenChest = _dragSource == DragSourceKind.Chest ? _dragIndex : null;
-        _gridRenderer.DrawGrid(spriteBatch, _playerInventory, PlayerColumns, playerX, playerY, hiddenPlayer);
+        // Display both grids as 4 rows × 5 cols = 20 slots (per user request, temporary cap).
+        const int displaySlots = 20;
+        _gridRenderer.DrawGrid(spriteBatch, _playerInventory, PlayerColumns, playerX, playerY,
+            hiddenPlayer, displaySlots, _playerInventory.Capacity);
         _gridRenderer.DrawGrid(spriteBatch, _chest.Container, ChestColumns, chestX, chestY,
-            hiddenChest, ChestInstance.MaxCapacity, _chest.Container.Capacity);
+            hiddenChest, displaySlots, _chest.Container.Capacity);
 
         var dragged = GetDraggedStack();
         if (dragged != null)
@@ -454,7 +460,8 @@ public class ChestScene : Scene
         int contentY = panelY + ContentTop;
         int contentW = PanelWidth - ContentMarginX * 2;
         int contentH = PanelHeight - ContentTop - ContentBottom;
-        int separatorW = Math.Max(8, (int)MathF.Round(contentW * 0.02f));
+        // Separator must be wide enough to host Send/Take stack in the middle column.
+        int separatorW = Math.Max(IconButtonSize + 16, (int)MathF.Round(contentW * 0.02f));
         int paneW = (contentW - separatorW) / 2;
 
         playerPaneRect = new Rectangle(contentX, contentY, paneW, contentH);
@@ -467,15 +474,16 @@ public class ChestScene : Scene
         int chestGridW = ChestColumns * slotSize;
 
         playerX = playerPaneRect.X + (playerPaneRect.Width - playerGridW) / 2;
-        playerY = playerPaneRect.Y + PanePadding + PaneTitleHeight;
+        playerY = playerPaneRect.Y + PanePadding + PaneTitleHeight + 20;
         chestX = chestPaneRect.X + (chestPaneRect.Width - chestGridW) / 2;
-        chestY = chestPaneRect.Y + PanePadding + PaneTitleHeight;
+        chestY = chestPaneRect.Y + PanePadding + PaneTitleHeight + 20;
     }
 
     private int CalculateSlotSize(Rectangle playerPaneRect, Rectangle chestPaneRect)
     {
-        int playerRows = (int)Math.Ceiling(_playerInventory.Capacity / (float)PlayerColumns);
-        int chestRows = (int)Math.Ceiling(ChestInstance.MaxCapacity / (float)ChestColumns);
+        // Both grids are displayed at 4 rows × 5 cols (per user request, temporary cap).
+        int playerRows = 4;
+        int chestRows = 4;
         int usablePlayerW = playerPaneRect.Width - PanePadding * 2;
         int usableChestW = chestPaneRect.Width - PanePadding * 2;
         int usableH = playerPaneRect.Height - PanePadding * 2 - PaneTitleHeight;
@@ -488,26 +496,37 @@ public class ChestScene : Scene
         return Math.Clamp(size, MinSlotSize, MaxSlotSize);
     }
 
-    private Rectangle GetActionButtonRect(Rectangle paneRect, ButtonAction action)
+    private Rectangle GetActionButtonRect(Rectangle playerPaneRect, Rectangle chestPaneRect, ButtonAction action)
     {
-        int y = paneRect.Y + 5;
-        int right = paneRect.Right - PanePadding;
-        return action switch
+        switch (action)
         {
-            ButtonAction.SendAll => new Rectangle(right - IconButtonSize, y, IconButtonSize, IconButtonSize),
-            ButtonAction.SortChest => new Rectangle(right - IconButtonSize, y, IconButtonSize, IconButtonSize),
-            ButtonAction.TakeAll => new Rectangle(
-                right - IconButtonSize * 2 - IconButtonGap,
-                y,
-                IconButtonSize,
-                IconButtonSize),
-            _ => Rectangle.Empty,
-        };
+            case ButtonAction.SortChest:
+            {
+                // Sort stays top-right of its pane (bare icon, no chrome).
+                int gridW = ChestColumns * _gridRenderer.SlotPixelSize;
+                int y = chestPaneRect.Y + 16;
+                int right = chestPaneRect.X + (chestPaneRect.Width + gridW) / 2 - 7;
+                return new Rectangle(right - IconButtonSize, y, IconButtonSize, IconButtonSize);
+            }
+            case ButtonAction.SendAll:
+            case ButtonAction.TakeAll:
+            {
+                // Stacked vertically in the center gap between the two panes. Arrow direction = destination.
+                int centerX = (playerPaneRect.Right + chestPaneRect.X) / 2 - IconButtonSize / 2;
+                int paneCenterY = playerPaneRect.Y + playerPaneRect.Height / 2;
+                int y = action == ButtonAction.SendAll
+                    ? paneCenterY - IconButtonSize - 4
+                    : paneCenterY + 4;
+                return new Rectangle(centerX, y, IconButtonSize, IconButtonSize);
+            }
+            default:
+                return Rectangle.Empty;
+        }
     }
 
     private static Rectangle GetCloseButtonRect(int panelX, int panelY) => new(
         panelX + PanelWidth - 54,
-        panelY + 18,
+        panelY + 10,
         CloseButtonSize,
         CloseButtonSize);
 
