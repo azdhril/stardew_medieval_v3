@@ -6,6 +6,8 @@ using FontStashSharp;
 using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Inventory;
+using stardew_medieval_v3.UI.Widgets;
+using WidgetTab = stardew_medieval_v3.UI.Widgets.Tab;
 
 namespace stardew_medieval_v3.UI;
 
@@ -13,10 +15,16 @@ namespace stardew_medieval_v3.UI;
 /// Buy/Sell shop panel (720x400, centered horizontally, 48px from top).
 /// Owned by <see cref="stardew_medieval_v3.Scenes.ShopOverlayScene"/>.
 /// UI-SPEC §Component Inventory / §State machine: shop buy/sell.
+///
+/// Migrated to the UI Widgets framework (quick 260424-2af): tabs, close button,
+/// per-row qty steppers, and action buttons are all <see cref="IClickable"/>
+/// widgets registered with the caller's <see cref="UIManager"/> via
+/// <see cref="BuildWidgets"/>. Outside-click close stays scene-level
+/// (Pitfall 4). Row hover for visual feedback remains imperative (not clickable).
 /// </summary>
 public class ShopPanel
 {
-    private enum Tab { Buy, Sell }
+    private enum ShopTab { Buy, Sell }
 
     // Layout (UI-SPEC §Component Inventory)
     private const int PanelWidth = 720;
@@ -26,16 +34,12 @@ public class ShopPanel
     private const int IconSize = 24;
     private const int IconTextGap = 8;
 
-    // Runtime anchors computed from the current viewport inside UpdateLayoutCache
-    // (replaces the old hardcoded-960x540 constants so the panel centers correctly
-    // in fullscreen / any non-960x540 window size).
+    // Runtime anchors computed from the current viewport inside UpdateLayoutCache.
     private int _panelX;
     private int _panelY;
 
     // Colors (design fingerprint)
     private static readonly Color Dim = Color.Black * 0.55f;
-    private static readonly Color PanelFill = new Color(60, 40, 30);
-    private static readonly Color Bevel = new Color(90, 60, 45);
     private static readonly Color RowText = new Color(78, 58, 44);
     private static readonly Color RowHoverFill = new Color(78, 58, 44);
     private static readonly Color PriceGold = new Color(184, 134, 11);
@@ -43,30 +47,43 @@ public class ShopPanel
     private readonly InventoryManager _inv;
     private readonly SpriteAtlas _atlas;
 
-    private Tab _tab = Tab.Buy;
+    private ShopTab _tab = ShopTab.Buy;
 
-    // Cached layout rects (recomputed each Update via UpdateLayoutCache) — shared with Draw for hit-test consistency.
+    // Cached layout rects (recomputed each Update via UpdateLayoutCache).
     private Rectangle _panelRect;
     private Rectangle _buyTabRect;
     private Rectangle _sellTabRect;
     private Rectangle _closeRect;
     private readonly Rectangle[] _rowRects = new Rectangle[VisibleRows];
     private readonly Rectangle[] _actionBtnRects = new Rectangle[VisibleRows];
-    private int _hoveredRow = -1; // index into the visible-row slice (0..visible-1), NOT absolute rowIndex
-    private int _scrollOffset;    // user-controlled (wheel), kept in range by clamp
+    private int _hoveredRow = -1;
+    private int _scrollOffset;
 
-    // Per-row quantity state (Stardew-style; D-04). Index is ABSOLUTE row index into the current tab.
+    // Per-row quantity state (absolute row indices into current tab).
     private int[] _rowQty = Array.Empty<int>();
-    private Tab _rowQtyTab = Tab.Buy;
+    private ShopTab _rowQtyTab = ShopTab.Buy;
     private int _rowQtyRowCount = 0;
 
-    // Per-visible-row qty widget rects (mirror _rowRects / _actionBtnRects).
+    // Per-visible-row qty widget rects.
     private readonly Rectangle[] _qtyMinusRects = new Rectangle[VisibleRows];
     private readonly Rectangle[] _qtyLabelRects = new Rectangle[VisibleRows];
     private readonly Rectangle[] _qtyPlusRects  = new Rectangle[VisibleRows];
 
     private Rectangle _scrollTrackRect;
     private Rectangle _scrollThumbRect;
+
+    // Widgets — built once by BuildWidgets; bounds refreshed each frame in Update.
+    private WidgetTab _buyTab = null!;
+    private WidgetTab _sellTab = null!;
+    private CloseButton _closeBtn = null!;
+    private readonly IconButton[] _qtyMinusBtns = new IconButton[VisibleRows];
+    private readonly IconButton[] _qtyPlusBtns  = new IconButton[VisibleRows];
+    private readonly TextButton[] _actionBtns   = new TextButton[VisibleRows];
+    private bool _widgetsBuilt;
+
+    // Deferred transaction signal (drained by Update into the out toast param).
+    private ToastRequest? _pendingToast;
+    private bool _requestedClose;
 
     /// <summary>Outbound signal from <see cref="Update"/>: a toast the caller should show.</summary>
     public record ToastRequest(string Text, Color Color);
@@ -78,10 +95,50 @@ public class ShopPanel
     }
 
     /// <summary>
-    /// Drive input. Returns <c>true</c> if the user pressed Escape (the overlay should close).
-    /// <paramref name="toast"/> is set when a transaction completed.
+    /// Register this panel's widgets with the scene-owned <see cref="UIManager"/>.
+    /// Called once by <c>ShopOverlayScene.LoadContent</c>. The per-row widget
+    /// pool (qty -/+ / action) is sized to <see cref="VisibleRows"/>; row
+    /// <c>Bounds</c> and <c>Enabled</c> are refreshed each frame by
+    /// <see cref="Update"/> so widgets track scroll + active tab correctly.
     /// </summary>
-    public bool Update(float dt, InputManager input, int viewportWidth, int viewportHeight, out ToastRequest? toast)
+    public void BuildWidgets(UIManager ui, UITheme theme, SpriteFontBase font)
+    {
+        if (_widgetsBuilt) return;
+        _buyTab  = new WidgetTab("Buy",  theme.TabOn, theme.TabOff, theme.TabInsets, font) { OnClickAction = () => SwitchTab(ShopTab.Buy) };
+        _sellTab = new WidgetTab("Sell", theme.TabOn, theme.TabOff, theme.TabInsets, font) { OnClickAction = () => SwitchTab(ShopTab.Sell) };
+        _closeBtn = new CloseButton(theme.BtnIconX) { OnClickAction = () => _requestedClose = true };
+        ui.Register(_buyTab);
+        ui.Register(_sellTab);
+        ui.Register(_closeBtn);
+
+        for (int k = 0; k < VisibleRows; k++)
+        {
+            int rowSlot = k;
+            _qtyMinusBtns[k] = new IconButton(theme.IconMinus, theme.BtnCircleSmall, NineSlice.Insets.Uniform(4))
+            {
+                OnClickAction = () => AdjustRowQty(rowSlot, decrement: true),
+            };
+            _qtyPlusBtns[k] = new IconButton(theme.IconPlus, theme.BtnCircleSmall, NineSlice.Insets.Uniform(4))
+            {
+                OnClickAction = () => AdjustRowQty(rowSlot, decrement: false),
+            };
+            _actionBtns[k] = new TextButton(string.Empty, theme.YellowBtnSmall, theme.YellowBtnSmallInsets, font)
+            {
+                OnClickAction = () => ExecuteRow(rowSlot),
+            };
+            ui.Register(_qtyMinusBtns[k]);
+            ui.Register(_qtyPlusBtns[k]);
+            ui.Register(_actionBtns[k]);
+        }
+        _widgetsBuilt = true;
+    }
+
+    /// <summary>
+    /// Drive input. Returns <c>true</c> when the user requested a close (Escape,
+    /// click outside panel, or Close X). <paramref name="toast"/> is set when a
+    /// transaction completed.
+    /// </summary>
+    public bool Update(float dt, InputManager input, UIManager ui, int viewportWidth, int viewportHeight, out ToastRequest? toast)
     {
         toast = null;
 
@@ -106,115 +163,127 @@ public class ShopPanel
             if (_rowRects[i].Contains(mp)) { _hoveredRow = i; break; }
         }
 
-        if (input.IsLeftClickPressed)
-        {
-            if (_closeRect.Contains(mp))
-            {
-                Console.WriteLine("[ShopPanel] Close X clicked");
-                return true;
-            }
-            if (!_panelRect.Contains(mp))
-            {
-                Console.WriteLine("[ShopPanel] Click outside panel -> close");
-                return true;
-            }
-            if (_buyTabRect.Contains(mp))
-            {
-                if (_tab != Tab.Buy)
-                {
-                    _tab = Tab.Buy;
-                    EnsureRowQtySized(GetRowCount());
-                    Console.WriteLine("[ShopPanel] Tab -> Buy");
-                }
-                return false;
-            }
-            if (_sellTabRect.Contains(mp))
-            {
-                if (_tab != Tab.Sell)
-                {
-                    _tab = Tab.Sell;
-                    EnsureRowQtySized(GetRowCount());
-                    Console.WriteLine("[ShopPanel] Tab -> Sell");
-                }
-                return false;
-            }
+        // Sync widget state from scene model each frame.
+        _buyTab.Bounds = _buyTabRect;
+        _sellTab.Bounds = _sellTabRect;
+        _buyTab.IsActive = _tab == ShopTab.Buy;
+        _sellTab.IsActive = _tab == ShopTab.Sell;
+        _closeBtn.Bounds = _closeRect;
 
-            // Per-visible-row hit-test: qty-/qty+/action, in that priority (D-04, D-05).
-            for (int k = 0; k < visible; k++)
+        for (int k = 0; k < VisibleRows; k++)
+        {
+            if (k < visible)
             {
                 int abs = k + _scrollOffset;
-                if (abs < 0 || abs >= _rowQty.Length) continue;
-
-                if (_qtyMinusRects[k].Contains(mp))
-                {
-                    _rowQty[abs] = Math.Max(1, _rowQty[abs] - 1);
-                    Console.WriteLine($"[ShopPanel] qty- row={abs} qty={_rowQty[abs]}");
-                    return false;
-                }
-                if (_qtyPlusRects[k].Contains(mp))
-                {
-                    int cap = GetMaxQty(abs);
-                    _rowQty[abs] = Math.Min(Math.Max(1, cap), _rowQty[abs] + 1);
-                    if (cap <= 0) _rowQty[abs] = 1;
-                    Console.WriteLine($"[ShopPanel] qty+ row={abs} qty={_rowQty[abs]} cap={cap}");
-                    return false;
-                }
-                if (_actionBtnRects[k].Contains(mp))
-                {
-                    if (!IsActionEnabled(abs))
-                    {
-                        Console.WriteLine($"[ShopPanel] action-click row={abs} disabled");
-                        return false;
-                    }
-                    int q = Math.Clamp(_rowQty[abs], 1, Math.Max(1, GetMaxQty(abs)));
-                    if (_tab == Tab.Buy)
-                    {
-                        Console.WriteLine($"[ShopPanel] Buy-click row={abs} qty={q}");
-                        TryBuy(abs, q, out toast);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[ShopPanel] Sell-click row={abs} qty={q}");
-                        TrySell(abs, q, out toast);
-                    }
-                    // Row may have shrunk (Sell) or price/headroom changed (Buy) — reset qty to 1.
-                    if (abs < _rowQty.Length) _rowQty[abs] = 1;
-                    return false;
-                }
+                _qtyMinusBtns[k].Bounds = _qtyMinusRects[k];
+                _qtyMinusBtns[k].Enabled = true;
+                _qtyPlusBtns[k].Bounds = _qtyPlusRects[k];
+                _qtyPlusBtns[k].Enabled = true;
+                _actionBtns[k].Bounds = _actionBtnRects[k];
+                _actionBtns[k].Enabled = IsActionEnabled(abs);
+                _actionBtns[k].Label = _tab == ShopTab.Buy ? "Buy" : "Sell";
+            }
+            else
+            {
+                _qtyMinusBtns[k].Enabled = false;
+                _qtyPlusBtns[k].Enabled = false;
+                _actionBtns[k].Enabled = false;
             }
         }
 
-        // Keyboard: only Escape closes (D-03). All other keys ignored inside the panel.
+        // Widget layer FIRST — consumes click if widget hit.
+        bool consumed = ui.Update(dt, input);
+
+        if (_requestedClose)
+        {
+            _requestedClose = false;
+            Console.WriteLine("[ShopPanel] Close X clicked");
+            return true;
+        }
+
+        // Outside-click close (Pitfall 4: scene-level rule, not a widget).
+        if (!consumed && input.IsLeftClickPressed && !_panelRect.Contains(mp))
+        {
+            Console.WriteLine("[ShopPanel] Click outside panel -> close");
+            return true;
+        }
+
+        // Keyboard: only Escape closes (D-03).
         if (input.IsKeyPressed(Keys.Escape))
         {
             Console.WriteLine("[ShopPanel] Escape pressed -> close");
             return true;
         }
 
+        toast = _pendingToast;
+        _pendingToast = null;
         return false;
     }
 
+    private void SwitchTab(ShopTab tab)
+    {
+        if (_tab == tab) return;
+        _tab = tab;
+        EnsureRowQtySized(GetRowCount());
+        Console.WriteLine($"[ShopPanel] Tab -> {tab}");
+    }
+
+    private void AdjustRowQty(int visibleSlot, bool decrement)
+    {
+        int abs = visibleSlot + _scrollOffset;
+        if (abs < 0 || abs >= _rowQty.Length) return;
+        if (decrement)
+        {
+            _rowQty[abs] = Math.Max(1, _rowQty[abs] - 1);
+            Console.WriteLine($"[ShopPanel] qty- row={abs} qty={_rowQty[abs]}");
+        }
+        else
+        {
+            int cap = GetMaxQty(abs);
+            _rowQty[abs] = Math.Min(Math.Max(1, cap), _rowQty[abs] + 1);
+            if (cap <= 0) _rowQty[abs] = 1;
+            Console.WriteLine($"[ShopPanel] qty+ row={abs} qty={_rowQty[abs]} cap={cap}");
+        }
+    }
+
+    private void ExecuteRow(int visibleSlot)
+    {
+        int abs = visibleSlot + _scrollOffset;
+        if (abs < 0 || abs >= _rowQty.Length) return;
+        if (!IsActionEnabled(abs))
+        {
+            Console.WriteLine($"[ShopPanel] action-click row={abs} disabled");
+            return;
+        }
+        int q = Math.Clamp(_rowQty[abs], 1, Math.Max(1, GetMaxQty(abs)));
+        if (_tab == ShopTab.Buy)
+        {
+            Console.WriteLine($"[ShopPanel] Buy-click row={abs} qty={q}");
+            TryBuy(abs, q, out _pendingToast);
+        }
+        else
+        {
+            Console.WriteLine($"[ShopPanel] Sell-click row={abs} qty={q}");
+            TrySell(abs, q, out _pendingToast);
+        }
+        // Row may have shrunk (Sell) or price/headroom changed (Buy) — reset qty to 1.
+        if (abs < _rowQty.Length) _rowQty[abs] = 1;
+    }
+
     /// <summary>
-    /// Recomputes panel/tab/row/action-button/close rects into the cached fields. Called from Update
-    /// (so hit-test reflects current state) and defensively from Draw (in case Draw is invoked
-    /// without a preceding Update). Pure layout — no input or rendering side effects.
+    /// Recomputes panel/tab/row/action-button/close rects into the cached fields.
     /// </summary>
     private void UpdateLayoutCache(int viewportWidth, int viewportHeight)
     {
-        // Center the panel in the current viewport (was hardcoded to 960x540 origin).
         _panelX = (viewportWidth - PanelWidth) / 2;
         _panelY = (viewportHeight - PanelHeight) / 2;
 
         int rows = GetRowCount();
         int visible = Math.Min(rows, VisibleRows);
 
-        // Clamp _scrollOffset to valid range
         int maxScroll = Math.Max(0, rows - VisibleRows);
         if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
         if (_scrollOffset < 0) _scrollOffset = 0;
-
-        // Wheel-driven only (CONTEXT D-01/D-02): no follow-selection, no re-centering on _selectedIndex.
-        // _scrollOffset is mutated only by the wheel handler in Update() and the range-clamp above.
 
         int scroll = _scrollOffset;
 
@@ -242,7 +311,6 @@ public class ShopPanel
                 _rowRects[i] = new Rectangle(listX, y, width, RowHeight - 2);
                 int actionX = listX + width - 72;
                 _actionBtnRects[i] = new Rectangle(actionX, y + 8, 60, 24);
-                // Per-row qty stepper: [-][qty][+] immediately left of the action button (D-04).
                 _qtyMinusRects[i] = new Rectangle(actionX - 80, y + qtyBtnYOffset, qtyBtnSize, qtyBtnSize);
                 _qtyLabelRects[i] = new Rectangle(actionX - 58, y + 6, 32, 24);
                 _qtyPlusRects[i]  = new Rectangle(actionX - 30, y + qtyBtnYOffset, qtyBtnSize, qtyBtnSize);
@@ -271,21 +339,18 @@ public class ShopPanel
             _scrollTrackRect = Rectangle.Empty;
             _scrollThumbRect = Rectangle.Empty;
         }
-
     }
 
     /// <summary>Row count for the active tab.</summary>
     private int GetRowCount()
     {
-        if (_tab == Tab.Buy) return ShopStock.Items.Count;
-        // Sell: count non-empty inventory slots
+        if (_tab == ShopTab.Buy) return ShopStock.Items.Count;
         int n = 0;
         for (int i = 0; i < InventoryManager.SlotCount; i++)
             if (_inv.GetSlot(i) != null) n++;
         return n;
     }
 
-    /// <summary>Check whether at least one <paramref name="itemId"/> unit could be added to inventory.</summary>
     private bool CanAddOne(string itemId)
     {
         var def = ItemRegistry.Get(itemId);
@@ -300,7 +365,6 @@ public class ShopPanel
         return false;
     }
 
-    /// <summary>Resize _rowQty to rowCount and reset all entries to 1. Runs on tab switch or row-count change.</summary>
     private void EnsureRowQtySized(int rowCount)
     {
         if (_rowQty.Length == rowCount && _rowQtyTab == _tab && _rowQtyRowCount == rowCount) return;
@@ -310,10 +374,9 @@ public class ShopPanel
         _rowQtyRowCount = rowCount;
     }
 
-    /// <summary>Max qty allowed on row. Buy: limited by gold and stack headroom. Sell: limited by stack.Quantity.</summary>
     private int GetMaxQty(int rowIndex)
     {
-        if (_tab == Tab.Buy)
+        if (_tab == ShopTab.Buy)
         {
             if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return 0;
             var e = ShopStock.Items[rowIndex];
@@ -335,7 +398,6 @@ public class ShopPanel
         }
     }
 
-    /// <summary>Total additional units of itemId the inventory can still accept given stackLimit.</summary>
     private int ComputeStackHeadroom(string itemId, int stackLimit)
     {
         int headroom = 0;
@@ -348,7 +410,6 @@ public class ShopPanel
         return headroom;
     }
 
-    /// <summary>Buy flow: check gold → check space → debit → add. Strict order (T-04-14/T-04-15).</summary>
     private void TryBuy(int rowIndex, int qty, out ToastRequest? toast)
     {
         toast = null;
@@ -382,7 +443,6 @@ public class ShopPanel
         int leftover = _inv.TryAdd(entry.ItemId, qty);
         if (leftover > 0)
         {
-            // Safety: headroom said yes but TryAdd left some — refund the leftover portion.
             int refund = entry.Price * leftover;
             _inv.AddGold(refund);
             Console.WriteLine($"[ShopPanel] Buy partial: {qty - leftover}/{qty} added, refunded {refund}g for {leftover} leftover");
@@ -391,11 +451,9 @@ public class ShopPanel
         Console.WriteLine($"[ShopPanel] Bought {entry.ItemId} x{delivered} for {entry.Price * delivered}g");
         toast = new ToastRequest($"Purchased {def.Name} x{delivered}", Color.LimeGreen);
 
-        // Row count for Buy doesn't change, but headroom/affordability does — reset qty to 1.
         EnsureRowQtySized(GetRowCount());
     }
 
-    /// <summary>Sell flow: look up Nth non-empty slot → null-check → remove → credit (T-04-16).</summary>
     private void TrySell(int rowIndex, int qty, out ToastRequest? toast)
     {
         toast = null;
@@ -430,19 +488,16 @@ public class ShopPanel
         int totalPrice = price * clamped;
         _inv.AddGold(totalPrice);
 
-        // Keep scroll valid; row count may have shrunk.
         int remainingRows = GetRowCount();
         int maxScroll = Math.Max(0, remainingRows - VisibleRows);
         if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
 
-        // Resize per-row qty arrays for the new row count.
         EnsureRowQtySized(remainingRows);
 
         Console.WriteLine($"[ShopPanel] Sold {removed.ItemId} x{clamped} for {totalPrice}g");
         toast = new ToastRequest($"Sold {def.Name} x{clamped} for {totalPrice}g", Color.Gold);
     }
 
-    /// <summary>Find the <paramref name="n"/>-th non-empty inventory slot, or -1.</summary>
     private int IndexOfNthFilledSlot(int n)
     {
         int seen = 0;
@@ -457,51 +512,51 @@ public class ShopPanel
 
     // ================= Draw =================
 
-    /// <summary>Render panel + rows + header + disabled reason.</summary>
+    /// <summary>Render panel + rows + header. Tab/close/qty/action widgets Draw themselves.</summary>
     public void Draw(SpriteBatch sb, SpriteFontBase font, SpriteFontBase titleFont, Texture2D pixel, UITheme theme,
         int viewportWidth, int viewportHeight)
     {
         // Defensive: ensure cached layout matches current state even if Draw runs without a preceding Update.
         UpdateLayoutCache(viewportWidth, viewportHeight);
 
-        // Full-screen dim — covers the entire real viewport, not a fixed 960x540.
+        // Full-screen dim — covers the entire real viewport.
         sb.Draw(pixel, new Rectangle(0, 0, viewportWidth, viewportHeight), Dim);
 
         NineSlice.Draw(sb, theme.PanePopup, _panelRect, theme.PanePopupInsets);
 
-        // Title — plain gold text centered in the top chrome (matches ChestScene style).
+        // Title
         DrawCenteredTitle(sb, titleFont, "Shop",
             new Rectangle(_panelX + 28, _panelY, PanelWidth - 56, 50),
             Color.LightGoldenrodYellow, 2f);
         int headerY = _panelY + 8;
 
-        // Gold display: coin icon + value (matches HUD style).
+        // Gold display
         string goldText = _inv.Gold.ToString();
         var goldSize = font.MeasureString(goldText);
         int coinSize = 18;
         int goldBlockW = coinSize + 6 + (int)goldSize.X;
-        int goldX = _panelX + PanelWidth - 44 - goldBlockW;  // leaves room for X button
+        int goldX = _panelX + PanelWidth - 44 - goldBlockW;
         int goldY = headerY + 10;
         sb.Draw(theme.GoldIcon, new Rectangle(goldX, goldY, coinSize, coinSize), Color.White);
         sb.DrawString(font, goldText,
             new Vector2(goldX + coinSize + 6, goldY + (coinSize - goldSize.Y) / 2),
             Color.Gold);
 
-        // Close X icon (stretched to fit _closeRect; icon keeps its native transparent bg)
-        NineSlice.DrawStretched(sb, theme.BtnIconX, _closeRect);
+        // Tabs (widget-rendered via _buyTab.Draw / _sellTab.Draw)
+        _buyTab.Draw(sb);
+        _sellTab.Draw(sb);
 
-        // Tab strip — driven by cached rects
-        int tabY = _buyTabRect.Y;
-        DrawTab(sb, font, theme, _buyTabRect.X,  _buyTabRect.Y,  "Buy",  _tab == Tab.Buy);
-        DrawTab(sb, font, theme, _sellTabRect.X, _sellTabRect.Y, "Sell", _tab == Tab.Sell);
+        // Close X
+        _closeBtn.Draw(sb);
 
         // Item list region
+        int tabY = _buyTabRect.Y;
         int listY = tabY + 36;
 
         int rows = GetRowCount();
         if (rows == 0)
         {
-            string empty = _tab == Tab.Sell ? "Your inventory is empty" : "Shop is closed";
+            string empty = _tab == ShopTab.Sell ? "Your inventory is empty" : "Shop is closed";
             var sz = font.MeasureString(empty);
             sb.DrawString(font, empty,
                 new Vector2(_panelX + (PanelWidth - sz.X) / 2, listY + 80),
@@ -518,20 +573,25 @@ public class ShopPanel
 
             bool hovered = i == _hoveredRow;
             if (hovered)
-            {
                 sb.Draw(pixel, _rowRects[i], RowHoverFill);
-            }
 
-            DrawRow(sb, font, pixel, theme, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex, hovered);
+            DrawRow(sb, font, pixel, theme, _rowRects[i].X, _rowRects[i].Y, _rowRects[i].Width, rowIndex, hovered, i);
         }
 
-        // Scrollbar (track + thumb) when list overflows — left as thin solid rects per plan
+        // Scrollbar
         if (_scrollTrackRect != Rectangle.Empty)
         {
             sb.Draw(pixel, _scrollTrackRect, RowHoverFill * 0.35f);
             sb.Draw(pixel, _scrollThumbRect, RowHoverFill);
         }
 
+        // Per-row widgets (qty +/- + action button) — draw last so they render on top of row text.
+        for (int i = 0; i < visible; i++)
+        {
+            _qtyMinusBtns[i].Draw(sb);
+            _qtyPlusBtns[i].Draw(sb);
+            _actionBtns[i].Draw(sb);
+        }
     }
 
     private static void DrawCenteredTitle(SpriteBatch sb, SpriteFontBase font, string text, Rectangle rect,
@@ -555,18 +615,7 @@ public class ShopPanel
         }
     }
 
-    private void DrawTab(SpriteBatch sb, SpriteFontBase font, UITheme theme, int x, int y, string label, bool active)
-    {
-        var tabRect = new Rectangle(x, y, 80, 32);
-        var tex = active ? theme.TabOn : theme.TabOff;
-        NineSlice.Draw(sb, tex, tabRect, theme.TabInsets);
-        var sz = font.MeasureString(label);
-        sb.DrawString(font, label,
-            new Vector2(x + (80 - sz.X) / 2, y + (32 - sz.Y) / 2),
-            active ? Color.Black : Color.White);
-    }
-
-    private void DrawRow(SpriteBatch sb, SpriteFontBase font, Texture2D pixel, UITheme theme, int x, int y, int width, int rowIndex, bool hovered)
+    private void DrawRow(SpriteBatch sb, SpriteFontBase font, Texture2D pixel, UITheme theme, int x, int y, int width, int rowIndex, bool hovered, int visibleSlot)
     {
         // Icon cell (16x16 centered vertically in 40px row)
         int iconX = x + 8;
@@ -577,7 +626,7 @@ public class ShopPanel
         int price;
         Color priceColor;
 
-        if (_tab == Tab.Buy)
+        if (_tab == ShopTab.Buy)
         {
             var entry = ShopStock.Items[rowIndex];
             itemId = entry.ItemId;
@@ -611,7 +660,7 @@ public class ShopPanel
                 new Rectangle(iconX, iconY, IconSize, IconSize), srcRect, Color.White);
         }
 
-        // Name — brown on cream; flips to white on hover (contrasts the flat brown fill).
+        // Name
         sb.DrawString(font, label, new Vector2(iconX + IconSize + IconTextGap, y + (RowHeight - font.MeasureString(label).Y) / 2),
             hovered ? Color.White : RowText);
 
@@ -623,56 +672,23 @@ public class ShopPanel
             new Vector2(actionX - 80 - priceSz.X - 12, y + (RowHeight - priceSz.Y) / 2),
             priceColor);
 
-        // Per-row qty stepper: (-)[ x1 ](+) using circle buttons with +/- glyphs.
-        // Hit-test rects in _qtyMinusRects / _qtyPlusRects stay identical (layout invariant).
-        int visibleSlot = rowIndex - _scrollOffset;
-        if (visibleSlot >= 0 && visibleSlot < VisibleRows && _qtyLabelRects[visibleSlot] != Rectangle.Empty)
+        // Qty label — plain text, brown on cream, white on hover. The +/- buttons
+        // themselves are widgets and draw themselves after the row content.
+        if (_qtyLabelRects[visibleSlot] != Rectangle.Empty)
         {
-            var minus = _qtyMinusRects[visibleSlot];
             var qtyLabel = _qtyLabelRects[visibleSlot];
-            var plus  = _qtyPlusRects[visibleSlot];
-
-            // Minus circle button + Icon_minus overlay
-            sb.Draw(theme.BtnCircleSmall, minus, Color.White);
-            int glyph = 10;
-            var minusGlyphRect = new Rectangle(
-                minus.X + (minus.Width - glyph) / 2,
-                minus.Y + (minus.Height - glyph) / 2,
-                glyph, glyph);
-            sb.Draw(theme.IconMinus, minusGlyphRect, Color.White);
-
-            // Qty label — plain text, brown on cream, white on hover.
             int qtyVal = rowIndex < _rowQty.Length ? _rowQty[rowIndex] : 1;
             string qtyText = $"x{qtyVal}";
             var qs = font.MeasureString(qtyText);
             sb.DrawString(font, qtyText,
                 new Vector2(qtyLabel.X + (qtyLabel.Width - qs.X) / 2, qtyLabel.Y + (qtyLabel.Height - qs.Y) / 2),
                 hovered ? Color.White : RowText);
-
-            // Plus circle button + Icon_plus overlay
-            sb.Draw(theme.BtnCircleSmall, plus, Color.White);
-            var plusGlyphRect = new Rectangle(
-                plus.X + (plus.Width - glyph) / 2,
-                plus.Y + (plus.Height - glyph) / 2,
-                glyph, glyph);
-            sb.Draw(theme.IconPlus, plusGlyphRect, Color.White);
         }
-
-        // Action button — pixel-art yellow button via 9-slice (ornate corners intact, middle stretches).
-        string action = _tab == Tab.Buy ? "Buy" : "Sell";
-        bool enabled = IsActionEnabled(rowIndex);
-        var btnRect = new Rectangle(actionX, y + 8, 60, 24);
-        NineSlice.Draw(sb, theme.YellowBtnSmall, btnRect, theme.YellowBtnSmallInsets,
-            enabled ? Color.White : Color.White * 0.4f);
-        var aSz = font.MeasureString(action);
-        sb.DrawString(font, action,
-            new Vector2(actionX + (60 - aSz.X) / 2, y + 8 + (24 - aSz.Y) / 2),
-            enabled ? Color.Black : Color.Gray);
     }
 
     private bool IsActionEnabled(int rowIndex)
     {
-        if (_tab == Tab.Buy)
+        if (_tab == ShopTab.Buy)
         {
             if (rowIndex < 0 || rowIndex >= ShopStock.Items.Count) return false;
             var e = ShopStock.Items[rowIndex];
@@ -690,5 +706,4 @@ public class ShopPanel
             return ShopStock.GetSellPrice(def) > 0;
         }
     }
-
 }

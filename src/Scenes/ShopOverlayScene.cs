@@ -42,13 +42,17 @@ public class ShopOverlayScene : Scene
             Services.Theme = new UITheme();
             Services.Theme.LoadContent(Services.GraphicsDevice);
         }
+
+        // Register ShopPanel widgets with the scene-owned UIManager.
+        _panel.BuildWidgets(Ui, Services.Theme!, _font);
+
         Console.WriteLine("[ShopOverlayScene] Opened");
     }
 
     public override void Update(float deltaTime)
     {
         var vp = Services.GraphicsDevice.Viewport;
-        if (_panel.Update(deltaTime, Services.Input, vp.Width, vp.Height, out var toastReq))
+        if (_panel.Update(deltaTime, Services.Input, Ui, vp.Width, vp.Height, out var toastReq))
         {
             Console.WriteLine("[ShopOverlayScene] Closed -> SaveNow");
             GameStateSnapshot.SaveNow(Services);
@@ -65,12 +69,15 @@ public class ShopOverlayScene : Scene
         var vp = Services.GraphicsDevice.Viewport;
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
         _panel.Draw(spriteBatch, _font, _titleFont, _pixel, Services.Theme!, vp.Width, vp.Height);
+        // Focus outline + tooltip overlay (on top of widget chrome).
+        Ui.Draw(spriteBatch, _pixel, _font, vp.Width, vp.Height);
         _toast.Draw(spriteBatch, _font, _pixel);
         spriteBatch.End();
     }
 
     public override void UnloadContent()
     {
+        base.UnloadContent();
         _pixel?.Dispose();
         Console.WriteLine("[ShopOverlayScene] Unloaded");
     }
