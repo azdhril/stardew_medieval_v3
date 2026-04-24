@@ -335,11 +335,11 @@ public class HotbarRenderer
                 int hFullH = rect.Height - IconPadding * 2;
                 int hW = (int)(hFullW * IconScale);
                 int hH = (int)(hFullH * IconScale);
-                int hOx = (hFullW - hW) / 2;
+                int hOx = ((hFullW - hW) / 2)-1;
                 int hOy = (hFullH - hH) / 2;
                 var iconRect = new Rectangle(
                     rect.X + IconPadding + hOx, rect.Y + IconPadding + hOy, hW, hH);
-                sb.Draw(_handIcon, iconRect, Color.White * 0.08f);
+                sb.Draw(_handIcon, iconRect, Color.White * 0.1f);
             }
 
             sb.DrawString(_font, (i + 1).ToString(), new Vector2(rect.X + 2, rect.Y), Color.Gray * 0.7f);
