@@ -14,6 +14,13 @@ namespace stardew_medieval_v3.Scenes;
 /// Inventory overlay scene: equipment silhouette on the left, 20-slot item grid on the right.
 /// Dragging items to the hotbar at the bottom of the screen sets hotbar references.
 /// The hotbar itself is rendered by FarmScene underneath this overlay.
+///
+/// Per quick 260424-2af: this scene has NO standalone clickable buttons — only
+/// the drag-driven slot grid plus a slot-hover tooltip. Left-click EDGE detection
+/// uses <see cref="InputManager.IsLeftClickPressed"/> while press-HELD detection
+/// (for drag continuation) continues via <see cref="Mouse.GetState"/>, matching
+/// the ChestScene pattern. <c>_wasMouseDown</c> is retained solely for MouseUp
+/// edge detection in the drag state machine (legitimate per RESEARCH audit).
 /// </summary>
 public class InventoryScene : Scene
 {
@@ -28,6 +35,8 @@ public class InventoryScene : Scene
     private SpriteFontBase _font = null!;
     private Texture2D _pixel = null!;
     private UITheme _theme = null!;
+
+    // Drag state-machine tracker — legitimate use per RESEARCH audit.
     private bool _wasMouseDown;
 
     public InventoryScene(ServiceContainer services, InventoryManager inventory, SpriteAtlas atlas, HotbarRenderer hotbar)
@@ -82,16 +91,22 @@ public class InventoryScene : Scene
         int gridX = panelX + 160;
         int gridY = panelY + 35;
 
-        bool mouseDown = Mouse.GetState().LeftButton == ButtonState.Pressed;
+        // Press-held detection for drag continuation. Edge detection flows via
+        // InputManager.IsLeftClickPressed for the initial press; MouseUp edge
+        // is detected by comparing the current held state to _wasMouseDown.
+        var ms = Mouse.GetState();
+        bool mouseDown = ms.LeftButton == ButtonState.Pressed;
         Point mousePos = input.MousePosition;
 
-        if (mouseDown && !_wasMouseDown)
+        if (input.IsLeftClickPressed)
             _gridRenderer.HandleMouseDown(mousePos, gridX, gridY, equipX, equipY);
         else if (mouseDown && _wasMouseDown)
             _gridRenderer.UpdateDrag(mousePos);
         else if (!mouseDown && _wasMouseDown)
             _gridRenderer.HandleMouseUp(mousePos, gridX, gridY, equipX, equipY);
 
+        // _wasMouseDown retained SOLELY for drag MouseUp edge detection
+        // (per RESEARCH audit — legitimate drag-state use, not button click tracking).
         _wasMouseDown = mouseDown;
     }
 
@@ -148,11 +163,16 @@ public class InventoryScene : Scene
         // Tooltip
         DrawTooltip(spriteBatch, panelX, panelY, gridX, gridY);
 
+        // Focus outline + widget tooltip overlay (no widgets registered today;
+        // no-op in practice, but future-safe and consistent with migrated scenes).
+        Ui.Draw(spriteBatch, _pixel, _font, screenWidth, screenHeight);
+
         spriteBatch.End();
     }
 
     public override void UnloadContent()
     {
+        base.UnloadContent();
         _pixel?.Dispose();
         Console.WriteLine("[InventoryScene] Unloaded");
     }
