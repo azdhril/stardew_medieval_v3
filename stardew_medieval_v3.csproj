@@ -38,5 +38,6 @@
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*" />
     <PackageReference Include="TiledCS" Version="3.3.3" />
+    <PackageReference Include="FontStashSharp.MonoGame" Version="1.5.5" />
   </ItemGroup>
 </Project>
