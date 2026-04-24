@@ -1,4 +1,5 @@
 using System;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -24,7 +25,7 @@ public class InventoryScene : Scene
     private readonly HotbarRenderer _hotbar;
 
     private InventoryGridRenderer _gridRenderer = null!;
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
     private Texture2D _pixel = null!;
     private UITheme _theme = null!;
     private bool _wasMouseDown;
@@ -40,7 +41,7 @@ public class InventoryScene : Scene
     public override void LoadContent()
     {
         var device = Services.GraphicsDevice;
-        _font = Services.Content.Load<SpriteFont>("DefaultFont");
+        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
 
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });

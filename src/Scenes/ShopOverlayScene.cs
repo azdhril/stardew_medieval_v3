@@ -1,4 +1,5 @@
 using System;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using stardew_medieval_v3.Core;
@@ -16,7 +17,8 @@ public class ShopOverlayScene : Scene
     private readonly ShopPanel _panel;
     private readonly Toast _toast;
     private Texture2D _pixel = null!;
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
+    private SpriteFontBase _titleFont = null!;
 
     public ShopOverlayScene(ServiceContainer services) : base(services)
     {
@@ -31,7 +33,8 @@ public class ShopOverlayScene : Scene
     public override void LoadContent()
     {
         var device = Services.GraphicsDevice;
-        _font = Services.Content.Load<SpriteFont>("DefaultFont");
+        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
+        _titleFont = Services.Fonts!.GetFont(FontRole.Bold, 16);
         _pixel = new Texture2D(device, 1, 1);
         _pixel.SetData(new[] { Color.White });
         if (Services.Theme == null)

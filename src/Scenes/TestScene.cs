@@ -1,4 +1,5 @@
 using System;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -14,7 +15,7 @@ namespace stardew_medieval_v3.Scenes;
 public class TestScene : Scene
 {
     private Texture2D _pixel = null!;
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
     private DummyNpc _npc = null!;
 
     public TestScene(ServiceContainer services) : base(services) { }
@@ -23,7 +24,7 @@ public class TestScene : Scene
     {
         _pixel = new Texture2D(Services.GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
-        _font = Services.Content.Load<SpriteFont>("DefaultFont");
+        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
 
         var viewport = Services.GraphicsDevice.Viewport;
         _npc = new DummyNpc(_pixel, new Vector2(viewport.Width / 2f, viewport.Height / 2f + 60f));

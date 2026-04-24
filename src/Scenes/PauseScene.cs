@@ -1,4 +1,5 @@
 using System;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -20,7 +21,7 @@ public class PauseScene : Scene
 
     private static readonly string[] Options = { "Resume", "Fullscreen", "Settings", "Quit" };
 
-    private SpriteFont _font = null!;
+    private SpriteFontBase _font = null!;
     private Texture2D _pixel = null!;
     private int _hoveredIndex = -1;
     private bool _mouseWasDown;
@@ -29,7 +30,7 @@ public class PauseScene : Scene
 
     public override void LoadContent()
     {
-        _font = Services.Content.Load<SpriteFont>("DefaultFont");
+        _font = Services.Fonts!.GetFont(FontRole.Body, 12);
 
         var device = Services.GraphicsDevice;
         _pixel = new Texture2D(device, 1, 1);
