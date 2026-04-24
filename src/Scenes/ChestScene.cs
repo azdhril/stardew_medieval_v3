@@ -7,12 +7,18 @@ using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.UI;
+using stardew_medieval_v3.UI.Widgets;
 using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Scenes;
 
 /// <summary>
 /// Overlay for transferring items between the player inventory and a world chest.
+/// Migrated to the UI Widgets framework (quick 260424-2af): the 3 action buttons
+/// (SendAll, TakeAll, SortChest) and the Close X are <see cref="IClickable"/>
+/// widgets registered with the scene-owned <see cref="Scene.Ui"/>. Drag and drop,
+/// right-click context menu, double-click, and slot-tooltip remain imperative
+/// state machines — widgets cover button interactions only (CONTEXT Deferred Ideas).
 /// </summary>
 public class ChestScene : Scene
 {
@@ -50,8 +56,12 @@ public class ChestScene : Scene
     private SpriteFontBase _titleFont = null!;
     private Texture2D _pixel = null!;
     private UITheme _theme = null!;
+
+    // Drag state — legitimate use of raw Mouse.GetState() for held-button detection
+    // per RESEARCH audit. Not a widget (per CONTEXT Deferred Ideas).
     private bool _wasMouseDown;
     private bool _wasRightMouseDown;
+
     private float _timeSinceLastClick = float.MaxValue;
     private DragSourceKind _lastClickSource = DragSourceKind.None;
     private int _lastClickIndex = -1;
@@ -63,6 +73,12 @@ public class ChestScene : Scene
     private DragSourceKind _contextSource = DragSourceKind.None;
     private int _contextIndex = -1;
     private Point _contextPosition;
+
+    // Widgets — built in LoadContent, bounds refreshed each frame in Update.
+    private IconButton _sendBtn = null!;
+    private IconButton _takeBtn = null!;
+    private IconButton _sortChestBtn = null!;
+    private CloseButton _closeBtn = null!;
 
     private enum DragSourceKind
     {
@@ -113,7 +129,6 @@ public class ChestScene : Scene
         var device = Services.GraphicsDevice;
         _font = Services.Fonts!.GetFont(FontRole.Body, 18);
         _smallFont = Services.Fonts!.GetFont(FontRole.Body, 15);
-        // Native bold title (50% larger than previous 16pt baseline).
         _titleFont = Services.Fonts!.GetFont(FontRole.Bold, 24);
 
         _pixel = new Texture2D(device, 1, 1);
@@ -128,6 +143,33 @@ public class ChestScene : Scene
 
         _gridRenderer = new ContainerGridRenderer(_atlas, MaxSlotSize);
         _gridRenderer.LoadContent(device, _font);
+
+        // Build action + close widgets. Bounds are refreshed each frame in Update.
+        _sendBtn = new IconButton(_theme.IconArrowRight, _theme.CommonBtn, _theme.CommonBtnInsets)
+        {
+            OnClickAction = () => ExecuteButton(ButtonAction.SendAll),
+            Tooltip = "Send all",
+        };
+        _takeBtn = new IconButton(_theme.IconArrowRight, _theme.CommonBtn, _theme.CommonBtnInsets)
+        {
+            Effects = SpriteEffects.FlipHorizontally,
+            OnClickAction = () => ExecuteButton(ButtonAction.TakeAll),
+            Tooltip = "Take all",
+        };
+        _sortChestBtn = new IconButton(_theme.IconSort, _theme.CommonBtn, _theme.CommonBtnInsets)
+        {
+            OnClickAction = () => ExecuteButton(ButtonAction.SortChest),
+            Tooltip = "Sort chest",
+        };
+        _closeBtn = new CloseButton(_theme.BtnIconX)
+        {
+            OnClickAction = CloseOverlay,
+        };
+
+        Ui.Register(_sendBtn);
+        Ui.Register(_takeBtn);
+        Ui.Register(_sortChestBtn);
+        Ui.Register(_closeBtn);
     }
 
     public override void Update(float deltaTime)
@@ -138,6 +180,27 @@ public class ChestScene : Scene
         if (input.IsKeyPressed(Keys.Escape) || input.IsKeyPressed(Keys.E) || input.IsKeyPressed(Keys.I))
         {
             CloseOverlay();
+            return;
+        }
+
+        // Refresh widget bounds each frame (viewport-responsive — Pitfall 3).
+        GetPanelPosition(out int panelX, out int panelY);
+        GetLayout(panelX, panelY,
+            out Rectangle playerPaneRect, out Rectangle chestPaneRect,
+            out _, out _, out _, out _);
+        _sendBtn.Bounds      = GetActionButtonRect(playerPaneRect, ButtonAction.SendAll);
+        _takeBtn.Bounds      = GetActionButtonRect(chestPaneRect, ButtonAction.TakeAll);
+        _sortChestBtn.Bounds = GetActionButtonRect(chestPaneRect, ButtonAction.SortChest);
+        _closeBtn.Bounds     = GetCloseButtonRect(panelX, panelY);
+
+        // Widget layer FIRST — consumes click if a widget was hit.
+        bool consumed = Ui.Update(deltaTime, input);
+        if (consumed)
+        {
+            // Sync drag-state edge-detect with current mouse so the very next
+            // frame's Mouse.GetState press isn't mis-interpreted as a fresh click.
+            _wasMouseDown = true;
+            _wasRightMouseDown = false;
             return;
         }
 
@@ -154,6 +217,7 @@ public class ChestScene : Scene
             return;
         }
 
+        // Drag-and-drop state machine (CONTEXT Deferred Ideas: stays imperative).
         if (mouseDown && !_wasMouseDown)
             HandleMouseDown(mousePos);
         else if (mouseDown && _wasMouseDown && _dragSource != DragSourceKind.None)
@@ -189,10 +253,10 @@ public class ChestScene : Scene
         DrawCenteredText(spriteBatch, _titleFont, title,
             new Rectangle(panelX + 28, panelY + 6, PanelWidth - 56, 50),
             Color.LightGoldenrodYellow, 2f, withShadow: true);
-        DrawCloseButton(spriteBatch, GetCloseButtonRect(panelX, panelY));
 
-        // Action buttons — shorter labels with a drop-shadow so text reads over button texture.
-        // Cream slot-pane backgrounds behind each grid — unifies the two grids visually.
+        // Close X widget Draws itself below (after action buttons, so focus outline stacks cleanly).
+
+        // Cream slot-pane backgrounds behind each grid.
         NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, playerPaneRect, _theme.PanelSlotPaneInsets);
         NineSlice.Draw(spriteBatch, _theme.PanelSlotPane, chestPaneRect,  _theme.PanelSlotPaneInsets);
 
@@ -206,9 +270,13 @@ public class ChestScene : Scene
             chestPaneRect.Y + 1,
             chestPaneRect.Width - PanePadding * 2,
             PaneTitleHeight), Color.LightGoldenrodYellow, 1f);
-        DrawIconButton(spriteBatch, GetActionButtonRect(playerPaneRect, ButtonAction.SendAll), _theme.IconArrowRight, SpriteEffects.None);
-        DrawIconButton(spriteBatch, GetActionButtonRect(chestPaneRect, ButtonAction.TakeAll), _theme.IconArrowRight, SpriteEffects.FlipHorizontally);
-        DrawIconButton(spriteBatch, GetActionButtonRect(chestPaneRect, ButtonAction.SortChest), _theme.IconSort, SpriteEffects.None);
+
+        // Action + close widgets (scene-level ordering: after pane chrome, before grid content).
+        _sendBtn.Draw(spriteBatch);
+        _takeBtn.Draw(spriteBatch);
+        _sortChestBtn.Draw(spriteBatch);
+        _closeBtn.Draw(spriteBatch);
+
         int? hiddenPlayer = _dragSource == DragSourceKind.Player ? _dragIndex : null;
         int? hiddenChest = _dragSource == DragSourceKind.Chest ? _dragIndex : null;
         _gridRenderer.DrawGrid(spriteBatch, _playerInventory, PlayerColumns, playerX, playerY, hiddenPlayer);
@@ -219,16 +287,20 @@ public class ChestScene : Scene
         if (dragged != null)
             _gridRenderer.DrawDraggedItem(spriteBatch, dragged, _dragPosition);
         else
-            DrawItemTooltip(spriteBatch, Mouse.GetState().Position, playerX, playerY, chestX, chestY);
+            DrawItemTooltip(spriteBatch, Services.Input.MousePosition, playerX, playerY, chestX, chestY);
 
         if (_contextMenuOpen)
             DrawContextMenu(spriteBatch);
+
+        // Focus outline + widget tooltip overlay (on top of grid content).
+        Ui.Draw(spriteBatch, _pixel, _smallFont, viewport.Width, viewport.Height);
 
         spriteBatch.End();
     }
 
     public override void UnloadContent()
     {
+        base.UnloadContent();
         _pixel?.Dispose();
     }
 
@@ -239,12 +311,6 @@ public class ChestScene : Scene
             out Rectangle playerPaneRect, out Rectangle chestPaneRect,
             out int playerX, out int playerY, out int chestX, out int chestY);
 
-        if (GetCloseButtonRect(panelX, panelY).Contains(mousePos))
-        {
-            CloseOverlay();
-            return;
-        }
-
         if (_contextMenuOpen)
         {
             if (TryExecuteContextAction(mousePos))
@@ -253,12 +319,8 @@ public class ChestScene : Scene
             _contextMenuOpen = false;
         }
 
-        var button = HitTestButton(mousePos, playerPaneRect, chestPaneRect);
-        if (button != ButtonAction.None)
-        {
-            ExecuteButton(button);
-            return;
-        }
+        // Action + close buttons are now widgets (Ui.Update consumed the click).
+        // Only drag/context remain scene-level.
 
         int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY);
         if (playerHit >= 0 && _playerInventory.GetSlot(playerHit) != null)
@@ -449,37 +511,8 @@ public class ChestScene : Scene
         CloseButtonSize,
         CloseButtonSize);
 
-    private ButtonAction HitTestButton(Point mousePos, Rectangle playerPaneRect, Rectangle chestPaneRect)
-    {
-        if (GetActionButtonRect(playerPaneRect, ButtonAction.SendAll).Contains(mousePos)) return ButtonAction.SendAll;
-        if (GetActionButtonRect(chestPaneRect, ButtonAction.TakeAll).Contains(mousePos)) return ButtonAction.TakeAll;
-        if (GetActionButtonRect(chestPaneRect, ButtonAction.SortChest).Contains(mousePos)) return ButtonAction.SortChest;
-        return ButtonAction.None;
-    }
-
-    private void DrawIconButton(SpriteBatch sb, Rectangle rect, Texture2D icon, SpriteEffects effects)
-    {
-        NineSlice.Draw(sb, _theme.CommonBtn, rect, _theme.CommonBtnInsets);
-
-        var iconRect = new Rectangle(rect.X + 5, rect.Y + 5, rect.Width - 10, rect.Height - 10);
-        sb.Draw(icon, iconRect, null, Color.LightGoldenrodYellow, 0f, Vector2.Zero, effects, 0f);
-    }
-
-    private void DrawCloseButton(SpriteBatch sb, Rectangle rect)
-    {
-        Color tint = rect.Contains(Mouse.GetState().Position)
-            ? Color.White
-            : new Color(238, 214, 151);
-        NineSlice.DrawStretched(sb, _theme.BtnIconX, rect, tint);
-    }
-
     /// <summary>
-    /// Draws <paramref name="text"/> centered inside <paramref name="rect"/>. Caller
-    /// passes a pre-sized <see cref="SpriteFontBase"/> (native glyph size); the helper
-    /// no longer accepts a scale parameter — scaling a pre-rasterized glyph produced
-    /// the bilinear smudge the FontStashSharp migration (quick 260423-tu6) fixed.
-    /// When <paramref name="withShadow"/> is true, a 1px right + 1px down outline is
-    /// drawn behind the glyphs for extra legibility over busy backgrounds.
+    /// Draws <paramref name="text"/> centered inside <paramref name="rect"/>.
     /// </summary>
     private void DrawCenteredText(
         SpriteBatch sb,
@@ -535,8 +568,6 @@ public class ChestScene : Scene
         if (!withShadow)
             return;
 
-        // Fixed 1px outline offsets (previously "scale pixels"). 1px reads as a clean
-        // drop shadow at 960x540 native resolution regardless of font size.
         sb.DrawString(font, text, pos + new Vector2(1f, 0f), color);
         sb.DrawString(font, text, pos + new Vector2(0f, 1f), color * 0.82f);
     }
@@ -556,7 +587,7 @@ public class ChestScene : Scene
         sb.Draw(_pixel, rect, new Color(40, 23, 20) * 0.96f);
         DrawRectOutline(sb, rect, new Color(226, 190, 114));
 
-        Point mousePos = Mouse.GetState().Position;
+        Point mousePos = Services.Input.MousePosition;
         for (int i = 0; i < actions.Length; i++)
         {
             var row = new Rectangle(rect.X + 2, rect.Y + 2 + i * ContextMenuRowHeight, rect.Width - 4, ContextMenuRowHeight);
@@ -832,24 +863,13 @@ public class ChestScene : Scene
             stats.Add(new TooltipStat(label, string.Format(System.Globalization.CultureInfo.InvariantCulture, format, value)));
     }
 
+    // Item-slot tooltip panel — distinct from the widget tooltip in Ui.Draw.
+    // Both can coexist: widget tooltips fire only when _hovered.Tooltip != null,
+    // which is limited to action buttons (Send all / Take all / Sort chest).
+    // Delegates to the shared framework helper for exact visual parity.
     private void DrawTooltipPanel(SpriteBatch sb, Rectangle rect)
     {
-        var fill = new Color(40, 23, 20) * 0.96f;
-        var border = new Color(226, 190, 114);
-        int r = TooltipCorner;
-
-        sb.Draw(_pixel, new Rectangle(rect.X + r, rect.Y, rect.Width - r * 2, rect.Height), fill);
-        sb.Draw(_pixel, new Rectangle(rect.X, rect.Y + r, rect.Width, rect.Height - r * 2), fill);
-
-        sb.Draw(_pixel, new Rectangle(rect.X + r, rect.Y, rect.Width - r * 2, 1), border);
-        sb.Draw(_pixel, new Rectangle(rect.X + r, rect.Bottom - 1, rect.Width - r * 2, 1), border);
-        sb.Draw(_pixel, new Rectangle(rect.X, rect.Y + r, 1, rect.Height - r * 2), border);
-        sb.Draw(_pixel, new Rectangle(rect.Right - 1, rect.Y + r, 1, rect.Height - r * 2), border);
-
-        sb.Draw(_pixel, new Rectangle(rect.X + 1, rect.Y + r - 1, r - 1, 1), border);
-        sb.Draw(_pixel, new Rectangle(rect.Right - r, rect.Y + r - 1, r - 1, 1), border);
-        sb.Draw(_pixel, new Rectangle(rect.X + 1, rect.Bottom - r, r - 1, 1), border);
-        sb.Draw(_pixel, new Rectangle(rect.Right - r, rect.Bottom - r, r - 1, 1), border);
+        stardew_medieval_v3.UI.Widgets.WidgetHelpers.DrawTooltipPanel(sb, _pixel, rect, TooltipCorner);
     }
 
     private void DrawRectOutline(SpriteBatch sb, Rectangle rect, Color color)
