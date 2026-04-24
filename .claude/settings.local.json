@@ -39,7 +39,12 @@
       "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_Popup.png'\\); print\\(f'Popup atual: {img.size}'\\); img2 = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupBig.png'\\); print\\(f'PopupBig: {img2.size}'\\)\")",
       "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_Popup.png'\\); print\\(f'Popup atual: {img.size}'\\); img2 = Image.open\\('assets/Sprites/System/UI Elements/Panel/_UI_Pane_Popup.png'\\); print\\(f'_Popup \\(backup?\\): {img2.size}'\\)\")",
       "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupPixelArt.png'\\); print\\(f'Size: {img.size}, Mode: {img.mode}'\\)\")",
-      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupPixelArt.png'\\); print\\(f'Size: {img.size}'\\)\")"
+      "Bash(py -c \"from PIL import Image; img = Image.open\\('assets/Sprites/System/UI Elements/Panel/UI_Pane_PopupPixelArt.png'\\); print\\(f'Size: {img.size}'\\)\")",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:fontstashsharp.github.io)",
+      "WebFetch(domain:community.monogame.net)",
+      "WebFetch(domain:www.nuget.org)"
     ]
   }
 }

@@ -3,7 +3,7 @@
  <image source="../Sprites/Scenario/tree_light_yellow_gg.png" width="59" height="125"/>
  <tile id="0">
   <properties>
-   <property name="occlusion_y" type="int" value="126"/>
+   <property name="occlusion_y" type="int" value="130"/>
   </properties>
  </tile>
 </tileset>

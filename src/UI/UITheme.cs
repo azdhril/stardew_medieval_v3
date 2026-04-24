@@ -80,15 +80,15 @@ public sealed class UITheme
 
     // 9-slice insets (tune these during visual review; start with conservative defaults
     // suitable for typical pixel-art medieval UI assets).
-    public NineSlice.Insets PanePopupInsets      = new(11, 28, 11, 31);
+    public NineSlice.Insets PanePopupInsets      = new(16, 61, 16, 38);
     public NineSlice.Insets PanelTitleInsets     = new(32, 24, 32, 24);
     public NineSlice.Insets CommonBtnInsets      = NineSlice.Insets.Uniform(12);
     public NineSlice.Insets TabInsets            = new(12, 8, 12, 4);
     public NineSlice.Insets ListItemHoverInsets  = NineSlice.Insets.Uniform(8);
     public NineSlice.Insets SquareBtnInsets      = NineSlice.Insets.Uniform(8);
-    public NineSlice.Insets YellowBtnSmallInsets = NineSlice.Insets.Uniform(10);
+    public NineSlice.Insets YellowBtnSmallInsets = new(5, 4, 5, 4);
     public NineSlice.Insets PanelCurrencyInsets  = new(24, 16, 24, 16);
-    public NineSlice.Insets PanelSlotPaneInsets  = NineSlice.Insets.Uniform(16);
+    public NineSlice.Insets PanelSlotPaneInsets  = new(50, 48, 50, 47);
     public NineSlice.Insets PanelSmallInsets     = NineSlice.Insets.Uniform(8);
 
     // HUD-specific insets (smaller than overlay counterparts for compact HUD panels)
@@ -112,11 +112,11 @@ public sealed class UITheme
         ListItemHover  = Load(device, "Lists/UI_ListItem_Hover.png",     "ListItemHover",  Color.White * 0.12f);
         SquareBtn      = Load(device, "Buttons/UI_Square_Btn.png",       "SquareBtn",      new Color(78, 58, 44));
         SquareBtnHover = Load(device, "Buttons/UI_Square_Btn_hover.png", "SquareBtnHover", new Color(120, 90, 60));
-        YellowBtnSmall = Load(device, "Buttons/UI_Btn_yellow_small.png", "YellowBtnSmall", Color.Gold);
+        YellowBtnSmall = Load(device, "Buttons/UI_Btn_yellow_pixelart.png", "YellowBtnSmall", Color.Gold);
         BtnIconX       = Load(device, "Buttons/UI_BtnIcon_x.png",        "BtnIconX",       Color.White);
         PanelCurrency  = Load(device, "Panel/UI_Panel_Currency.png",     "PanelCurrency",  new Color(60, 45, 25));
         ImageDeco      = Load(device, "Decorations/UI_Image_Deco.png",   "ImageDeco",      new Color(140, 110, 70));
-        PanelSlotPane  = Load(device, "Panel/UI_Panel_SlotPane.png",     "PanelSlotPane",  new Color(215, 190, 140));
+        PanelSlotPane  = Load(device, "Panel/UI_Panel_SlotPaneBackground.png", "PanelSlotPane",  new Color(215, 190, 140));
         BtnCircleSmall = Load(device, "Buttons/UI_Btn_Circle_small.png", "BtnCircleSmall", new Color(78, 58, 44));
 
         IconPlus       = Load(device, "Icons/Icon_plus.png",             "IconPlus",       Color.White);

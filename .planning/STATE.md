@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 Phase: 6
 Plan: Not started
 Status: Executing Phase 05
-Last activity: 2026-04-23 - Completed quick task 260423-shd: restaurar última cena e posição ao reabrir o jogo
+Last activity: 2026-04-24 - Completed quick task 260423-tu6: migrar SpriteFont para FontStashSharp em toda UI
 
 Progress: [█████████░] 89%
 
@@ -99,6 +99,7 @@ None yet.
 | 260415-uq9 | Substituir barras de HP e Stamina planas por sprites e adicionar painel decorativo atras da hotbar | 2026-04-16 | 4d9e188 | [260415-uq9-substituir-barras-de-hp-e-stamina-planas](./quick/260415-uq9-substituir-barras-de-hp-e-stamina-planas/) |
 | 260416-10o | Redesenhar visualmente as 3 HUDs (Inventory, Chest, Shop) com assets pixel-art 9-slice | 2026-04-16 | b264083 | [260416-10o-redesenhar-visualmente-inventory-chest-s](./quick/260416-10o-redesenhar-visualmente-inventory-chest-s/) |
 | 260423-shd | Restaurar última cena e posição ao reabrir o jogo | 2026-04-23 | 6b3ef8a | [260423-shd-restaurar-ltima-cena-e-posi-o-ao-reabrir](./quick/260423-shd-restaurar-ltima-cena-e-posi-o-ao-reabrir/) |
+| 260423-tu6 | Migrar SpriteFont para FontStashSharp em toda UI | 2026-04-24 | 6fd1a6b | [260423-tu6-migrar-spritefont-para-fontstashsharp-em](./quick/260423-tu6-migrar-spritefont-para-fontstashsharp-em/) |
 
 ## Session Continuity
 

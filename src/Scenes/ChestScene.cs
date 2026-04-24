@@ -180,10 +180,9 @@ public class ChestScene : Scene
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
 
-        // Window frame (uniform pixel scale, not 9-slice)
-        spriteBatch.Draw(_theme.PanePopup,
+        NineSlice.Draw(spriteBatch, _theme.PanePopup,
             new Rectangle(panelX, panelY, PanelWidth, PanelHeight),
-            Color.White);
+            _theme.PanePopupInsets);
 
         // Title plaque — centered hanging banner above the panel top edge.
         string title = ChestRegistry.Get(_chest.VariantId)?.DisplayName ?? "Chest";
