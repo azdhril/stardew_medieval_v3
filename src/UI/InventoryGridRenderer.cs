@@ -170,6 +170,28 @@ public class InventoryGridRenderer
         if (_isDragging) _dragPosition = mousePos;
     }
 
+    /// <summary>
+    /// If a drag is active and the cursor is OUTSIDE <paramref name="panelRect"/>, dispatch
+    /// the dragged grid item to <paramref name="spawn"/> (the scene will hand it off to
+    /// <c>Services.SpawnItemDrop</c>) and clear the source slot. Equipment / hotbar /
+    /// consumable drags ignored — only grid items can be tossed to the floor.
+    /// Returns true when the drop was consumed (so the caller skips HandleMouseUp).
+    /// </summary>
+    public bool TryDropOutsidePanel(Point mousePos, Rectangle panelRect, System.Action<string, int> spawn)
+    {
+        if (!_isDragging) return false;
+        if (panelRect.Contains(mousePos)) return false;
+        if (_dragSourceSlot < 0 || _dragSourceEquip.HasValue) return false;
+
+        var stack = _inventory.GetSlot(_dragSourceSlot);
+        if (stack == null) { CancelDrag(); return false; }
+
+        spawn(stack.ItemId, stack.Quantity);
+        _inventory.SetSlot(_dragSourceSlot, null);
+        CancelDrag();
+        return true;
+    }
+
     /// <summary>Handle mouse release — drop onto grid, equipment, hotbar, or consumable.</summary>
     public void HandleMouseUp(Point mousePos, int gridX, int gridY, int equipX, int equipY)
     {
@@ -376,14 +398,9 @@ public class InventoryGridRenderer
             slotRect.Width - iconPadding * 2, slotRect.Height - iconPadding * 2);
         sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White);
 
-        Color? rarityColor = def.Rarity switch
-        {
-            Rarity.Uncommon => new Color(50, 205, 50) * 0.3f,
-            Rarity.Rare => new Color(255, 215, 0) * 0.3f,
-            _ => null
-        };
-        if (rarityColor.HasValue)
-            sb.Draw(_pixel, slotRect, rarityColor.Value);
+        // Rarity marker — inner colored border around the slot (replaces the old
+        // translucent overlay so the item icon's true colors are preserved).
+        Widgets.WidgetHelpers.DrawRarityBorder(sb, _pixel, slotRect, def.Rarity);
 
         if (stack.Quantity > 1)
         {

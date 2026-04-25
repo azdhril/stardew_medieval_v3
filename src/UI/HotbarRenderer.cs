@@ -367,6 +367,9 @@ public class HotbarRenderer
                 rect.X + IconPadding + offsetX, rect.Y + IconPadding + offsetY,
                 iconW, iconH);
             sb.Draw(tex, destRect, srcRect, Color.White);
+
+            // Rarity marker — inner colored border (consistent with InventoryGridRenderer / chest).
+            Widgets.WidgetHelpers.DrawRarityBorder(sb, _pixel, rect, def.Rarity);
         }
 
         if (stack.Quantity > 1)

@@ -44,7 +44,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:fontstashsharp.github.io)",
       "WebFetch(domain:community.monogame.net)",
-      "WebFetch(domain:www.nuget.org)"
+      "WebFetch(domain:www.nuget.org)",
+      "Bash(rtk grep *)"
     ]
   }
 }

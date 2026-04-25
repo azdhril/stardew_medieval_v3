@@ -18,6 +18,7 @@ public class ContainerGridRenderer
 
     private readonly SpriteAtlas _atlas;
     private Texture2D _slotNormal = null!;
+    private Texture2D _pixel = null!;
     private SpriteFontBase _font = null!;
 
     public int SlotPixelSize { get; private set; }
@@ -36,6 +37,9 @@ public class ContainerGridRenderer
     public void LoadContent(GraphicsDevice device, SpriteFontBase font)
     {
         _font = font;
+
+        _pixel = new Texture2D(device, 1, 1);
+        _pixel.SetData(new[] { Color.White });
 
         try
         {
@@ -159,6 +163,9 @@ public class ContainerGridRenderer
             slotRect.Width - iconPadding * 2,
             slotRect.Height - iconPadding * 2);
         sb.Draw(_atlas.GetTexture(def.SpriteId), destRect, srcRect, Color.White);
+
+        // Rarity marker — inner colored border (consistent with InventoryGridRenderer).
+        Widgets.WidgetHelpers.DrawRarityBorder(sb, _pixel, slotRect, def.Rarity);
 
         if (stack.Quantity > 1)
         {

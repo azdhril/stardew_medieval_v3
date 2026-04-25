@@ -361,10 +361,19 @@ public class DungeonScene : GameplayScene
 
     protected override void OnPostUpdate(float deltaTime, InputManager input)
     {
-        // Drive item drop physics/pickup (mirrors FarmScene pattern).
+        // Wire the inventory-overlay drag-drop hook (mirrors FarmScene).
+        Services.SpawnItemDrop = (itemId, qty, pos) =>
+        {
+            _itemDrops.Add(new ItemDropEntity(itemId, qty, pos, Services.Atlas!) { DroppedByPlayer = true });
+            Console.WriteLine($"[DungeonScene:{_room.Id}] Drag-drop spawned: {itemId} x{qty}");
+        };
+
+        bool ePressed = input.IsKeyPressed(Microsoft.Xna.Framework.Input.Keys.E);
         for (int i = _itemDrops.Count - 1; i >= 0; i--)
         {
             _itemDrops[i].UpdateWithPlayer(deltaTime, Player.GetFootPosition(), Services.Inventory!);
+            if (ePressed && !_itemDrops[i].IsCollected)
+                _itemDrops[i].TryManualPickup(Player.GetFootPosition(), Services.Inventory!);
             if (_itemDrops[i].IsCollected)
             {
                 Console.WriteLine($"[DungeonScene:{_room.Id}] Picked up: {_itemDrops[i].ItemId}");

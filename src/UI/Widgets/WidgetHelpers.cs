@@ -1,6 +1,7 @@
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using stardew_medieval_v3.Data;
 
 namespace stardew_medieval_v3.UI.Widgets;
 
@@ -94,6 +95,29 @@ internal static class WidgetHelpers
     /// <param name="color">Title color (typically <see cref="Color.LightGoldenrodYellow"/>).</param>
     /// <param name="letterSpacing">Extra pixels added between glyphs. 2f produces the medieval "spaced" look.</param>
     /// <param name="shadow">When true, adds faux-bold + drop shadow for modal title headings.</param>
+    /// <summary>
+    /// Color associated with each <see cref="Rarity"/> tier — used by the inner-border
+    /// slot frame (inventory / chest / hotbar) and by the in-world item glow.
+    /// Returns null for Common (no visual marker).
+    /// </summary>
+    public static Color? GetRarityColor(Rarity rarity) => rarity switch
+    {
+        Rarity.Uncommon => new Color(80, 220, 90),    // green
+        Rarity.Rare     => new Color(255, 215, 60),   // gold
+        _ => null,
+    };
+
+    /// <summary>
+    /// Draw an inner colored border around <paramref name="slotRect"/> to mark item
+    /// rarity (replaces the old translucent fill overlay so icons stay color-accurate).
+    /// </summary>
+    public static void DrawRarityBorder(SpriteBatch sb, Texture2D pixel, Rectangle slotRect, Rarity rarity, int thickness = 2)
+    {
+        var color = GetRarityColor(rarity);
+        if (!color.HasValue) return;
+        DrawOutline(sb, pixel, slotRect, color.Value, thickness);
+    }
+
     public static void DrawPanelTitle(
         SpriteBatch sb,
         SpriteFontBase font,

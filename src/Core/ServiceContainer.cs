@@ -144,4 +144,13 @@ public class ServiceContainer
 
     /// <summary>Wired by Game1 so menus can request a clean exit.</summary>
     public System.Action? QuitGame { get; set; }
+
+    /// <summary>
+    /// Drops an item into the active gameplay scene's world at <paramref name="worldPosition"/>.
+    /// Wired by FarmScene / DungeonScene so overlays (InventoryScene, ChestScene) can throw
+    /// items to the floor when the user drags them outside the panel. Items spawned via this
+    /// hook are flagged "DroppedByPlayer" so they don't auto-magnet back into the inventory
+    /// until the player walks away and returns (or presses E nearby for manual pickup).
+    /// </summary>
+    public System.Action<string, int, Vector2>? SpawnItemDrop { get; set; }
 }

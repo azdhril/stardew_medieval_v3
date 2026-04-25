@@ -141,7 +141,16 @@ public class InventoryScene : Scene
         else if (mouseDown && _wasMouseDown)
             _gridRenderer.UpdateDrag(mousePos);
         else if (!mouseDown && _wasMouseDown)
-            _gridRenderer.HandleMouseUp(mousePos, gridX, gridY, equipX, equipY);
+        {
+            // First chance: drag released OUTSIDE the modal panel → toss the grid item to
+            // the world (via the gameplay scene's SpawnItemDrop hook). If consumed, skip
+            // the regular drop-target dispatch.
+            var panelRect = new Rectangle(panelX, panelY, PanelWidth, PanelHeight);
+            bool tossed = _gridRenderer.TryDropOutsidePanel(mousePos, panelRect,
+                (id, qty) => Services.SpawnItemDrop?.Invoke(id, qty, Services.Player?.GetFootPosition() ?? Microsoft.Xna.Framework.Vector2.Zero));
+            if (!tossed)
+                _gridRenderer.HandleMouseUp(mousePos, gridX, gridY, equipX, equipY);
+        }
 
         // _wasMouseDown retained SOLELY for drag MouseUp edge detection
         // (per RESEARCH audit — legitimate drag-state use, not button click tracking).

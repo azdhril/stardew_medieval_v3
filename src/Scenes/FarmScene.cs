@@ -491,9 +491,19 @@ public class FarmScene : GameplayScene
 
     protected override void OnPostUpdate(float deltaTime, InputManager input)
     {
+        // Wire the inventory-overlay drop hook every frame in case Services lifetime changes.
+        Services.SpawnItemDrop = (itemId, qty, pos) =>
+        {
+            _itemDrops.Add(new ItemDropEntity(itemId, qty, pos, _spriteAtlas) { DroppedByPlayer = true });
+            Console.WriteLine($"[FarmScene] Drag-drop spawned: {itemId} x{qty} at ({pos.X:0},{pos.Y:0})");
+        };
+
+        bool ePressed = input.IsKeyPressed(Microsoft.Xna.Framework.Input.Keys.E);
         for (int i = _itemDrops.Count - 1; i >= 0; i--)
         {
             _itemDrops[i].UpdateWithPlayer(deltaTime, Player.GetFootPosition(), _inventory);
+            if (ePressed && !_itemDrops[i].IsCollected)
+                _itemDrops[i].TryManualPickup(Player.GetFootPosition(), _inventory);
             if (_itemDrops[i].IsCollected)
             {
                 Console.WriteLine($"[FarmScene] Picked up: {_itemDrops[i].ItemId}");

@@ -463,6 +463,29 @@ public class ChestScene : Scene
             out _, out _,
             out int playerX, out int playerY, out int chestX, out int chestY);
 
+        // Drag released OUTSIDE the modal panel → toss the dragged stack to the floor
+        // (handled by the gameplay scene's SpawnItemDrop hook). Works for either source.
+        var panelRect = new Rectangle(panelX, panelY, PanelWidth, PanelHeight);
+        if (!panelRect.Contains(mousePos) && Services.SpawnItemDrop != null)
+        {
+            ItemStack? dragged = _dragSource == DragSourceKind.Player
+                ? _playerInventory.GetSlot(_dragIndex)
+                : _chest.Container.GetSlot(_dragIndex);
+            if (dragged != null)
+            {
+                var pos = Services.Player?.GetFootPosition() ?? Vector2.Zero;
+                Services.SpawnItemDrop.Invoke(dragged.ItemId, dragged.Quantity, pos);
+                if (_dragSource == DragSourceKind.Player)
+                    _playerInventory.SetSlot(_dragIndex, null);
+                else
+                    _chest.Container.SetSlot(_dragIndex, null);
+                _playerInventory.PruneBrokenReferences();
+                _dragSource = DragSourceKind.None;
+                _dragIndex = -1;
+                return;
+            }
+        }
+
         int playerHit = _gridRenderer.HitTest(mousePos, _playerInventory.Capacity, PlayerColumns, playerX, playerY, BolsaSlotOffset);
         int chestHit = _gridRenderer.HitTest(mousePos, _chest.Container.Capacity, ChestColumns, chestX, chestY);
 
@@ -684,7 +707,8 @@ public class ChestScene : Scene
             actions.Add(ContextAction.Use);
         if (_contextSource == DragSourceKind.Player && def.EquipSlot != null)
             actions.Add(ContextAction.Equip);
-        actions.Add(ContextAction.Drop);
+        // "Drop" (Largar) removed — players now toss items by dragging them outside the
+        // panel onto the world (handled by HandleMouseUp + Services.SpawnItemDrop).
         if (def.Type == ItemType.Weapon)
             actions.Add(ContextAction.Compare);
         return actions.ToArray();
