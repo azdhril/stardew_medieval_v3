@@ -29,7 +29,7 @@ public class ItemContainer : IItemSlotCollection
     public void SetSlot(int index, ItemStack? stack)
     {
         if (index < 0 || index >= _slots.Length) return;
-        _slots[index] = stack == null ? null : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity };
+        _slots[index] = stack == null ? null : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity, Quality = stack.Quality };
         OnChanged?.Invoke();
     }
 
@@ -41,7 +41,7 @@ public class ItemContainer : IItemSlotCollection
         var from = _slots[fromSlot];
         var to = _slots[toSlot];
 
-        if (from != null && to != null && from.ItemId == to.ItemId)
+        if (from != null && to != null && from.ItemId == to.ItemId && from.Quality == to.Quality)
         {
             var def = ItemRegistry.Get(from.ItemId);
             if (def != null)
@@ -71,7 +71,13 @@ public class ItemContainer : IItemSlotCollection
         OnChanged?.Invoke();
     }
 
-    public int TryAdd(string itemId, int quantity = 1)
+    public int TryAdd(string itemId, int quantity = 1) => TryAdd(itemId, quantity, 0);
+
+    /// <summary>
+    /// Quality-aware add: only stacks with existing slots of the same itemId AND
+    /// same Quality grade. Empty slots are filled with the requested quality.
+    /// </summary>
+    public int TryAdd(string itemId, int quantity, int quality)
     {
         var def = ItemRegistry.Get(itemId);
         if (def == null)
@@ -82,7 +88,7 @@ public class ItemContainer : IItemSlotCollection
 
         for (int i = 0; i < _slots.Length && remaining > 0; i++)
         {
-            if (_slots[i] != null && _slots[i]!.ItemId == itemId)
+            if (_slots[i] != null && _slots[i]!.ItemId == itemId && _slots[i]!.Quality == quality)
             {
                 int space = stackLimit - _slots[i]!.Quantity;
                 if (space > 0)
@@ -99,7 +105,7 @@ public class ItemContainer : IItemSlotCollection
             if (_slots[i] == null)
             {
                 int toAdd = Math.Min(remaining, stackLimit);
-                _slots[i] = new ItemStack { ItemId = itemId, Quantity = toAdd };
+                _slots[i] = new ItemStack { ItemId = itemId, Quantity = toAdd, Quality = quality };
                 remaining -= toAdd;
             }
         }
@@ -118,7 +124,7 @@ public class ItemContainer : IItemSlotCollection
             var stack = _slots[i];
             data.Add(stack == null
                 ? null
-                : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity });
+                : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity, Quality = stack.Quality });
         }
         return data;
     }
@@ -128,7 +134,7 @@ public class ItemContainer : IItemSlotCollection
         for (int i = 0; i < _slots.Length; i++)
         {
             if (i < data.Count && data[i] != null)
-                _slots[i] = new ItemStack { ItemId = data[i]!.ItemId, Quantity = data[i]!.Quantity };
+                _slots[i] = new ItemStack { ItemId = data[i]!.ItemId, Quantity = data[i]!.Quantity, Quality = data[i]!.Quality };
             else
                 _slots[i] = null;
         }
@@ -144,7 +150,7 @@ public class ItemContainer : IItemSlotCollection
         for (int i = 0; i < _slots.Length; i++)
         {
             if (_slots[i] != null)
-                items.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity });
+                items.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity, Quality = _slots[i]!.Quality });
         }
 
         items.Sort(static (a, b) =>
@@ -161,7 +167,10 @@ public class ItemContainer : IItemSlotCollection
             int nameCompare = string.Compare(defA?.Name ?? a.ItemId, defB?.Name ?? b.ItemId, StringComparison.OrdinalIgnoreCase);
             if (nameCompare != 0) return nameCompare;
 
-            return string.Compare(a.ItemId, b.ItemId, StringComparison.OrdinalIgnoreCase);
+            int idCompare = string.Compare(a.ItemId, b.ItemId, StringComparison.OrdinalIgnoreCase);
+            if (idCompare != 0) return idCompare;
+
+            return b.Quality.CompareTo(a.Quality);
         });
 
         for (int i = 0; i < _slots.Length; i++)
@@ -178,7 +187,8 @@ public class ItemContainer : IItemSlotCollection
         ItemType.Consumable => 3,
         ItemType.Seed => 4,
         ItemType.Crop => 5,
-        ItemType.Loot => 6,
+        ItemType.Fish => 6,
+        ItemType.Loot => 7,
         _ => 99,
     };
 

@@ -146,7 +146,11 @@ public class Game1 : Game
     {
         float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-        _input.Update();
+        // Pass IsActive so the InputManager ignores OS-wide clicks/keystrokes
+        // while the window is unfocused or minimized. Without this, Mouse.GetState()
+        // returns global desktop state and clicks in other apps would fire ghost
+        // casts in the fishing system, hotbar selection, etc.
+        _input.Update(IsActive);
 
         if (_input.IsKeyPressed(Keys.F11))
             ToggleFullscreen();

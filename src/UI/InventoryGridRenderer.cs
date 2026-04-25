@@ -183,6 +183,15 @@ public class InventoryGridRenderer
         if (panelRect.Contains(mousePos)) return false;
         if (_dragSourceSlot < 0 || _dragSourceEquip.HasValue) return false;
 
+        // Hotbar and consumable strips live OUTSIDE the inventory panel rect — releasing
+        // the drag onto one of them is a "set hotbar/consumable reference" gesture, not a
+        // toss-to-floor. Defer to HandleMouseUp in those cases.
+        if (_hotbar != null)
+        {
+            if (_hotbar.HitTestMain(mousePos, _screenWidth, _screenHeight) >= 0) return false;
+            if (_hotbar.HitTestConsumable(mousePos, _screenWidth, _screenHeight) >= 0) return false;
+        }
+
         var stack = _inventory.GetSlot(_dragSourceSlot);
         if (stack == null) { CancelDrag(); return false; }
 
@@ -402,6 +411,14 @@ public class InventoryGridRenderer
         // translucent overlay so the item icon's true colors are preserved).
         Widgets.WidgetHelpers.DrawRarityBorder(sb, _pixel, slotRect, def.Rarity);
 
+        // Watering-can charge bar — only on the watering-can slot, drawn beneath the icon.
+        if (def.Id.Equals("Watering_Can", System.StringComparison.OrdinalIgnoreCase))
+        {
+            Widgets.WidgetHelpers.DrawChargeBar(sb, _pixel, slotRect,
+                _inventory.WateringCanCharges, InventoryManager.MaxWateringCanCharges,
+                new Color(90, 170, 230));
+        }
+
         if (stack.Quantity > 1)
         {
             string qtyText = stack.Quantity.ToString();
@@ -410,6 +427,37 @@ public class InventoryGridRenderer
                 new Vector2(slotRect.Right - qtySize.X - 2, slotRect.Bottom - qtySize.Y),
                 Color.White);
         }
+
+        if (stack.Quality > 0)
+            DrawQualityStars(sb, slotRect, stack.Quality);
+    }
+
+    /// <summary>
+    /// Render small star pips in the slot's top-right corner — one per quality tier.
+    /// Pips are drawn as 3×3 squares so they read at any UI scale without needing a
+    /// dedicated star sprite. Color tier: bronze (1⭐) / silver (2⭐) / gold (3⭐).
+    /// </summary>
+    private void DrawQualityStars(SpriteBatch sb, Rectangle slotRect, int quality)
+    {
+        Color color = quality switch
+        {
+            1 => new Color(205, 127, 50),   // bronze
+            2 => new Color(192, 192, 200),  // silver
+            _ => new Color(255, 215, 80),   // gold (3+)
+        };
+        const int pip = 3;
+        const int gap = 1;
+        int totalW = quality * pip + (quality - 1) * gap;
+        int startX = slotRect.X + 3;
+        int y = slotRect.Y + 3;
+        // Drop shadow for readability over bright icons
+        for (int i = 0; i < quality; i++)
+        {
+            int x = startX + i * (pip + gap);
+            sb.Draw(_pixel, new Rectangle(x + 1, y + 1, pip, pip), new Color(0, 0, 0, 180));
+            sb.Draw(_pixel, new Rectangle(x, y, pip, pip), color);
+        }
+        _ = totalW; // reserved for future right-aligned variant
     }
 
     private void DrawDraggedItem(SpriteBatch sb)

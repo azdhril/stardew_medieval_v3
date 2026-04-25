@@ -370,6 +370,14 @@ public class HotbarRenderer
 
             // Rarity marker — inner colored border (consistent with InventoryGridRenderer / chest).
             Widgets.WidgetHelpers.DrawRarityBorder(sb, _pixel, rect, def.Rarity);
+
+            // Watering-can charge bar — only when this hotbar slot points to the watering can.
+            if (def.Id.Equals("Watering_Can", System.StringComparison.OrdinalIgnoreCase))
+            {
+                Widgets.WidgetHelpers.DrawChargeBar(sb, _pixel, rect,
+                    _inventory.WateringCanCharges, InventoryManager.MaxWateringCanCharges,
+                    new Color(90, 170, 230));
+            }
         }
 
         if (stack.Quantity > 1)

@@ -39,6 +39,12 @@ public class GameState
     /// </summary>
     public string? BagId { get; set; } = null;
 
+    /// <summary>
+    /// Current water charges in the player's watering can (0..MaxWateringCanCharges).
+    /// Migrated to 0 (empty) for any pre-watering-charge save.
+    /// </summary>
+    public int WateringCanCharges { get; set; } = 0;
+
     // === New (v4) per D-23: Boss tracking ===
     public bool BossKilled { get; set; } = false;
 

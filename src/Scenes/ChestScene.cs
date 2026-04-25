@@ -903,6 +903,7 @@ public class ChestScene : Scene
             ItemType.Consumable => "Usavel.",
             ItemType.Loot => "Material.",
             ItemType.Currency => "Moeda.",
+            ItemType.Fish => "Peixe — venda no comercio.",
             _ => "Item.",
         };
     }

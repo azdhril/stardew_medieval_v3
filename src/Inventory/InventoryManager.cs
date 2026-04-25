@@ -36,6 +36,36 @@ public class InventoryManager : IItemSlotCollection
     /// </summary>
     public string BagId { get; private set; } = BagRegistry.StarterId;
 
+    /// <summary>Max water charges a single watering can holds.</summary>
+    public const int MaxWateringCanCharges = 20;
+
+    /// <summary>
+    /// Current water charges in the player's watering can. Persisted in the save.
+    /// Refilled to <see cref="MaxWateringCanCharges"/> when the player uses the can on a
+    /// water tile (lake/river); decremented on every successful TryWater call.
+    /// </summary>
+    public int WateringCanCharges { get; private set; } = 0;
+
+    /// <summary>Refill the watering can to its maximum capacity.</summary>
+    public void RefillWateringCan()
+    {
+        if (WateringCanCharges == MaxWateringCanCharges) return;
+        WateringCanCharges = MaxWateringCanCharges;
+        OnInventoryChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Consume one water charge. Returns true on success, false if the can is empty
+    /// (callers should suppress the watering action — the player must refill at water).
+    /// </summary>
+    public bool TryConsumeWateringCharge()
+    {
+        if (WateringCanCharges <= 0) return false;
+        WateringCanCharges--;
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
     /// <summary>Display name of the equipped bag (e.g. "Bolsa de Couro").</summary>
     public string BagName => BagRegistry.Get(BagId).Name;
 
@@ -125,12 +155,19 @@ public class InventoryManager : IItemSlotCollection
     public void SetSlot(int index, ItemStack? stack)
     {
         if (index < 0 || index >= SlotCount) return;
-        _slots[index] = stack == null ? null : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity };
+        _slots[index] = stack == null ? null : new ItemStack { ItemId = stack.ItemId, Quantity = stack.Quantity, Quality = stack.Quality };
         OnInventoryChanged?.Invoke();
     }
 
     /// <summary>Try to add items to inventory. Returns remaining that couldn't fit.</summary>
-    public int TryAdd(string itemId, int quantity = 1)
+    public int TryAdd(string itemId, int quantity = 1) => TryAdd(itemId, quantity, 0);
+
+    /// <summary>
+    /// Try to add items to inventory with a specific quality grade. Stacks only
+    /// merge with existing stacks of the same itemId AND same quality, so a
+    /// 2-star Trout drop never collapses into a 1-star Trout stack.
+    /// </summary>
+    public int TryAdd(string itemId, int quantity, int quality)
     {
         var def = ItemRegistry.Get(itemId);
         if (def == null)
@@ -144,10 +181,10 @@ public class InventoryManager : IItemSlotCollection
         int accessible = Capacity;
 
         // Top off existing stacks first — but ONLY within accessible capacity so new items never
-        // land in a slot the player can't reach after a bag downgrade.
+        // land in a slot the player can't reach after a bag downgrade. Same itemId + same Quality.
         for (int i = 0; i < accessible && remaining > 0; i++)
         {
-            if (_slots[i] != null && _slots[i]!.ItemId == itemId)
+            if (_slots[i] != null && _slots[i]!.ItemId == itemId && _slots[i]!.Quality == quality)
             {
                 int space = stackLimit - _slots[i]!.Quantity;
                 if (space > 0)
@@ -164,7 +201,7 @@ public class InventoryManager : IItemSlotCollection
             if (_slots[i] == null)
             {
                 int toAdd = Math.Min(remaining, stackLimit);
-                _slots[i] = new ItemStack { ItemId = itemId, Quantity = toAdd };
+                _slots[i] = new ItemStack { ItemId = itemId, Quantity = toAdd, Quality = quality };
                 remaining -= toAdd;
             }
         }
@@ -236,7 +273,7 @@ public class InventoryManager : IItemSlotCollection
         var from = _slots[fromSlot];
         var to = _slots[toSlot];
 
-        if (from != null && to != null && from.ItemId == to.ItemId)
+        if (from != null && to != null && from.ItemId == to.ItemId && from.Quality == to.Quality)
         {
             var def = ItemRegistry.Get(from.ItemId);
             if (def != null)
@@ -570,13 +607,14 @@ public class InventoryManager : IItemSlotCollection
         Gold = Math.Max(0, state.Gold);
         // Migrate pre-bag saves (BagId is null) to the starter bag.
         BagId = state.BagId ?? BagRegistry.StarterId;
+        WateringCanCharges = Math.Clamp(state.WateringCanCharges, 0, MaxWateringCanCharges);
         for (int i = 0; i < SlotCount; i++) _slots[i] = null;
 
         for (int i = 0; i < state.Inventory.Count && i < SlotCount; i++)
         {
             var saved = state.Inventory[i];
             if (saved != null && !string.IsNullOrEmpty(saved.ItemId))
-                _slots[i] = new ItemStack { ItemId = saved.ItemId, Quantity = saved.Quantity };
+                _slots[i] = new ItemStack { ItemId = saved.ItemId, Quantity = saved.Quantity, Quality = saved.Quality };
         }
 
         _equipment.Clear();
@@ -616,10 +654,11 @@ public class InventoryManager : IItemSlotCollection
     {
         state.Gold = Gold;
         state.BagId = BagId;
+        state.WateringCanCharges = WateringCanCharges;
         state.Inventory.Clear();
         for (int i = 0; i < SlotCount; i++)
             if (_slots[i] != null)
-                state.Inventory.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity });
+                state.Inventory.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity, Quality = _slots[i]!.Quality });
 
         state.Equipment = new Dictionary<string, string>();
         foreach (var kvp in _equipment)
@@ -648,7 +687,7 @@ public class InventoryManager : IItemSlotCollection
         for (int i = 0; i < _slots.Length; i++)
         {
             if (_slots[i] != null)
-                items.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity });
+                items.Add(new ItemStack { ItemId = _slots[i]!.ItemId, Quantity = _slots[i]!.Quantity, Quality = _slots[i]!.Quality });
         }
 
         items.Sort(static (a, b) =>
@@ -665,7 +704,11 @@ public class InventoryManager : IItemSlotCollection
             int nameCompare = string.Compare(defA?.Name ?? a.ItemId, defB?.Name ?? b.ItemId, StringComparison.OrdinalIgnoreCase);
             if (nameCompare != 0) return nameCompare;
 
-            return string.Compare(a.ItemId, b.ItemId, StringComparison.OrdinalIgnoreCase);
+            int idCompare = string.Compare(a.ItemId, b.ItemId, StringComparison.OrdinalIgnoreCase);
+            if (idCompare != 0) return idCompare;
+
+            // Higher quality first within identical itemId so 3⭐ trout sit before 1⭐ trout.
+            return b.Quality.CompareTo(a.Quality);
         });
 
         for (int i = 0; i < _slots.Length; i++)
@@ -680,7 +723,8 @@ public class InventoryManager : IItemSlotCollection
         ItemType.Consumable => 3,
         ItemType.Seed => 4,
         ItemType.Crop => 5,
-        ItemType.Loot => 6,
+        ItemType.Fish => 6,
+        ItemType.Loot => 7,
         _ => 99,
     };
 

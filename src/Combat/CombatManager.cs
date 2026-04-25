@@ -92,8 +92,14 @@ public class CombatManager
 
         if (!isWeapon)
         {
+            // Only swing for an empty hotbar slot (a punch) or for tools that
+            // double as bludgeons (hoe/axe/pickaxe/scythe/hammer). Fishing rod,
+            // watering can, seeds, consumables, etc. should be silent on LMB so
+            // their dedicated action (cast, water, plant) keeps the click.
+            if (!CanSwingUnarmed(activeItem, itemDef)) return;
+
             if (_melee.TrySwing(PunchCooldown))
-                Console.WriteLine("[CombatManager] Punch (no weapon)");
+                Console.WriteLine($"[CombatManager] Bludgeon ({(activeItem == null ? "fist" : itemDef!.Id)})");
             return;
         }
 
@@ -178,6 +184,20 @@ public class CombatManager
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// True when the active hotbar slot can attack on LMB without holding a Weapon:
+    /// either the slot is empty (a punch) or the held item is a tool that reads as
+    /// a blunt instrument in-fiction (hoe/axe/pickaxe/scythe/hammer). Fishing rod,
+    /// watering can, seeds, consumables and other "use" items return false so their
+    /// dedicated LMB action (cast/water/plant/use) is the sole click handler.
+    /// </summary>
+    private static bool CanSwingUnarmed(ItemStack? activeItem, ItemDefinition? itemDef)
+    {
+        if (activeItem == null) return true; // empty slot → fist
+        if (itemDef == null || itemDef.Type != ItemType.Tool) return false;
+        return itemDef.Id is "Hoe" or "Axe" or "Pickaxe" or "Scythe" or "Hammer";
     }
 
     /// <summary>

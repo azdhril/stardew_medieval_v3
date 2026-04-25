@@ -5,10 +5,11 @@ using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
+using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Farming;
 
-public enum ToolType { Hands, Hoe, WateringCan, Seeds, Scythe, Axe, Pickaxe }
+public enum ToolType { Hands, Hoe, WateringCan, Seeds, Scythe, Axe, Pickaxe, FishingRod }
 
 /// <summary>
 /// Dispatches farming actions based on whatever is in the player's active hotbar slot.
@@ -28,6 +29,11 @@ public class ToolController
     private readonly InventoryManager _inventory;
     private readonly Action<string, int, Vector2> _spawnDrop;
     private readonly Func<ToolType, Point, bool>? _handleWorldToolAction;
+    /// <summary>
+    /// Optional map handle so the watering-can action can query <c>IsWater(x,y)</c> for refilling.
+    /// FarmScene wires this; scenes without water (Castle, Shop) leave it null.
+    /// </summary>
+    public TileMap? Map { get; set; }
 
     public ToolController(GridManager grid, CropManager cropManager, PlayerEntity player,
         InventoryManager inventory, Action<string, int, Vector2> spawnDrop,
@@ -53,6 +59,9 @@ public class ToolController
             case "Scythe": return ToolType.Scythe;
             case "Pickaxe": return ToolType.Pickaxe;
         }
+        // Any item id ending in "Fishing_Rod" (Fishing_Rod, Iron_Fishing_Rod, ...)
+        // counts as a rod so future tiers don't need a hardcoded case here.
+        if (id.EndsWith("Fishing_Rod")) return ToolType.FishingRod;
         var def = ItemRegistry.Get(id);
         if (def != null && def.Type == ItemType.Seed) return ToolType.Seeds;
         return ToolType.Hands;
@@ -65,6 +74,10 @@ public class ToolController
         {
             _cropManager.CycleSelectedCrop();
         }
+
+        // FishingController owns input while a fishing rod is equipped — short-circuit
+        // here so a click doesn't try to till/water/harvest underneath the cast.
+        if (EquippedTool == ToolType.FishingRod) return;
 
         // E and LMB both trigger the tool action on the facing tile.
         // LMB is suppressed when the active item is a weapon so CombatManager
@@ -102,7 +115,22 @@ public class ToolController
                 _grid.TryTill(tile, _player.Stats);
                 break;
             case ToolType.WateringCan:
-                _grid.TryWater(tile, _player.Stats);
+                // Use on a water tile → refill the can (Stardew-style); otherwise consume
+                // one charge to water the tile. Empty can = no-op (player must walk to a
+                // lake/river to refill before farming again).
+                if (Map != null && Map.IsWater(tile.X, tile.Y))
+                {
+                    _inventory.RefillWateringCan();
+                    Console.WriteLine("[ToolController] Watering can refilled.");
+                    break;
+                }
+                if (_inventory.WateringCanCharges <= 0)
+                {
+                    Console.WriteLine("[ToolController] Watering can is empty.");
+                    break;
+                }
+                if (_grid.TryWater(tile, _player.Stats))
+                    _inventory.TryConsumeWateringCharge();
                 break;
             case ToolType.Seeds:
                 TryPlantActiveSeed(tile);

@@ -121,6 +121,14 @@ public abstract class GameplayScene : Scene
     /// <summary>Solids (enemies/boss) for player collision. Default: none.</summary>
     protected virtual IEnumerable<Entity>? GetSolids() => null;
 
+    /// <summary>
+    /// When true, suppress global input (ESC/I/F2/hotbar/Q/scroll) and zero out
+    /// player movement so a modal scene-owned interaction (e.g. fishing minigame)
+    /// can monopolize WASD/LMB without the player drifting around or the inventory
+    /// popping open. Subclasses override during exclusive overlays.
+    /// </summary>
+    protected virtual bool IsModalActive => false;
+
     /// <summary>Subclass cleanup. Base disposes Pixel.</summary>
     protected virtual void OnUnload() { }
 
@@ -199,33 +207,39 @@ public abstract class GameplayScene : Scene
         var input = Services.Input;
         var viewport = Services.GraphicsDevice.Viewport;
 
-        // --- Global input (works in every gameplay scene) ---
+        // --- Global input (works in every gameplay scene unless a modal owns it) ---
 
-        if (input.IsKeyPressed(Keys.F5))
+        bool modal = IsModalActive;
+
+        if (!modal && input.IsKeyPressed(Keys.F5))
         {
             GameStateSnapshot.SaveNow(Services);
             Console.WriteLine($"[{SceneName}Scene] F5 manual save");
         }
 
-        // Periodic auto-save (D-20, D-21)
-        _autoSaveAccumulator += deltaTime;
-        if (_autoSaveAccumulator >= AutoSaveInterval)
+        // Periodic auto-save (D-20, D-21) — paused while a modal interaction is in
+        // progress so the save snapshot doesn't capture the player mid-minigame.
+        if (!modal)
         {
-            _autoSaveAccumulator = 0f;
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            GameStateSnapshot.SaveNow(Services);
-            sw.Stop();
-            Console.WriteLine($"[{SceneName}Scene] Auto-save (periodic, {sw.ElapsedMilliseconds}ms)");
+            _autoSaveAccumulator += deltaTime;
+            if (_autoSaveAccumulator >= AutoSaveInterval)
+            {
+                _autoSaveAccumulator = 0f;
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                GameStateSnapshot.SaveNow(Services);
+                sw.Stop();
+                Console.WriteLine($"[{SceneName}Scene] Auto-save (periodic, {sw.ElapsedMilliseconds}ms)");
+            }
         }
 
-        if (input.IsKeyPressed(Keys.Escape))
+        if (!modal && input.IsKeyPressed(Keys.Escape))
         {
             Services.Hotbar?.CancelDrag();
             Services.SceneManager.PushImmediate(new PauseScene(Services));
             return;
         }
 
-        if (input.IsKeyPressed(Keys.I))
+        if (!modal && input.IsKeyPressed(Keys.I))
         {
             Services.Hotbar?.CancelDrag();
             if (Services.Inventory != null && Services.Atlas != null && Services.Hotbar != null)
@@ -234,20 +248,23 @@ public abstract class GameplayScene : Scene
             return;
         }
 
-        if (input.IsKeyPressed(Keys.F2))
+        if (!modal && input.IsKeyPressed(Keys.F2))
             GrantDebugKit();
 
-        for (int i = 0; i < InventoryManager.HotbarSize; i++)
+        if (!modal)
         {
-            if (input.IsKeyPressed(Keys.D1 + i))
-                Services.Inventory?.SetActiveHotbar(i);
+            for (int i = 0; i < InventoryManager.HotbarSize; i++)
+            {
+                if (input.IsKeyPressed(Keys.D1 + i))
+                    Services.Inventory?.SetActiveHotbar(i);
+            }
+
+            int wheel = Math.Sign(input.ScrollWheelDelta);
+            if (wheel != 0)
+                Services.Inventory?.CycleActiveHotbar(-wheel);
         }
 
-        int wheel = Math.Sign(input.ScrollWheelDelta);
-        if (wheel != 0)
-            Services.Inventory?.CycleActiveHotbar(-wheel);
-
-        if (input.IsKeyPressed(Keys.Q))
+        if (!modal && input.IsKeyPressed(Keys.Q))
         {
             var use = Services.Inventory?.UseConsumable(0) ?? ConsumableUseResult.None;
             if (use.Consumed && Player != null)
@@ -278,7 +295,10 @@ public abstract class GameplayScene : Scene
         if (OnPreUpdate(deltaTime, input)) return;
 
         // --- Player movement ---
-        Player.Update(deltaTime, input.Movement, input.IsRunHeld, Map, GetSolids());
+        // While a modal owns input (fishing minigame), zero out movement so WASD
+        // routes to the minigame instead of walking the player off the dock.
+        Vector2 moveInput = IsModalActive ? Vector2.Zero : input.Movement;
+        Player.Update(deltaTime, moveInput, input.IsRunHeld, Map, GetSolids());
         Services.Camera.Follow(Player.Position, deltaTime);
 
         // --- Trigger dispatch ---
@@ -418,6 +438,9 @@ public abstract class GameplayScene : Scene
             ("Axe", 1),
             ("Watering_Can", 1),
             ("Scythe", 1),
+            ("Fishing_Rod", 1),
+            ("Iron_Fishing_Rod", 1),
+            ("Mythic_Fishing_Rod", 1),
             ("Iron_Sword", 1),
             ("Magic_Staff", 1),
             ("Leather_Armor", 1),

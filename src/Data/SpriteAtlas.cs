@@ -217,4 +217,47 @@ public class SpriteAtlas
         for (int i = 0; i < 6; i++)
             RegisterOn(bagsSheet, $"bag_upgrade_{i}", i, 0);
     }
+
+    /// <summary>
+    /// Register fishing-related sprites from <c>Tools/fishing.png</c> (144×96, 9×6 cells of 16px).
+    /// Row 2 col 0 = the equipped fishing rod (overrides the placeholder from <see cref="RegisterTools"/>).
+    /// Row 1 (cols 0..8) = bobbers/floats — registered as <c>fishing_bobber_{0..8}</c> for the
+    /// future fishing minigame's water-line indicator.
+    /// </summary>
+    public void RegisterFishingTools(Texture2D fishingSheet)
+    {
+        RegisterOn(fishingSheet, "tool_fishing_rod", 0, 2);
+        for (int i = 0; i < 9; i++)
+            RegisterOn(fishingSheet, $"fishing_bobber_{i}", i, 1);
+    }
+
+    /// <summary>
+    /// Register fish sprites on <c>fish_all.png</c> (160×160, 10 cols × 10 rows of 16×16 cells).
+    /// Walks <see cref="FishRegistry"/> and registers each entry under the sprite id
+    /// <c>fish_{lowercase_id}</c> — must run AFTER <see cref="FishRegistry.Initialize"/>.
+    /// </summary>
+    public void RegisterFishes(Texture2D fishSheet)
+    {
+        foreach (var fish in FishRegistry.All.Values)
+        {
+            string spriteId = fish.Id.ToLowerInvariant();
+            RegisterOn(fishSheet, spriteId, fish.SpriteCol, fish.SpriteRow);
+        }
+    }
+
+    /// <summary>
+    /// Register the big-bobber arcade-joystick sprite sheet (<c>big_bobber.png</c>,
+    /// 48×48 = 3 cols × 3 rows of 16×16 cells). Layout: row 0 = up animation
+    /// (3 frames), row 1 = up-left diagonal, row 2 = left. Other 5 directions
+    /// (down, right, down-right, down-left, up-right) are derived at draw time
+    /// via horizontal/vertical sprite flips so the asset stays compact. The
+    /// frame index (0..2) maps to the joystick's lean magnitude so harder pushes
+    /// show more lean.
+    /// </summary>
+    public void RegisterBigBobber(Texture2D sheet)
+    {
+        for (int row = 0; row < 3; row++)
+            for (int col = 0; col < 3; col++)
+                RegisterOn(sheet, $"big_bobber_{row}_{col}", col, row);
+    }
 }

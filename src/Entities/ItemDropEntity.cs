@@ -58,6 +58,13 @@ public class ItemDropEntity : Entity
     /// since this drop landed — flips on automatically inside <see cref="UpdateWithPlayer"/>.</summary>
     private bool _magnetArmed = false;
 
+    /// <summary>
+    /// Quality grade carried by this drop (0 = none, 1..3 = star tiers). Set by the
+    /// fishing minigame on a successful catch and forwarded to inventory on pickup so
+    /// the resulting <see cref="ItemStack"/> keeps the star tier.
+    /// </summary>
+    public int Quality { get; init; } = 0;
+
     // === Smoke particle system (PoE-style rarity wisp) ============================
     // Particles spawn at the item's base in the rarity color, rise upward with a small
     // horizontal drift, expand slightly, and fade out. Replaces the old static halo.
@@ -247,7 +254,7 @@ public class ItemDropEntity : Entity
                 return;
             }
 
-            int remaining = inventory.TryAdd(_itemId, Quantity);
+            int remaining = inventory.TryAdd(_itemId, Quantity, Quality);
             if (remaining == 0)
             {
                 // Fully picked up
@@ -291,7 +298,7 @@ public class ItemDropEntity : Entity
             return true;
         }
 
-        int remaining = inventory.TryAdd(_itemId, Quantity);
+        int remaining = inventory.TryAdd(_itemId, Quantity, Quality);
         if (remaining == 0)
         {
             IsCollected = true;

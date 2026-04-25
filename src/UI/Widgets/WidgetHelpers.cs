@@ -108,6 +108,29 @@ internal static class WidgetHelpers
     };
 
     /// <summary>
+    /// Draw a compact horizontal charge / progress bar at the bottom of <paramref name="slotRect"/>.
+    /// Used for the watering-can charge display and any future per-item meters (durability,
+    /// fuel, etc.). Bar is 4px tall with a 1px outline and a colored fill proportional to
+    /// <paramref name="value"/> / <paramref name="max"/>.
+    /// </summary>
+    public static void DrawChargeBar(SpriteBatch sb, Texture2D pixel, Rectangle slotRect, int value, int max, Color fillColor)
+    {
+        if (max <= 0) return;
+        int barH = 4;
+        int marginX = 4;
+        int marginY = 3;
+        var barRect = new Rectangle(slotRect.X + marginX, slotRect.Bottom - marginY - barH, slotRect.Width - marginX * 2, barH);
+        // Outer 1px black frame.
+        sb.Draw(pixel, new Rectangle(barRect.X - 1, barRect.Y - 1, barRect.Width + 2, barRect.Height + 2), Color.Black * 0.85f);
+        // Background track.
+        sb.Draw(pixel, barRect, new Color(20, 20, 24));
+        // Filled portion proportional to value/max.
+        int fillW = (int)((float)value / max * barRect.Width);
+        if (fillW > 0)
+            sb.Draw(pixel, new Rectangle(barRect.X, barRect.Y, fillW, barRect.Height), fillColor);
+    }
+
+    /// <summary>
     /// Draw an inner colored border around <paramref name="slotRect"/> to mark item
     /// rarity (replaces the old translucent fill overlay so icons stay color-accurate).
     /// </summary>

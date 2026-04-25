@@ -32,6 +32,7 @@
     <None Update="assets\Maps\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="assets\Sprites\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="src\Data\items.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="src\Data\fish.json" CopyToOutputDirectory="PreserveNewest" />
     <MonoGameContentReference Include="assets\Content.mgcb" />
   </ItemGroup>
   <ItemGroup>

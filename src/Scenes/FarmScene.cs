@@ -9,6 +9,7 @@ using stardew_medieval_v3.Core;
 using stardew_medieval_v3.Data;
 using stardew_medieval_v3.Entities;
 using stardew_medieval_v3.Farming;
+using stardew_medieval_v3.Fishing;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Progression;
@@ -45,6 +46,7 @@ public class FarmScene : GameplayScene
     private GridManager _gridManager = null!;
     private CropManager _cropManager = null!;
     private ToolController _toolController = null!;
+    private FishingController _fishing = null!;
     private InventoryManager _inventory = null!;
     private MainQuest _mainQuest = null!;
     private CombatManager _combat = null!;
@@ -122,6 +124,7 @@ public class FarmScene : GameplayScene
         // First-entry guard: create live Inventory + Quest once, reuse on Farm re-entry.
         // Mirrors the Services.Player guard above so live in-memory state survives scene transitions.
         ItemRegistry.Initialize();
+        FishRegistry.Initialize();
         bool firstEntry = Services.Inventory == null;
         if (firstEntry)
         {
@@ -149,7 +152,15 @@ public class FarmScene : GameplayScene
             Services.Progression = new ProgressionManager(pl, pl.Stats);
         }
 
-        _toolController = new ToolController(_gridManager, _cropManager, pl, _inventory, SpawnItemDrop, TryUseWorldTool);
+        _toolController = new ToolController(_gridManager, _cropManager, pl, _inventory, SpawnItemDrop, TryUseWorldTool)
+        {
+            Map = Map,  // gives the watering can access to IsWater(x,y) for refilling
+        };
+
+        // FishingController owns LMB while a rod is equipped (ToolController short-circuits).
+        // SpawnItemDrop is reused so caught fish flow through the same drop entity / magnet
+        // / rarity-aura pipeline as harvest yields.
+        _fishing = new FishingController(pl, _inventory, Map, Services.Time, SpawnItemDrop);
 
         // Combat
         _combat = new CombatManager(_inventory);
@@ -206,6 +217,12 @@ public class FarmScene : GameplayScene
         _hotbar.LoadContent(device, Font);
         var goldCoinTex = LoadTexture(device, "assets/Sprites/Items/Bag_of_coins.png");
         _spriteAtlas.RegisterGoldCoin(goldCoinTex);
+        var fishingSheet = LoadTexture(device, "assets/Sprites/Items/Tools/fishing.png");
+        _spriteAtlas.RegisterFishingTools(fishingSheet);
+        var fishSheet = LoadTexture(device, "assets/Sprites/Items/Fishing/fish_all.png");
+        _spriteAtlas.RegisterFishes(fishSheet);
+        var bigBobberSheet = LoadTexture(device, "assets/Sprites/Items/Tools/big_bobber.png");
+        _spriteAtlas.RegisterBigBobber(bigBobberSheet);
         var bagsSheet = LoadTexture(device, "assets/Sprites/Items/Tools/bags_upgrades.png");
         _spriteAtlas.RegisterBagUpgrades(bagsSheet);
         Services.Atlas = _spriteAtlas;
@@ -391,6 +408,13 @@ public class FarmScene : GameplayScene
         if (input.IsKeyPressed(Keys.F3))
             _debugDraw = !_debugDraw;
 
+        // Debug fish cycler — bypasses biome/season/time/weather filters so any
+        // species can be tested on the farm pond. Each F4 press advances to the
+        // next fish in the registry; one extra press past the end clears the
+        // override and returns to normal RNG rolls.
+        if (input.IsKeyPressed(Keys.F4))
+            CycleDebugFish();
+
         if (input.IsKeyPressed(Keys.F6))
         {
             ResetResourcesForDebug();
@@ -465,6 +489,7 @@ public class FarmScene : GameplayScene
         }
 
         _toolController.Update(input);
+        _fishing.Update(deltaTime, input);
         return false;
     }
 
@@ -478,6 +503,13 @@ public class FarmScene : GameplayScene
             solids.Add(resource);
         return solids;
     }
+
+    /// <summary>
+    /// Modal-active while the fishing controller is in Bite/Reeling/Pulling. Suppresses
+    /// global input (ESC/I/Q/hotbar) and player movement so WASD routes to the
+    /// minigame and the player can't pause / open inventory mid-fight.
+    /// </summary>
+    protected override bool IsModalActive => _fishing.IsCapturingInput;
 
     protected override bool HandleTrigger(string triggerName)
     {
@@ -517,6 +549,16 @@ public class FarmScene : GameplayScene
         _minimap.PreRender(
             Services.GraphicsDevice, sb, Map, Player, _enemies, _boss, _gridManager);
         base.Draw(sb);
+
+        // Fishing minigame overlay (screen-space) draws on top of HUD so the ring,
+        // bars, and fish read clearly during the reel — base.Draw handles world,
+        // day/night, and HUD; the overlay is the focal point above all of that.
+        if (_fishing.IsMinigameActive)
+        {
+            sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+            FishingMinigameRenderer.Draw(sb, Pixel, _spriteAtlas, Font, _fishing.Minigame, Services.GraphicsDevice.Viewport.Bounds);
+            sb.End();
+        }
     }
 
     protected override void OnDrawWorld(SpriteBatch sb, Rectangle viewArea)
@@ -549,6 +591,7 @@ public class FarmScene : GameplayScene
 
         _slash.Draw(sb, Pixel);
         _projectiles.Draw(sb, Pixel);
+        _fishing.Draw(sb, _spriteAtlas, Pixel);
         DrawFarmZoneHint(sb, viewArea);
 
         if (_debugDraw)
@@ -680,10 +723,18 @@ public class FarmScene : GameplayScene
 
     /// <summary>Spawn an item drop entity at the given world position.</summary>
     public void SpawnItemDrop(string itemId, int quantity, Vector2 worldPosition)
+        => SpawnItemDrop(itemId, quantity, worldPosition, quality: 0);
+
+    /// <summary>
+    /// Spawn an item drop carrying a specific quality grade. Used by the fishing
+    /// minigame to drop fish with 1/2/3 stars; defaults of 0 keep the existing
+    /// crop/loot drop paths unaffected.
+    /// </summary>
+    public void SpawnItemDrop(string itemId, int quantity, Vector2 worldPosition, int quality)
     {
-        var drop = new ItemDropEntity(itemId, quantity, worldPosition, _spriteAtlas);
+        var drop = new ItemDropEntity(itemId, quantity, worldPosition, _spriteAtlas) { Quality = quality };
         _itemDrops.Add(drop);
-        Console.WriteLine($"[FarmScene] Item drop spawned: {quantity}x {itemId}");
+        Console.WriteLine($"[FarmScene] Item drop spawned: {quantity}x {itemId}" + (quality > 0 ? $" (quality={quality})" : ""));
     }
 
     private void OnDayAdvanced()
@@ -732,6 +783,40 @@ public class FarmScene : GameplayScene
         _resourceManager.Add(new ResourceNode("farm_starter_tree", "tree_broadleaf_large", StarterTreeTile));
         Console.WriteLine("[FarmScene] Resources reset with F6");
         SaveCurrentState();
+    }
+
+    /// <summary>
+    /// F4 debug cycler: walks the fish registry in registration order, forcing the
+    /// next bite to be the chosen species. Order: null → fish[0] → fish[1] → … →
+    /// fish[N-1] → null again. Bypasses biome/season/time/weather filters so the
+    /// farm pond can spawn any fish (including ocean/night-only ones like the
+    /// Phantom Eel) for testing.
+    /// </summary>
+    private void CycleDebugFish()
+    {
+        var ids = new List<string>(stardew_medieval_v3.Data.FishRegistry.All.Keys);
+        if (ids.Count == 0)
+        {
+            Console.WriteLine("[FarmScene] Fish registry empty — F4 no-op.");
+            return;
+        }
+
+        string? current = _fishing.DebugForcedFishId;
+        string? next;
+        if (current == null)
+        {
+            next = ids[0];
+        }
+        else
+        {
+            int idx = ids.IndexOf(current);
+            next = (idx < 0 || idx >= ids.Count - 1) ? null : ids[idx + 1];
+        }
+
+        _fishing.DebugForcedFishId = next;
+        Console.WriteLine(next == null
+            ? "[FarmScene] F4: debug fish override CLEARED — back to RNG."
+            : $"[FarmScene] F4: next bite forced to {next}.");
     }
 
     private static void NormalizeChestSaves(List<ChestSaveData> chests)

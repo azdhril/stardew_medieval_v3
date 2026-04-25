@@ -69,8 +69,11 @@ public class GridManager
             return false;
         }
 
-        var cell = GetOrCreateCell(tile);
-        if (cell.IsTilled)
+        // Peek an existing cell without creating one — a failed till must NOT leave an
+        // empty CellData behind, otherwise DrawFarmZoneHint stops tinting the tile and
+        // the player sees a pale "ghost" square where nothing happened.
+        _cells.TryGetValue(tile, out var existing);
+        if (existing?.IsTilled == true)
         {
             Console.WriteLine("[GridManager] Already tilled");
             return false;
@@ -82,6 +85,7 @@ public class GridManager
             return false;
         }
 
+        var cell = existing ?? GetOrCreateCell(tile);
         cell.IsTilled = true;
         Console.WriteLine($"[GridManager] Tilled ({tile.X}, {tile.Y})");
         return true;

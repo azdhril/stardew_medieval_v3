@@ -68,6 +68,9 @@
     { "Id": "Axe", "Name": "Axe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_axe", "Stats": {} },
     { "Id": "Watering_Can", "Name": "Watering Can", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_watering_can", "Stats": {} },
     { "Id": "Scythe", "Name": "Scythe", "Type": "Tool", "Rarity": "Common", "StackLimit": 1, "BasePrice": 0, "SpriteId": "tool_scythe", "Stats": {} },
+    { "Id": "Fishing_Rod",        "Name": "Fishing Rod",        "Type": "Tool", "Rarity": "Common",   "StackLimit": 1, "BasePrice": 0,    "SpriteId": "tool_fishing_rod", "Stats": {} },
+    { "Id": "Iron_Fishing_Rod",   "Name": "Iron Fishing Rod",   "Type": "Tool", "Rarity": "Uncommon", "StackLimit": 1, "BasePrice": 1500, "SpriteId": "tool_fishing_rod", "Stats": { "tolerance_mult": 1.30, "fill_rate_mult": 1.15, "bite_window_mult": 1.15 } },
+    { "Id": "Mythic_Fishing_Rod", "Name": "Mythic Fishing Rod", "Type": "Tool", "Rarity": "Rare",     "StackLimit": 1, "BasePrice": 6000, "SpriteId": "tool_fishing_rod", "Stats": { "tolerance_mult": 1.60, "fill_rate_mult": 1.40, "bite_window_mult": 1.30 } },
 
     { "Id": "Iron_Sword", "Name": "Iron Sword", "Type": "Weapon", "Rarity": "Common", "StackLimit": 1, "BasePrice": 200, "SpriteId": "tool_sword", "Stats": { "damage": 8, "melee": 1 } },
     { "Id": "Steel_Sword", "Name": "Steel Sword", "Type": "Weapon", "Rarity": "Uncommon", "StackLimit": 1, "BasePrice": 500, "SpriteId": "weapon_steel_sword", "Stats": { "damage": 15, "melee": 1 } },
@@ -105,6 +108,16 @@
     { "Id": "Tomato_Rotten", "Name": "Rotten Tomato", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "BasePrice": 0, "SpriteId": "crop_tomato_rotten", "Stats": {} },
     { "Id": "Watermelon_Rotten", "Name": "Rotten Watermelon", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "BasePrice": 0, "SpriteId": "crop_watermelon_rotten", "Stats": {} },
     { "Id": "Grape_Purple_Rotten", "Name": "Rotten Grapes", "Type": "Crop", "Rarity": "Common", "StackLimit": 99, "BasePrice": 0, "SpriteId": "crop_grape_purple_rotten", "Stats": {} },
+
+    { "Id": "Fish_Trout",          "Name": "Trout",          "Type": "Fish", "Rarity": "Common",   "StackLimit": 20, "BasePrice": 75,   "SpriteId": "fish_trout",          "Stats": {} },
+    { "Id": "Fish_Bluegill",       "Name": "Bluegill",       "Type": "Fish", "Rarity": "Common",   "StackLimit": 20, "BasePrice": 50,   "SpriteId": "fish_bluegill",       "Stats": {} },
+    { "Id": "Fish_Smelt",          "Name": "Smelt",          "Type": "Fish", "Rarity": "Common",   "StackLimit": 20, "BasePrice": 35,   "SpriteId": "fish_smelt",          "Stats": {} },
+    { "Id": "Fish_Rainbow_Trout",  "Name": "Rainbow Trout",  "Type": "Fish", "Rarity": "Uncommon", "StackLimit": 20, "BasePrice": 200,  "SpriteId": "fish_rainbow_trout",  "Stats": {} },
+    { "Id": "Fish_King_Salmon",    "Name": "King Salmon",    "Type": "Fish", "Rarity": "Rare",     "StackLimit": 20, "BasePrice": 1000, "SpriteId": "fish_king_salmon",    "Stats": {} },
+    { "Id": "Fish_Mackerel",       "Name": "Mackerel",       "Type": "Fish", "Rarity": "Common",   "StackLimit": 20, "BasePrice": 60,   "SpriteId": "fish_mackerel",       "Stats": {} },
+    { "Id": "Fish_Tuna",           "Name": "Tuna",           "Type": "Fish", "Rarity": "Uncommon", "StackLimit": 20, "BasePrice": 250,  "SpriteId": "fish_tuna",           "Stats": {} },
+    { "Id": "Fish_Anglerfish",     "Name": "Anglerfish",     "Type": "Fish", "Rarity": "Rare",     "StackLimit": 20, "BasePrice": 1500, "SpriteId": "fish_anglerfish",     "Stats": {} },
+    { "Id": "Fish_Phantom_Eel",    "Name": "Phantom Eel",    "Type": "Fish", "Rarity": "Rare",     "StackLimit": 20, "BasePrice": 3000, "SpriteId": "fish_phantom_eel",    "Stats": {} },
 
     { "Id": "Bones", "Name": "Bones", "Type": "Loot", "Rarity": "Common", "StackLimit": 99, "BasePrice": 10, "SpriteId": "loot_bones", "Stats": {} },
     { "Id": "Mana_Crystal", "Name": "Mana Crystal", "Type": "Loot", "Rarity": "Uncommon", "StackLimit": 99, "BasePrice": 50, "SpriteId": "loot_mana_crystal", "Stats": {} },
