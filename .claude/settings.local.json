@@ -45,7 +45,12 @@
       "WebFetch(domain:fontstashsharp.github.io)",
       "WebFetch(domain:community.monogame.net)",
       "WebFetch(domain:www.nuget.org)",
-      "Bash(rtk grep *)"
+      "Bash(rtk grep *)",
+      "PowerShell($img = [System.Drawing.Image]::FromFile\\(\"c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Fishing\\\\fish_all.png\"\\); \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Fishing\\\\fish_all.png\"\\); \"$\\($img.Width\\)x$\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "PowerShell(dotnet build --no-incremental 2>&1)",
+      "PowerShell($img = [System.Drawing.Image]::FromFile\\(\"c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Tools\\\\big_bobber.png\"\\); Write-Host \"Width: $\\($img.Width\\), Height: $\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"c:\\\\Users\\\\tinho\\\\OneDrive\\\\Documentos\\\\Github\\\\stardew_medieval_v3\\\\assets\\\\Sprites\\\\Items\\\\Tools\\\\big_bobber.png\"\\); Write-Host \"Width: $\\($img.Width\\), Height: $\\($img.Height\\)\"; $img.Dispose\\(\\))"
     ]
   }
 }
