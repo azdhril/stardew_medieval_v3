@@ -133,19 +133,6 @@ public abstract class GameplayScene : Scene
     protected virtual IEnumerable<Entity>? GetSolids() => null;
 
     /// <summary>
-    /// Enemies the minimap should plot as red dots. Default: none — hub scenes (Village,
-    /// Castle) don't have monsters. Combat scenes (Farm, Dungeon) override to return their
-    /// active enemy list.
-    /// </summary>
-    protected virtual IEnumerable<EnemyEntity> GetMinimapEnemies() => Array.Empty<EnemyEntity>();
-
-    /// <summary>Boss the minimap should plot as a larger orange dot, or null if no boss in scene.</summary>
-    protected virtual BossEntity? GetMinimapBoss() => null;
-
-    /// <summary>Grid manager whose tilled/cropped cells appear as overlay tints on the minimap.</summary>
-    protected virtual GridManager? GetMinimapGrid() => null;
-
-    /// <summary>
     /// When true, suppress global input (ESC/I/F2/hotbar/Q/scroll) and zero out
     /// player movement so a modal scene-owned interaction (e.g. fishing minigame)
     /// can monopolize WASD/LMB without the player drifting around or the inventory
@@ -175,12 +162,12 @@ public abstract class GameplayScene : Scene
         Map = new TileMap();
         Map.Load(MapPath, device);
 
-        // Minimap available across every gameplay scene. Subclasses provide enemies/boss/grid
-        // via the Get*ForMinimap virtual hooks; default = none of those markers, just terrain
-        // + player dot, which is correct for hub scenes (Village, Castle, etc.).
+        // Minimap available across every gameplay scene — live-renders the world into
+        // a small RenderTarget at 0.5× scale every frame, showing 24 tiles around the
+        // player (≈20% wider view than the regular game viewport so it reveals what's
+        // just off-screen). Per design, monsters are NOT plotted on the minimap.
         Minimap = new MinimapRenderer();
         Minimap.LoadContent(device);
-        Minimap.Rebuild(Map, device);
 
         // Subclass sets up systems (may create Player on first entry).
         OnLoad();
@@ -236,7 +223,19 @@ public abstract class GameplayScene : Scene
     public override void Update(float deltaTime)
     {
         var input = Services.Input;
-        var viewport = Services.GraphicsDevice.Viewport;
+
+        // Force viewport back to backbuffer dims at the top of Update too — Draw does
+        // this defensively but Update runs first each frame, and ApplyFitZoom below
+        // computes camera bounds from the current viewport. If the previous frame's
+        // minimap PreRender left a stale 192×192 viewport, the camera would shrink
+        // to a tiny visible area and the player visually drifts off-screen.
+        var device = Services.GraphicsDevice;
+        int bbW = device.PresentationParameters.BackBufferWidth;
+        int bbH = device.PresentationParameters.BackBufferHeight;
+        if (device.Viewport.Width != bbW || device.Viewport.Height != bbH)
+            device.Viewport = new Viewport(0, 0, bbW, bbH);
+
+        var viewport = device.Viewport;
 
         // --- Global input (works in every gameplay scene unless a modal owns it) ---
 
@@ -371,11 +370,9 @@ public abstract class GameplayScene : Scene
 
         // PreRender the minimap to its own RenderTarget BEFORE we open the world
         // SpriteBatch — the renderer flips active render targets internally and would
-        // discard mid-frame world output if we did this later. Subclasses feed enemy/
-        // boss/grid markers via the Get*ForMinimap virtuals; defaults are empty/null
-        // so hub scenes still render terrain + player dot correctly.
-        Minimap?.PreRender(device, sb, Map, Player,
-            GetMinimapEnemies(), GetMinimapBoss(), GetMinimapGrid());
+        // discard mid-frame world output if we did this later. Pass current Camera.Zoom
+        // so the minimap auto-scales to always reveal more area than the game viewport.
+        Minimap?.PreRender(device, sb, Map, Player, Services.Camera.Zoom);
 
         // World space
         sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp,

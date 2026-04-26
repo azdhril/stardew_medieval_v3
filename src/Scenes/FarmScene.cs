@@ -320,40 +320,57 @@ public class FarmScene : GameplayScene
 
         Console.WriteLine("[FarmScene] Loaded");
 
-        // v10: boot-time scene restore. If save.CurrentScene was non-Farm, hop there now that
-        // Player/Inventory/Atlas/Hotbar are fully constructed. PushImmediate can't be used —
-        // we're still inside LoadContent; TransitionTo defers the swap to the fade-out point.
+        // v10: boot-time scene restore is DEFERRED to OnPreUpdate (see TryBootRestoreTransition).
+        // We can't TransitionTo here because OnLoad runs INSIDE GameplayScene.LoadContent —
+        // the transition would unload-and-reload mid-flow, and after returning the rest of
+        // LoadContent would clobber the new scene's Camera.Bounds with Farm's bounds. By
+        // running the transition on the first Update tick, we're safely outside any
+        // LoadContent stack and the new scene's setup stays intact.
+    }
+
+    /// <summary>
+    /// Consume <see cref="ServiceContainer.PendingRestoreScene"/> if it points to a
+    /// non-Farm scene and request a transition there. Returns true when a transition
+    /// fires so OnPreUpdate's caller can short-circuit. One-shot — clears the pending
+    /// flag whether or not the target scene id resolves.
+    /// </summary>
+    private bool TryBootRestoreTransition()
+    {
         var restoreTarget = Services.PendingRestoreScene;
-        if (!string.IsNullOrEmpty(restoreTarget) && restoreTarget != "Farm")
+        if (string.IsNullOrEmpty(restoreTarget) || restoreTarget == "Farm")
         {
-            Services.PendingRestoreScene = null; // one-shot
-            Scene? next = restoreTarget switch
-            {
-                "Village" => new VillageScene(Services, "RestoreSave"),
-                "Castle"  => new CastleScene(Services, "RestoreSave"),
-                "Shop"    => new ShopScene(Services, "RestoreSave"),
-                _         => null,
-            };
-            if (next != null)
-            {
-                Console.WriteLine($"[FarmScene] Boot restore: transitioning to {restoreTarget}");
-                Services.SceneManager.TransitionTo(next);
-            }
-            else
-            {
-                Console.WriteLine($"[FarmScene] Boot restore: unknown scene '{restoreTarget}', staying on Farm");
-                // PendingRestorePosition for Farm (if any) was already consumed by
-                // GameplayScene.LoadContent above — nothing else to do.
-            }
+            if (!string.IsNullOrEmpty(restoreTarget))
+                Services.PendingRestoreScene = null; // nothing to do for Farm; clear stale state
+            return false;
         }
-        else
+
+        Services.PendingRestoreScene = null; // one-shot
+        Scene? next = restoreTarget switch
         {
-            Services.PendingRestoreScene = null; // nothing to restore; clear so no stale state
+            "Village" => new VillageScene(Services, "RestoreSave"),
+            "Castle"  => new CastleScene(Services, "RestoreSave"),
+            "Shop"    => new ShopScene(Services, "RestoreSave"),
+            _         => null,
+        };
+        if (next == null)
+        {
+            Console.WriteLine($"[FarmScene] Boot restore: unknown scene '{restoreTarget}', staying on Farm");
+            return false;
         }
+
+        Console.WriteLine($"[FarmScene] Boot restore: transitioning to {restoreTarget}");
+        Services.SceneManager.TransitionTo(next);
+        return true;
     }
 
     protected override bool OnPreUpdate(float deltaTime, InputManager input)
     {
+        // Deferred boot restore — see OnLoad. Runs on first Update tick when we're
+        // safely outside any LoadContent stack frame, so TransitionTo can swap to
+        // the saved scene without Farm's LoadContent clobbering the new scene's
+        // Camera.Bounds afterwards.
+        if (TryBootRestoreTransition()) return true;
+
         _chestManager.Update(deltaTime);
         _resourceManager.Update(deltaTime);
         _promptChest = _chestManager.GetChestAtFacingTile(Player.GetFacingTile());
@@ -554,11 +571,6 @@ public class FarmScene : GameplayScene
         }
     }
 
-    // Minimap data feeds: enemies, boss, tilled cells. Base GameplayScene calls these
-    // to plot markers on the shared minimap RenderTarget.
-    protected override IEnumerable<EnemyEntity> GetMinimapEnemies() => _enemies;
-    protected override BossEntity? GetMinimapBoss() => _boss;
-    protected override GridManager? GetMinimapGrid() => _gridManager;
 
     protected override void OnDrawWorld(SpriteBatch sb, Rectangle viewArea)
     {

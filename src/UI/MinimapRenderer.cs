@@ -104,50 +104,95 @@ public sealed class MinimapRenderer : IDisposable
     }
 
     /// <summary>
-    /// Pre-render minimap content into a circular RenderTarget. Must be called
-    /// BEFORE any backbuffer drawing so SetRenderTarget(null) doesn't discard it.
+    /// Live render — re-draws the world (tile layers + decor) into the minimap's
+    /// RenderTarget every frame at 0.5× zoom centered on the player. Shows
+    /// <see cref="LiveViewTilesWide"/> tiles around the player so the minimap reveals
+    /// roughly 20% MORE area than the regular game viewport (the whole point of a
+    /// minimap is to show what's just off-screen).
+    ///
+    /// Per design, monsters/boss are NOT plotted — the minimap is a navigation aid
+    /// for terrain/structure, not a combat radar.
+    ///
+    /// Must be called BEFORE any backbuffer drawing so SetRenderTarget(null) doesn't
+    /// discard the result.
     /// </summary>
     public void PreRender(
         GraphicsDevice device,
         SpriteBatch spriteBatch,
         TileMap map,
         PlayerEntity player,
-        IEnumerable<EnemyEntity> enemies,
-        BossEntity? boss,
-        GridManager? grid = null)
+        float gameZoom)
     {
         _preRendered = false;
-        if (_staticMapTexture == null || _rt == null || _circleMask == null)
-            return;
+        if (_rt == null || _circleMask == null) return;
 
-        var sourceArea = GetSourcePixelArea(map, player.Position);
-        var mapArea = new Rectangle(0, 0, RtSize, RtSize);
+        // Snapshot viewport before SetRenderTarget mutates it. Restored at the end so
+        // the caller's screen-space sb.Begin uses the correct backbuffer dimensions —
+        // some MonoGame paths don't auto-restore reliably.
+        var prevViewport = device.Viewport;
+
+        // Tiles visible in the GAME viewport at the current zoom — minimap reveals
+        // <see cref="MinimapBufferRatio"/>× that many so it always shows MORE than
+        // what's on screen (the whole point of a minimap is to peek ahead). The
+        // larger of width/height is used so the minimap covers the longer game axis.
+        float gameViewTilesW = prevViewport.Width  / (TileMap.TileSize * Math.Max(gameZoom, 0.01f));
+        float gameViewTilesH = prevViewport.Height / (TileMap.TileSize * Math.Max(gameZoom, 0.01f));
+        float tilesWide = Math.Max(gameViewTilesW, gameViewTilesH) * MinimapBufferRatio;
+        // Floor at 16 tiles so very small windows still show something useful.
+        if (tilesWide < 16f) tilesWide = 16f;
+        float scale = RtSize / (tilesWide * TileMap.TileSize);
+
+        // Clamp the camera center so we don't render past the map edges (would show
+        // empty void). When the map is smaller than the view, just center on the map.
+        float halfViewWorld = (tilesWide / 2f) * TileMap.TileSize;
+        float mapWorldW = map.Width * TileMap.TileSize;
+        float mapWorldH = map.Height * TileMap.TileSize;
+        float cx = mapWorldW <= halfViewWorld * 2f
+            ? mapWorldW / 2f
+            : MathHelper.Clamp(player.Position.X, halfViewWorld, mapWorldW - halfViewWorld);
+        float cy = mapWorldH <= halfViewWorld * 2f
+            ? mapWorldH / 2f
+            : MathHelper.Clamp(player.Position.Y, halfViewWorld, mapWorldH - halfViewWorld);
+
+        // World rect that the minimap shows — used by TileMap.Draw for culling.
+        int viewSidePx = (int)Math.Ceiling(tilesWide * TileMap.TileSize);
+        var viewArea = new Rectangle(
+            (int)(cx - halfViewWorld), (int)(cy - halfViewWorld),
+            viewSidePx, viewSidePx);
+
+        // Camera transform: shift world so cx,cy lands at RtSize/2 after scaling.
+        var transform =
+            Matrix.CreateTranslation(-cx, -cy, 0) *
+            Matrix.CreateScale(scale, scale, 1f) *
+            Matrix.CreateTranslation(RtSize / 2f, RtSize / 2f, 0);
 
         device.SetRenderTarget(_rt);
-        device.Clear(Color.Transparent);
+        device.Clear(new Color(20, 20, 25)); // dark base for "outside the map" area
 
-        // Draw map content normally
-        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
-
-        spriteBatch.Draw(_staticMapTexture, mapArea, sourceArea, Color.White);
-
-        if (grid != null)
-            DrawFarmCells(spriteBatch, mapArea, sourceArea, grid);
-
-        foreach (var enemy in enemies)
-        {
-            if (!enemy.IsAlive) continue;
-            DrawWorldMarker(spriteBatch, mapArea, sourceArea, enemy.Position, new Point(3, 3), new Color(191, 47, 47));
-        }
-
-        if (boss != null && boss.IsAlive)
-            DrawWorldMarker(spriteBatch, mapArea, sourceArea, boss.Position, new Point(5, 5), new Color(255, 140, 64));
-
-        DrawWorldMarker(spriteBatch, mapArea, sourceArea, player.Position, new Point(4, 4), new Color(255, 244, 183));
-
+        // World pass — tile layers + decor with the minimap transform. Decor's
+        // DrawBeforePlayer/AfterPlayer have player-relative Y-sort logic; passing
+        // null player makes them just draw the full sprite (no Y-sort fade).
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp,
+            null, null, null, transform);
+        map.Draw(spriteBatch, viewArea);
+        // DrawBeforePlayer with null player short-circuits to DrawFull (no Y-sort fade),
+        // which is exactly what we want for the minimap — every decor sprite drawn whole.
+        foreach (var decor in map.Decor)
+            decor.DrawBeforePlayer(spriteBatch, null);
         spriteBatch.End();
 
-        // Multiply by circle mask to zero out alpha outside the circle
+        // Player marker — small bright dot in screen-space (RT space). Not the player
+        // sprite because at 0.5× scale the 16×16 sprite reads as a soft blob; a 4×4
+        // marker is much clearer for the "you are here" cue.
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
+        var markerSize = new Point(4, 4);
+        int markerX = (int)((player.Position.X - cx) * scale + RtSize / 2f) - markerSize.X / 2;
+        int markerY = (int)((player.Position.Y - cy) * scale + RtSize / 2f) - markerSize.Y / 2;
+        spriteBatch.Draw(_pixel, new Rectangle(markerX - 1, markerY - 1, markerSize.X + 2, markerSize.Y + 2), Color.Black);
+        spriteBatch.Draw(_pixel, new Rectangle(markerX, markerY, markerSize.X, markerSize.Y), new Color(255, 244, 183));
+        spriteBatch.End();
+
+        // Multiply by circle mask to zero out alpha outside the circle.
         var multiplyBlend = new BlendState
         {
             ColorBlendFunction = BlendFunction.Add,
@@ -157,14 +202,28 @@ public sealed class MinimapRenderer : IDisposable
             AlphaSourceBlend = Blend.Zero,
             AlphaDestinationBlend = Blend.SourceAlpha,
         };
-
+        var maskArea = new Rectangle(0, 0, RtSize, RtSize);
         spriteBatch.Begin(SpriteSortMode.Deferred, multiplyBlend);
-        spriteBatch.Draw(_circleMask, mapArea, Color.White);
+        spriteBatch.Draw(_circleMask, maskArea, Color.White);
         spriteBatch.End();
 
         device.SetRenderTarget(null);
+        // Defensive viewport restore — some driver paths don't auto-restore correctly,
+        // which would leave the GameplayScene's next ApplyFitZoom seeing a 192×192
+        // viewport and computing camera bounds wrong (player drifts off-screen).
+        device.Viewport = prevViewport;
         _preRendered = true;
     }
+
+    /// <summary>
+    /// Ratio of minimap-visible tiles to game-viewport tiles. The minimap is a
+    /// CIRCLE inscribed in the square RT, so the corners (~22% of total area) are
+    /// masked out — a 1.3× ratio leaves only ~8% effective buffer on the visible
+    /// axis. 2.0 (=double) compensates for the mask + gives a real "scout ahead"
+    /// feel where the minimap shows world the player hasn't reached yet.
+    /// Resolution-independent: scales with viewport and current camera zoom.
+    /// </summary>
+    private const float MinimapBufferRatio = 2.0f;
 
     /// <summary>
     /// Composite the pre-rendered circular minimap + frame onto the screen.
