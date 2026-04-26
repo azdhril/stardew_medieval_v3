@@ -44,6 +44,15 @@ public class IconButton : IClickable
     /// <summary>Optional 9-slice insets for the background texture. Ignored if no background was supplied.</summary>
     public NineSlice.Insets BackgroundInsets { get; set; }
 
+    /// <summary>
+    /// Maximum integer scale factor when upscaling the icon to fit <see cref="Bounds"/>.
+    /// Default <c>0</c> = no cap (icon scales to fill, current behavior). Set to
+    /// <c>1</c> to keep the icon at native pixel size with chrome padding around it
+    /// (e.g., 16×16 arrow inside a 32×32 chest action button — without this it'd
+    /// upscale to 32×32 and visually spill out of the slot).
+    /// </summary>
+    public int MaxIconScale { get; set; } = 0;
+
     private readonly Texture2D _icon;
     private readonly Texture2D? _background;
     private bool _isHovered;
@@ -78,8 +87,27 @@ public class IconButton : IClickable
     {
         bool hovered = _isHovered && Enabled && Hover != HoverStyle.None;
 
+        // Single y-nudge for the WHOLE button when hovered — chrome AND icon move
+        // up together as if they were one sprite. Without that the icon was sliding
+        // relative to a static chrome, breaking the "press lift" illusion.
+        int yNudge = (hovered && Hover == HoverStyle.NudgeHalo) ? -1 : 0;
+        var chromeRect = new Rectangle(Bounds.X, Bounds.Y + yNudge, Bounds.Width, Bounds.Height);
+
+        // Halo + chrome for buttons WITH a background (stepper +/-, circular icons).
+        // Halo wraps the chrome (the actual click target), not the small +/- glyph.
+        // Drawn before the chrome so the glow sits behind it (proper depth order).
         if (_background != null)
-            NineSlice.Draw(sb, _background, Bounds, BackgroundInsets);
+        {
+            if (hovered && Hover == HoverStyle.NudgeHalo)
+            {
+                var glow = Color.White * 0.55f;
+                NineSlice.Draw(sb, _background, new Rectangle(chromeRect.X - 1, chromeRect.Y, chromeRect.Width, chromeRect.Height), BackgroundInsets, glow);
+                NineSlice.Draw(sb, _background, new Rectangle(chromeRect.X + 1, chromeRect.Y, chromeRect.Width, chromeRect.Height), BackgroundInsets, glow);
+                NineSlice.Draw(sb, _background, new Rectangle(chromeRect.X, chromeRect.Y - 1, chromeRect.Width, chromeRect.Height), BackgroundInsets, glow);
+                NineSlice.Draw(sb, _background, new Rectangle(chromeRect.X, chromeRect.Y + 1, chromeRect.Width, chromeRect.Height), BackgroundInsets, glow);
+            }
+            NineSlice.Draw(sb, _background, chromeRect, BackgroundInsets);
+        }
 
         // If icon fits at 1x or larger, use integer scaling (crisp pixel art).
         // If icon is larger than bounds, fall back to uniform fractional fit with 20% inner padding
@@ -88,6 +116,7 @@ public class IconButton : IClickable
         if (_icon.Width <= Bounds.Width && _icon.Height <= Bounds.Height)
         {
             int scale = Math.Max(1, Math.Min(Bounds.Width / _icon.Width, Bounds.Height / _icon.Height));
+            if (MaxIconScale > 0) scale = Math.Min(scale, MaxIconScale);
             iw = _icon.Width * scale;
             ih = _icon.Height * scale;
         }
@@ -97,13 +126,15 @@ public class IconButton : IClickable
             iw = (int)(_icon.Width * fit);
             ih = (int)(_icon.Height * fit);
         }
-        int yNudge = (hovered && Hover == HoverStyle.NudgeHalo) ? -1 : 0;
+        // Icon rides the same yNudge as the chrome — they stay locked relative to
+        // each other, so the visual reads as a single sprite lifting on hover.
         var iconRect = new Rectangle(
-            Bounds.X + (Bounds.Width - iw) / 2,
-            Bounds.Y + (Bounds.Height - ih) / 2 + yNudge,
+            chromeRect.X + (chromeRect.Width - iw) / 2,
+            chromeRect.Y + (chromeRect.Height - ih) / 2,
             iw, ih);
 
-        if (hovered && Hover == HoverStyle.NudgeHalo)
+        // Halo around the icon ONLY when there's no chrome behind it (close-X, plain icons).
+        if (hovered && Hover == HoverStyle.NudgeHalo && _background == null)
         {
             WidgetHelpers.DrawNudgeHalo(sb, _icon, iconRect, Color.White * 0.55f, Effects);
         }

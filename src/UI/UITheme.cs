@@ -114,18 +114,24 @@ public sealed class UITheme
         ListItemHover  = Load(device, "Lists/UI_ListItem_Hover.png",     "ListItemHover",  Color.White * 0.12f);
         SquareBtn      = Load(device, "Buttons/UI_Square_Btn.png",       "SquareBtn",      new Color(78, 58, 44));
         SquareBtnHover = Load(device, "Buttons/UI_Square_Btn_hover.png", "SquareBtnHover", new Color(120, 90, 60));
-        YellowBtnSmall = Load(device, "Buttons/UI_Btn_yellow_pixelart.png", "YellowBtnSmall", Color.Gold);
-        BtnSlot        = Load(device, "Buttons/UI_Btn_slot_pixelart.png",   "BtnSlot",        new Color(90, 30, 25));
-        BtnIconX       = Load(device, "Buttons/UI_BtnIcon_x_pixelart.png", "BtnIconX",       Color.White);
+        YellowBtnSmall = Load(device, "Buttons/48/UI_Btn_yellow.png", "YellowBtnSmall", Color.Gold);
+        BtnSlot        = Load(device, "Buttons/32/UI_Btn_slot.png",   "BtnSlot",        new Color(90, 30, 25));
+        BtnIconX       = Load(device, "Buttons/32/UI_Btn_close.png", "BtnIconX",       Color.White);
         PanelCurrency  = Load(device, "Panel/UI_Panel_Currency.png",     "PanelCurrency",  new Color(60, 45, 25));
         ImageDeco      = Load(device, "Decorations/UI_Image_Deco.png",   "ImageDeco",      new Color(140, 110, 70));
         PanelSlotPane  = Load(device, "Panel/UI_Panel_SlotPaneBackground.png", "PanelSlotPane",  new Color(215, 190, 140));
-        BtnCircleSmall = Load(device, "Buttons/UI_Btn_Circle_small_pixelart.png", "BtnCircleSmall", new Color(78, 58, 44));
+        BtnCircleSmall = Load(device, "Buttons/24/UI_Btn_Circle_small.png", "BtnCircleSmall", new Color(78, 58, 44));
 
-        IconPlus       = Load(device, "Icons/Icon_plus.png",             "IconPlus",       Color.White);
-        IconMinus      = Load(device, "Icons/Icon_minus.png",            "IconMinus",      Color.White);
-        IconArrowRight = Load(device, "Icons/Icon_arrow-right_pixelart.png", "IconArrowRight", Color.White);
-        IconSort       = Load(device, "Icons/Icon_reorder.png",              "IconSort",       Color.White);
+        // Stepper +/- buttons render in tiny circular chrome — use the 16×16 native
+        // versions so each pixel is a clean integer scale (no blur).
+        IconPlus       = Load(device, "Icons/16/Icon_plus.png",          "IconPlus",       Color.White);
+        IconMinus      = Load(device, "Icons/16/Icon_minus.png",         "IconMinus",      Color.White);
+        // Chest send/take/pagination arrow renders in 24×24 BtnSlot chrome. The 32×32
+        // source was being downscaled to ~19px (fractional fit), losing crispness;
+        // 16×16 source slots in at exact 1× scale and reads sharper.
+        IconArrowRight = Load(device, "Icons/16/Icon_arrow.png",         "IconArrowRight", Color.White);
+        // Reorder/sort renders larger and looks cramped at 16×16 — stay on 32×32.
+        IconSort       = Load(device, "Icons/32/Icon_reorder.png",       "IconSort",       Color.White);
         IconAttack     = Load(device, "Icons/System/UI_Icon_Sys_Attack.png",  "IconAttack",  new Color(220, 80, 60));
         IconDefense    = Load(device, "Icons/System/UI_Icon_Sys_Defense.png", "IconDefense", new Color(90, 140, 210));
 
@@ -144,9 +150,13 @@ public sealed class UITheme
         XPBarBg     = Load(device, "Bars/Status_no_icon_slot/UI_StatusBar_Bg_No_icon.png", "XPBarBg",   new Color(40, 30, 25));
         XPBarFill   = Load(device, "Bars/Status_no_icon_slot/UI_StatusBar_Fill_Gray.png",  "XPBarFill", Color.Gold);
         PanelSmall  = Load(device, "Panel/UI_Panel_Title.png",                         "PanelSmall",  new Color(60, 40, 30));
-        IconHeart   = Load(device, "Icons/Icon_heart.png",                             "IconHeart",   Color.Red);
+        // HUD bar icons cap at 16px in the renderer (HUD.cs:DrawBarIcon). Source
+        // PNGs at 16×16 native render crisp at integer scale; 32×32 sources got
+        // downscaled in runtime and looked tortos. Mana stays on the 32 source
+        // until a hand-pixeled 16×16 sparkles is added.
+        IconHeart   = Load(device, "Icons/16/Icon_heart.png",                          "IconHeart",   Color.Red);
         IconMana    = Load(device, "Icons/Icon_sparkles.png",                          "IconMana",    Color.Blue);
-        IconStamina = Load(device, "Icons/Icon_stamina.png",                           "IconStamina", Color.Green);
+        IconStamina = Load(device, "Icons/16/Icon_stamina.png",                        "IconStamina", Color.Green);
 
         _loaded = true;
         Console.WriteLine("[UITheme] Content loaded");

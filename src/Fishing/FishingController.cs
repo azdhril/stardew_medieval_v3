@@ -129,6 +129,13 @@ public class FishingController
     /// </summary>
     private RodModifiers _activeMods = RodModifiers.None;
 
+    /// <summary>
+    /// Player HP snapshot from the previous frame — used to detect a hit landing
+    /// during the round so the controller can cancel cleanly. Initialized to a
+    /// huge sentinel so the first frame doesn't fire a false "took damage" signal.
+    /// </summary>
+    private float _lastSeenHP = float.MaxValue;
+
     /// <summary>Line snaps if the player wanders past this distance from the bobber.</summary>
     private const float MaxLineLength = 80f;
 
@@ -158,6 +165,40 @@ public class FishingController
 
     public void Update(float deltaTime, InputManager input)
     {
+        // Gate: don't start a new cast unless the active hotbar item is a fishing rod.
+        if (State == FishingState.Idle && !IsRodEquipped()) return;
+
+        // Cancel-on-unequip: if the player swaps the rod off the active slot mid-fish,
+        // abort the attempt. Closes a class of bug-abuses where players "freeze" fishing
+        // state to game the system. Pulling is exempt because it's just the catch-arc
+        // animation playing out (rod no longer matters there).
+        if (State != FishingState.Idle && State != FishingState.Done
+            && State != FishingState.Pulling && !IsRodEquipped())
+        {
+            EndAttempt(escaped: true, reason: "rod unequipped");
+            return;
+        }
+
+        // Cancel-on-damage: if HP dropped since last frame, the player took a hit —
+        // bail out of the round. Same for death. The minigame can't keep running while
+        // the player is being eaten; closes another bug class (immortal fishing).
+        if (State != FishingState.Idle && State != FishingState.Done && State != FishingState.Pulling)
+        {
+            if (!_player.IsAlive)
+            {
+                EndAttempt(escaped: true, reason: "player died");
+                _lastSeenHP = _player.HP;
+                return;
+            }
+            if (_player.HP < _lastSeenHP)
+            {
+                EndAttempt(escaped: true, reason: "took damage while fishing");
+                _lastSeenHP = _player.HP;
+                return;
+            }
+        }
+        _lastSeenHP = _player.HP;
+
         switch (State)
         {
             case FishingState.Idle:
@@ -471,6 +512,17 @@ public class FishingController
     private bool LineBroke()
     {
         return Vector2.Distance(_player.GetFootPosition(), BobberPosition) > MaxLineLength;
+    }
+
+    /// <summary>
+    /// True when the active hotbar slot holds any fishing rod tier
+    /// (id ends in "Fishing_Rod"). Gates Idle → Charging so clicking while
+    /// holding a hoe/seed/empty hand doesn't start a phantom cast.
+    /// </summary>
+    private bool IsRodEquipped()
+    {
+        var active = _inventory.GetActiveHotbarItem();
+        return active != null && active.ItemId.EndsWith("Fishing_Rod");
     }
 
     /// <summary>

@@ -55,7 +55,6 @@ public class FarmScene : GameplayScene
     private SpriteAtlas _spriteAtlas = null!;
     private HotbarRenderer _hotbar = null!;
     private HUD _hud = null!;
-    private MinimapRenderer _minimap = null!;
     private ChestManager _chestManager = null!;
     private ResourceManager _resourceManager = null!;
     private InteractionPrompt _chestPrompt = null!;
@@ -198,10 +197,6 @@ public class FarmScene : GameplayScene
         _hud.SetTheme(Services.Theme);
 
         BossHealthBar.LoadContent(device);
-
-        _minimap = new MinimapRenderer();
-        _minimap.LoadContent(device);
-        _minimap.Rebuild(Map, device);
 
         var itemSheet = LoadTexture(device, "assets/Sprites/Items/Pickup_Items.png");
         _spriteAtlas = SpriteAtlas.CreateDefault(itemSheet);
@@ -546,8 +541,6 @@ public class FarmScene : GameplayScene
 
     public override void Draw(SpriteBatch sb)
     {
-        _minimap.PreRender(
-            Services.GraphicsDevice, sb, Map, Player, _enemies, _boss, _gridManager);
         base.Draw(sb);
 
         // Fishing minigame overlay (screen-space) draws on top of HUD so the ring,
@@ -560,6 +553,12 @@ public class FarmScene : GameplayScene
             sb.End();
         }
     }
+
+    // Minimap data feeds: enemies, boss, tilled cells. Base GameplayScene calls these
+    // to plot markers on the shared minimap RenderTarget.
+    protected override IEnumerable<EnemyEntity> GetMinimapEnemies() => _enemies;
+    protected override BossEntity? GetMinimapBoss() => _boss;
+    protected override GridManager? GetMinimapGrid() => _gridManager;
 
     protected override void OnDrawWorld(SpriteBatch sb, Rectangle viewArea)
     {
@@ -643,8 +642,6 @@ public class FarmScene : GameplayScene
             _chestPrompt.Draw(sb, Font, Pixel, screenPos, "Press E to open chest");
         }
 
-        _minimap.Draw(sb, new Rectangle(viewportWidth - 174, 86, 160, 160));
-
         if (_boss != null && _boss.IsAlive)
         {
             BossHealthBar.Draw(sb, Pixel, Font,
@@ -655,7 +652,6 @@ public class FarmScene : GameplayScene
     protected override void OnUnload()
     {
         Services.Time.OnDayAdvanced -= OnDayAdvanced;
-        _minimap.Dispose();
     }
 
     private void ResolveEnemySeparation()

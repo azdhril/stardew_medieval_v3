@@ -366,6 +366,122 @@ public class TileMap
     }
 
     /// <summary>
+    /// Cache of averaged colors per resolved tile gid — populated lazily by
+    /// <see cref="SampleTileColor"/> so the minimap rebuild only pays the
+    /// Texture2D.GetData cost once per unique tile in the map.
+    /// </summary>
+    private readonly Dictionary<int, Color> _tileColorCache = new();
+
+    /// <summary>
+    /// Return the averaged opaque color of the topmost rendered tile at
+    /// (<paramref name="tileX"/>, <paramref name="tileY"/>) — used by the minimap to
+    /// auto-render a downscaled top-down view of the map without per-tile
+    /// classification. Skips the "farmzone" tag layer (gameplay-only, never drawn).
+    /// Returns <see cref="Color.Black"/> when the cell is empty or out of bounds.
+    /// </summary>
+    public Color SampleTileColor(int tileX, int tileY)
+    {
+        if (_map.Layers == null) return Color.Black;
+        if (tileX < 0 || tileX >= Width || tileY < 0 || tileY >= Height) return Color.Black;
+
+        // Decor objects (castle, houses, trees from the "Decor" object layer) are NOT
+        // tile-layer cells — they're sprite-rectangles in world space. Plot them on the
+        // minimap by checking if any decor's WorldBounds covers this tile's center, and
+        // if so, returning that decor's averaged color. Iterating the list per tile is
+        // O(decor × tiles) but decor counts are small (dozens) and the result is cached
+        // per decor anyway, so the cost is negligible at rebuild time.
+        int worldX = tileX * TileSize + TileSize / 2;
+        int worldY = tileY * TileSize + TileSize / 2;
+        for (int i = _decor.Count - 1; i >= 0; i--)
+        {
+            var d = _decor[i];
+            if (d.WorldBounds.Contains(worldX, worldY))
+            {
+                var dColor = d.SampleAverageColor();
+                if (dColor.A > 0) return dColor;
+                break; // empty/transparent decor — fall through to base tile
+            }
+        }
+
+        // Walk layers TOP → BOTTOM and pick the first that has a tile here. A more
+        // faithful render would composite alpha-aware across layers, but topmost-wins
+        // is good enough for a 192px circular minimap and avoids a per-pixel blend.
+        int rawGid = 0;
+        for (int i = _map.Layers.Length - 1; i >= 0; i--)
+        {
+            var layer = _map.Layers[i];
+            if (layer.type != TiledLayerType.TileLayer) continue;
+            if (!layer.visible) continue;
+            if (string.Equals(layer.name, "farmzone", StringComparison.OrdinalIgnoreCase)) continue;
+
+            int g = GetGid(layer, tileX, tileY);
+            if (g != 0) { rawGid = g; break; }
+        }
+        if (rawGid == 0) return Color.Black;
+
+        int gid = rawGid & 0x1FFFFFFF;
+        if (_tileColorCache.TryGetValue(gid, out var cached)) return cached;
+
+        // Resolve owning tileset (same walk used by DrawTileByGid).
+        int firstGid = 0;
+        TiledTileset? ts = null;
+        Texture2D? tex = null;
+        foreach (var kvp in _tilesets)
+        {
+            if (gid >= kvp.Key && kvp.Key > firstGid)
+            {
+                firstGid = kvp.Key;
+                ts = kvp.Value;
+                tex = _tilesetTextures[kvp.Key];
+            }
+        }
+        if (ts == null || tex == null)
+        {
+            _tileColorCache[gid] = Color.Black;
+            return Color.Black;
+        }
+
+        int localId = gid - firstGid;
+        int tileW = ts.TileWidth, tileH = ts.TileHeight, cols = ts.Columns;
+        if (cols <= 0 || tileW <= 0 || tileH <= 0)
+        {
+            _tileColorCache[gid] = Color.Black;
+            return Color.Black;
+        }
+
+        var src = new Rectangle((localId % cols) * tileW, (localId / cols) * tileH, tileW, tileH);
+
+        Color avg;
+        try
+        {
+            var pixels = new Color[tileW * tileH];
+            tex.GetData(0, src, pixels, 0, pixels.Length);
+
+            // Average opaque pixels only — alpha < ~12% counts as background and is skipped
+            // so a tree sprite with a transparent halo doesn't pull the average toward black.
+            int rSum = 0, gSum = 0, bSum = 0, count = 0;
+            foreach (var p in pixels)
+            {
+                if (p.A < 32) continue;
+                rSum += p.R; gSum += p.G; bSum += p.B;
+                count++;
+            }
+            avg = count == 0
+                ? Color.Black
+                : new Color(rSum / count, gSum / count, bSum / count);
+        }
+        catch (Exception ex)
+        {
+            // GetData can throw on certain GPU/profile combinations — fall back gracefully.
+            Console.WriteLine($"[TileMap] SampleTileColor GetData failed for gid={gid}: {ex.Message}");
+            avg = new Color(58, 97, 54);
+        }
+
+        _tileColorCache[gid] = avg;
+        return avg;
+    }
+
+    /// <summary>
     /// Check if a world-space rectangle collides with any collision polygon or map edges.
     /// </summary>
     public bool CheckCollision(Rectangle worldRect)

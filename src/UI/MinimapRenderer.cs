@@ -198,13 +198,12 @@ public sealed class MinimapRenderer : IDisposable
 
     private static Color GetTileColor(TileMap map, int x, int y)
     {
-        if (map.IsWater(x, y))
-            return new Color(28, 86, 132);
-
-        if (map.IsFarmZone(x, y))
-            return new Color(121, 92, 52);
-
-        return new Color(58, 97, 54);
+        // Auto-color sample: render the minimap as a downscaled top-down view of the
+        // actual map by averaging each tile's pixels. Caches per-gid so each unique
+        // tile is decoded once even on a 50×50 map. Falls back to terrain green when
+        // the cell is empty or sampling fails.
+        var sampled = map.SampleTileColor(x, y);
+        return sampled.A == 0 ? new Color(58, 97, 54) : sampled;
     }
 
     private static void FillTileBlock(Color[] data, int textureWidth, int tileX, int tileY, Color color)

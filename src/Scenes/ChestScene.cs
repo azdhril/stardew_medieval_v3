@@ -154,16 +154,20 @@ public class ChestScene : Scene
         // Build action + close widgets. Bounds are refreshed each frame in Update.
         // Send/Take: pixel-art slot background (BtnSlot, 9-sliced), positioned in the center
         // separator between the panes. Direction of arrow = destination pane.
+        // MaxIconScale=1 keeps the 16×16 arrow at native size inside the 32×32 chrome
+        // (otherwise it'd upscale 2× and visually overflow the slot).
         _sendBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
         {
             OnClickAction = () => ExecuteButton(ButtonAction.SendAll),
             Tooltip = "Send all",
+            MaxIconScale = 1,
         };
         _takeBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
         {
             Effects = SpriteEffects.FlipHorizontally,
             OnClickAction = () => ExecuteButton(ButtonAction.TakeAll),
             Tooltip = "Take all",
+            MaxIconScale = 1,
         };
         // Sort (broom): bare icon, no background chrome — per user design.
         _sortChestBtn = new IconButton(_theme.IconSort)
@@ -177,16 +181,19 @@ public class ChestScene : Scene
         };
 
         // Bolsa pagination — only enabled when the player's bag capacity exceeds one page.
+        // Same MaxIconScale=1 reasoning as send/take: native 16×16 arrow in the 9-sliced chrome.
         _bolsaPrevBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
         {
             Effects = SpriteEffects.FlipHorizontally,
             OnClickAction = () => AdjustBolsaPage(-1),
             Tooltip = "Página anterior",
+            MaxIconScale = 1,
         };
         _bolsaNextBtn = new IconButton(_theme.IconArrowRight, _theme.BtnSlot, _theme.BtnSlotInsets)
         {
             OnClickAction = () => AdjustBolsaPage(+1),
             Tooltip = "Próxima página",
+            MaxIconScale = 1,
         };
 
         Ui.Register(_sendBtn);

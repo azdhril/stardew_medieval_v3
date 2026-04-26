@@ -25,6 +25,45 @@ public class DecorOccluder
     private readonly SpriteEffects _flipEffects;
     private readonly Vector2 _worldAnchor;
 
+    // Lazy cache of the averaged opaque color of this decor's source pixels.
+    // Used by the minimap auto-sampler to plot buildings/trees over the base tile color.
+    private bool _avgColorCached;
+    private Color _avgColor;
+
+    /// <summary>World-space rectangle this decor occupies (used by the minimap to detect coverage).</summary>
+    public Rectangle WorldBounds => _destRect;
+
+    /// <summary>
+    /// Returns the averaged color of opaque pixels in this decor's source region.
+    /// Cached on first call. Skips pixels with alpha &lt; 32 so transparent halos
+    /// around tree canopies don't pull the result toward black.
+    /// </summary>
+    public Color SampleAverageColor()
+    {
+        if (_avgColorCached) return _avgColor;
+        try
+        {
+            var pixels = new Color[_sourceRect.Width * _sourceRect.Height];
+            _texture.GetData(0, _sourceRect, pixels, 0, pixels.Length);
+            int rSum = 0, gSum = 0, bSum = 0, count = 0;
+            foreach (var p in pixels)
+            {
+                if (p.A < 32) continue;
+                rSum += p.R; gSum += p.G; bSum += p.B;
+                count++;
+            }
+            _avgColor = count == 0
+                ? Color.Transparent
+                : new Color(rSum / count, gSum / count, bSum / count);
+        }
+        catch
+        {
+            _avgColor = Color.Transparent;
+        }
+        _avgColorCached = true;
+        return _avgColor;
+    }
+
     /// <summary>
     /// Build a decor occluder for a Tiled tile-object. <paramref name="destRect"/>
     /// is the world-space rectangle (Tiled tile-object anchor is bottom-left —

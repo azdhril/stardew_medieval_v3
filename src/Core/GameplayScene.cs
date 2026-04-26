@@ -4,9 +4,12 @@ using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using stardew_medieval_v3.Combat;
+using stardew_medieval_v3.Farming;
 using stardew_medieval_v3.Inventory;
 using stardew_medieval_v3.Player;
 using stardew_medieval_v3.Scenes;
+using stardew_medieval_v3.UI;
 using stardew_medieval_v3.World;
 
 namespace stardew_medieval_v3.Core;
@@ -43,6 +46,14 @@ public abstract class GameplayScene : Scene
 
     /// <summary>Red "You died" banner (screen-space, center). Protected so subclasses can trigger on death.</summary>
     protected readonly UI.DeathBanner _deathBanner = new();
+
+    /// <summary>
+    /// Circular minimap rendered top-right of every gameplay scene. Initialized in
+    /// <see cref="LoadContent"/>; subclasses override <see cref="GetMinimapEnemies"/>,
+    /// <see cref="GetMinimapBoss"/>, <see cref="GetMinimapGrid"/> to feed scene-specific
+    /// markers (enemies, boss, tilled tiles). Disposed in <see cref="UnloadContent"/>.
+    /// </summary>
+    protected MinimapRenderer? Minimap { get; private set; }
 
     /// <summary>TMX path loaded in LoadContent (e.g., "assets/Maps/village.tmx").</summary>
     protected abstract string MapPath { get; }
@@ -122,6 +133,19 @@ public abstract class GameplayScene : Scene
     protected virtual IEnumerable<Entity>? GetSolids() => null;
 
     /// <summary>
+    /// Enemies the minimap should plot as red dots. Default: none — hub scenes (Village,
+    /// Castle) don't have monsters. Combat scenes (Farm, Dungeon) override to return their
+    /// active enemy list.
+    /// </summary>
+    protected virtual IEnumerable<EnemyEntity> GetMinimapEnemies() => Array.Empty<EnemyEntity>();
+
+    /// <summary>Boss the minimap should plot as a larger orange dot, or null if no boss in scene.</summary>
+    protected virtual BossEntity? GetMinimapBoss() => null;
+
+    /// <summary>Grid manager whose tilled/cropped cells appear as overlay tints on the minimap.</summary>
+    protected virtual GridManager? GetMinimapGrid() => null;
+
+    /// <summary>
     /// When true, suppress global input (ESC/I/F2/hotbar/Q/scroll) and zero out
     /// player movement so a modal scene-owned interaction (e.g. fishing minigame)
     /// can monopolize WASD/LMB without the player drifting around or the inventory
@@ -150,6 +174,13 @@ public abstract class GameplayScene : Scene
 
         Map = new TileMap();
         Map.Load(MapPath, device);
+
+        // Minimap available across every gameplay scene. Subclasses provide enemies/boss/grid
+        // via the Get*ForMinimap virtual hooks; default = none of those markers, just terrain
+        // + player dot, which is correct for hub scenes (Village, Castle, etc.).
+        Minimap = new MinimapRenderer();
+        Minimap.LoadContent(device);
+        Minimap.Rebuild(Map, device);
 
         // Subclass sets up systems (may create Player on first entry).
         OnLoad();
@@ -338,6 +369,14 @@ public abstract class GameplayScene : Scene
         var viewport = device.Viewport;
         var transform = Services.Camera.GetTransformMatrix();
 
+        // PreRender the minimap to its own RenderTarget BEFORE we open the world
+        // SpriteBatch — the renderer flips active render targets internally and would
+        // discard mid-frame world output if we did this later. Subclasses feed enemy/
+        // boss/grid markers via the Get*ForMinimap virtuals; defaults are empty/null
+        // so hub scenes still render terrain + player dot correctly.
+        Minimap?.PreRender(device, sb, Map, Player,
+            GetMinimapEnemies(), GetMinimapBoss(), GetMinimapGrid());
+
         // World space
         sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp,
             null, null, null, transform);
@@ -381,12 +420,16 @@ public abstract class GameplayScene : Scene
         _levelUpBanner.Draw(sb, Font, viewport.Width);
         _deathBanner.Draw(sb, Font, viewport.Width, viewport.Height);
         OnDrawScreen(sb, viewport.Width, viewport.Height);
+        // Minimap composited last so subclass HUD elements (boss bar, NPC prompts)
+        // never accidentally hide it. Position pinned to top-right of the viewport.
+        Minimap?.Draw(sb, new Rectangle(viewport.Width - 174, 86, 160, 160));
         sb.End();
     }
 
     public override void UnloadContent()
     {
         OnUnload();
+        Minimap?.Dispose();
         Pixel?.Dispose();
         Console.WriteLine($"[{SceneName}Scene] Unloaded");
     }

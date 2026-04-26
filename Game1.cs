@@ -138,6 +138,15 @@ public class Game1 : Game
             }
         }
 
+        // If the saved scene is non-Farm, hide the bootstrap FarmScene under a black
+        // overlay so the player doesn't see a Farm flash before the boot restore
+        // hops to the saved scene. The flash happened because the standard fade-out
+        // takes 0.4s and FarmScene was fully rendered during that time.
+        bool nonFarmRestore = !string.IsNullOrEmpty(_services.PendingRestoreScene)
+                              && _services.PendingRestoreScene != "Farm";
+        if (nonFarmRestore)
+            _sceneManager.BootBlack();
+
         // Push initial scene
         _sceneManager.PushImmediate(new FarmScene(_services));
     }

@@ -346,6 +346,11 @@ public class DungeonScene : GameplayScene
         return false;
     }
 
+    // Minimap data feeds — show enemies and boss as dots on the dungeon minimap.
+    // No grid (dungeons aren't farmable).
+    protected override IEnumerable<EnemyEntity> GetMinimapEnemies() => _enemies;
+    protected override BossEntity? GetMinimapBoss() => _boss;
+
     protected override IEnumerable<Entity>? GetSolids()
     {
         var solids = new List<Entity>(_enemies);

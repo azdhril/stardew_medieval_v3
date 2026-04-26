@@ -46,9 +46,34 @@ public class SceneManager
             _scenes.Push(newScene);
             newScene.LoadContent();
         };
-        _state = TransitionState.FadingOut;
-        _fadeAlpha = 0f;
-        Console.WriteLine("[SceneManager] Transition started");
+
+        // If we're already at black (boot restore via BootBlack), skip the fade-out
+        // entirely: swap the scene now and start the fade-in. Avoids the "FarmScene
+        // flash" that the player would see during the fade-out from a fully-rendered Farm.
+        if (_fadeAlpha >= 1f)
+        {
+            _pendingAction.Invoke();
+            _pendingAction = null;
+            _state = TransitionState.FadingIn;
+            Console.WriteLine("[SceneManager] Transition started (skipped fade-out — already at black)");
+        }
+        else
+        {
+            _state = TransitionState.FadingOut;
+            _fadeAlpha = 0f;
+            Console.WriteLine("[SceneManager] Transition started");
+        }
+    }
+
+    /// <summary>
+    /// Pre-set the fade overlay to fully opaque black. Used by Game1 at startup
+    /// when the saved scene is non-Farm so the bootstrap FarmScene loads/transitions
+    /// invisibly underneath; the next <see cref="TransitionTo"/> call detects the
+    /// black overlay and skips the fade-out, going straight to swap + fade-in.
+    /// </summary>
+    public void BootBlack()
+    {
+        _fadeAlpha = 1f;
     }
 
     /// <summary>Push overlay scene on top (e.g., pause menu). Fades in/out.</summary>
